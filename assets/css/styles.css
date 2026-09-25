@@ -1,0 +1,536 @@
+/* =========================================================
+   RESET
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: #05080c;
+    color: #ffffff;
+    font-family:
+        "Segoe UI",
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+
+/* =========================================================
+   ESCENA 3D
+========================================================= */
+
+#game-container {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(circle at center,
+            #18212b 0%,
+            #080c11 65%,
+            #020304 100%);
+}
+
+#game-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* =========================================================
+   HUD
+========================================================= */
+
+.hud {
+    position: fixed;
+    top: 22px;
+    left: 22px;
+
+    width: 250px;
+
+    padding: 18px;
+
+    z-index: 20;
+
+    background:
+        linear-gradient(145deg,
+            rgba(13, 18, 24, 0.92),
+            rgba(4, 7, 10, 0.86));
+
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    border-radius: 8px;
+
+    backdrop-filter: blur(10px);
+
+    box-shadow:
+        0 15px 40px rgba(0, 0, 0, 0.45);
+
+    pointer-events: none;
+}
+
+.hud-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    letter-spacing: 2px;
+
+    color: #ffffff;
+}
+
+.status-dot {
+    display: inline-block;
+
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: #62ff9a;
+
+    box-shadow:
+        0 0 10px #62ff9a;
+}
+
+.hud-divider {
+    width: 100%;
+    height: 1px;
+
+    margin: 14px 0;
+
+    background:
+        linear-gradient(90deg,
+            rgba(255, 255, 255, 0.25),
+            transparent);
+}
+
+.hud-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin: 9px 0;
+
+    font-size: 12px;
+}
+
+.hud-item span {
+    color: #8f9ba7;
+
+    letter-spacing: 1px;
+}
+
+.hud-item strong {
+    color: #ffffff;
+
+    letter-spacing: 1px;
+}
+
+
+/* =========================================================
+   CONTROLES
+========================================================= */
+
+.controls-panel {
+    position: fixed;
+
+    right: 22px;
+    bottom: 22px;
+
+    width: 220px;
+
+    padding: 15px;
+
+    z-index: 20;
+
+    background:
+        rgba(7, 10, 14, 0.82);
+
+    border:
+        1px solid rgba(255, 255, 255, 0.1);
+
+    border-radius: 8px;
+
+    backdrop-filter: blur(8px);
+
+    pointer-events: none;
+}
+
+.controls-title {
+    margin-bottom: 12px;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    letter-spacing: 2px;
+
+    color: #87939f;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    margin: 8px 0;
+
+    font-size: 12px;
+
+    color: #ccd4da;
+}
+
+.key {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 25px;
+    height: 25px;
+
+    padding: 0 7px;
+
+    color: #ffffff;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    background: #1e252d;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.18);
+
+    border-radius: 4px;
+
+    box-shadow:
+        inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.key-wide {
+    min-width: 55px;
+}
+
+.mouse-icon {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 26px;
+    height: 26px;
+
+    font-size: 15px;
+}
+
+
+/* =========================================================
+   PANTALLAS DE JUEGO
+========================================================= */
+
+.game-screen {
+    position: fixed;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    z-index: 100;
+
+    background:
+        radial-gradient(circle at center,
+            rgba(11, 19, 26, 0.78),
+            rgba(1, 3, 5, 0.96));
+
+    backdrop-filter: blur(4px);
+}
+
+.game-screen.hidden {
+    display: none;
+}
+
+.screen-content {
+    width: min(620px, 90%);
+
+    text-align: center;
+}
+
+.screen-tag {
+    display: inline-block;
+
+    margin-bottom: 15px;
+
+    padding:
+        6px 12px;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.2);
+
+    border-radius: 4px;
+
+    color: #8d9ba8;
+
+    font-size: 11px;
+
+    letter-spacing: 4px;
+}
+
+.screen-content h1 {
+    margin-bottom: 16px;
+
+    color: #ffffff;
+
+    font-size:
+        clamp(46px,
+            8vw,
+            92px);
+
+    font-weight: 800;
+
+    letter-spacing: -3px;
+
+    line-height: 0.88;
+}
+
+.screen-content h1 span {
+    display: block;
+
+    color: transparent;
+
+    -webkit-text-stroke:
+        1px rgba(255, 255, 255, 0.75);
+}
+
+.game-description {
+    max-width: 500px;
+
+    margin:
+        25px auto;
+
+    color: #aeb8c0;
+
+    font-size: 15px;
+
+    line-height: 1.7;
+}
+
+.mission-box {
+    max-width: 460px;
+
+    margin:
+        25px auto;
+
+    padding: 16px 20px;
+
+    text-align: left;
+
+    background:
+        rgba(255, 255, 255, 0.04);
+
+    border-left:
+        3px solid #ffffff;
+
+    border-radius:
+        0 6px 6px 0;
+}
+
+.mission-box span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #838f99;
+
+    font-size: 10px;
+
+    letter-spacing: 2px;
+}
+
+.mission-box p {
+    margin: 0;
+
+    color: #e4e9ed;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   BOTÓN
+========================================================= */
+
+.btn-start {
+    position: relative;
+
+    min-width: 220px;
+
+    margin-top: 8px;
+
+    padding:
+        14px 28px;
+
+    color: #05080b;
+
+    background: #ffffff;
+
+    border: none;
+
+    border-radius: 5px;
+
+    font-size: 12px;
+    font-weight: 800;
+
+    letter-spacing: 2px;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+
+.btn-start:hover {
+    transform:
+        translateY(-2px);
+
+    background: #dce2e7;
+}
+
+.btn-start:active {
+    transform:
+        translateY(0);
+}
+
+.version {
+    margin-top: 24px;
+
+    color: #5d6872;
+
+    font-size: 9px;
+
+    letter-spacing: 2px;
+}
+
+
+/* =========================================================
+   CROSSHAIR
+========================================================= */
+
+.crosshair {
+    position: fixed;
+
+    top: 50%;
+    left: 50%;
+
+    width: 22px;
+    height: 22px;
+
+    transform:
+        translate(-50%,
+            -50%);
+
+    z-index: 15;
+
+    opacity: 0;
+
+    pointer-events: none;
+}
+
+.crosshair.visible {
+    opacity: 0.65;
+}
+
+.crosshair span {
+    position: absolute;
+
+    background: #ffffff;
+
+    border-radius: 1px;
+}
+
+.crosshair span:first-child {
+    top: 10px;
+    left: 2px;
+
+    width: 18px;
+    height: 1px;
+}
+
+.crosshair span:last-child {
+    top: 2px;
+    left: 10px;
+
+    width: 1px;
+    height: 18px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .hud {
+        top: 10px;
+        left: 10px;
+
+        width: 195px;
+
+        padding: 12px;
+    }
+
+    .hud-title {
+        font-size: 10px;
+    }
+
+    .hud-item {
+        font-size: 10px;
+    }
+
+    .controls-panel {
+        right: 10px;
+        bottom: 10px;
+
+        width: 180px;
+
+        padding: 10px;
+    }
+
+    .control-row {
+        font-size: 10px;
+    }
+
+    .screen-content h1 {
+        letter-spacing: -1px;
+    }
+
+}
+
+
+/* =========================================================
+   OCULTAR
+========================================================= */
+
+.hidden {
+    display: none !important;
+}
