@@ -1,0 +1,637 @@
+{
+  "accessors": [
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 293,
+      "max": [
+        36.053062438964844,
+        2.3956622259281536e-15,
+        39.052223205566406
+      ],
+      "min": [
+        -28.665536880493164,
+        -2.391259136910089e-15,
+        -39.1241340637207
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 3516,
+      "componentType": 5126,
+      "count": 293,
+      "max": [
+        -0.0,
+        1.0,
+        0.0
+      ],
+      "min": [
+        -0.0,
+        1.0,
+        0.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 879,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 7032,
+      "componentType": 5126,
+      "count": 586,
+      "max": [
+        36.053062438964844,
+        2.12933349609375,
+        39.052223205566406
+      ],
+      "min": [
+        -28.665536880493164,
+        -2.391259136910089e-15,
+        -39.1241340637207
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 14064,
+      "componentType": 5126,
+      "count": 586,
+      "max": [
+        0.9999754428863525,
+        7.621687245773501e-07,
+        0.9999899864196777
+      ],
+      "min": [
+        -0.999991774559021,
+        -9.082256724468607e-07,
+        -0.9999779462814331
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 3516,
+      "componentType": 5125,
+      "count": 1758,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 21096,
+      "componentType": 5126,
+      "count": 11128,
+      "max": [
+        59.3967399597168,
+        57.746971130371094,
+        13.40252685546875
+      ],
+      "min": [
+        -52.76396942138672,
+        -57.60260772705078,
+        -1.2016221284866333
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 154632,
+      "componentType": 5126,
+      "count": 11128,
+      "max": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 11128,
+      "max": [
+        0.9977554082870483,
+        0.996202826499939
+      ],
+      "min": [
+        0.004437796771526337,
+        0.004571051336824894
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 10548,
+      "componentType": 5125,
+      "count": 27312,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 288168,
+      "componentType": 5126,
+      "count": 3311,
+      "max": [
+        59.3967399597168,
+        66.00140380859375,
+        11.762580871582031
+      ],
+      "min": [
+        -52.93879699707031,
+        -57.84360122680664,
+        -1.2016220092773438
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 327900,
+      "componentType": 5126,
+      "count": 3311,
+      "max": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 89024,
+      "componentType": 5126,
+      "count": 3311,
+      "max": [
+        0.9980876445770264,
+        0.9982739686965942
+      ],
+      "min": [
+        0.004794212058186531,
+        0.002880108542740345
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 119796,
+      "componentType": 5125,
+      "count": 8592,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 367632,
+      "componentType": 5126,
+      "count": 5176,
+      "max": [
+        80.58792114257813,
+        87.18343353271484,
+        12.296940803527832
+      ],
+      "min": [
+        -72.40148162841797,
+        -75.9766616821289,
+        -1.2016220092773438
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 429744,
+      "componentType": 5126,
+      "count": 5176,
+      "max": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 115512,
+      "componentType": 5126,
+      "count": 5176,
+      "max": [
+        0.9984461069107056,
+        0.9966418147087097
+      ],
+      "min": [
+        0.0011085137957707047,
+        0.0010290928184986115
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 154164,
+      "componentType": 5125,
+      "count": 9096,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "extras": {
+      "author": "amogusstrikesback2 (https://sketchfab.com/amogusstrikesback2)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/town-square-track-410edb9f4ce0433981e91c05e7a225dd",
+      "title": "town square track"
+    },
+    "generator": "Sketchfab-17.17.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 190548,
+      "name": "floatBufferViews",
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 156920,
+      "byteOffset": 190548,
+      "byteStride": 8,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 491856,
+      "byteOffset": 347468,
+      "byteStride": 12,
+      "name": "floatBufferViews",
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 839324,
+      "uri": "scene.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/Track5_TownSquare_01_Day_Map_baseColor.png"
+    },
+    {
+      "uri": "textures/Track5_TownSquare_02_Day_Map_baseColor.png"
+    },
+    {
+      "uri": "textures/Track5_TownSquare_03_Day_Map_baseColor.png"
+    }
+  ],
+  "materials": [
+    {
+      "alphaMode": "BLEND",
+      "doubleSided": true,
+      "name": "Track5_TownSquare_Collision_new",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.498039,
+          0.498039,
+          0.498039,
+          0.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.9577051494623774
+      }
+    },
+    {
+      "alphaMode": "BLEND",
+      "doubleSided": true,
+      "name": "Track5_TownSquare_Collision_new_W",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.292453,
+          0.291073,
+          0.291073,
+          0.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.9577051494623774
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "Track5_TownSquare_01_Day_Map",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.9577051494623774
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "Track5_TownSquare_02_Day_Map",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.9577051494623774
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "Track5_TownSquare_03_Day_Map",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.9577051494623774
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Track5_TownSquare_Collision_Track5_TownSquare_Collision_new_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0
+          },
+          "indices": 2,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Track5_TownSquare_Collision_W_Track5_TownSquare_Collision_new_W_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 4,
+            "POSITION": 3
+          },
+          "indices": 5,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Track5_TownSquare_Track5_TownSquare_01_Day_Map_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 7,
+            "POSITION": 6,
+            "TEXCOORD_0": 8
+          },
+          "indices": 9,
+          "material": 2,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Track5_TownSquare_Track5_TownSquare_02_Day_Map_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 11,
+            "POSITION": 10,
+            "TEXCOORD_0": 12
+          },
+          "indices": 13,
+          "material": 3,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Track5_TownSquare_Track5_TownSquare_03_Day_Map_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 15,
+            "POSITION": 14,
+            "TEXCOORD_0": 16
+          },
+          "indices": 17,
+          "material": 4,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.220446049250313e-16,
+        -1.0,
+        0.0,
+        0.0,
+        1.0,
+        2.220446049250313e-16,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Sketchfab_model"
+    },
+    {
+      "children": [
+        2
+      ],
+      "matrix": [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0,
+        -0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Offroad.fbx"
+    },
+    {
+      "children": [
+        3
+      ],
+      "name": "RootNode"
+    },
+    {
+      "children": [
+        4
+      ],
+      "name": "Offroad"
+    },
+    {
+      "children": [
+        5,
+        7,
+        9
+      ],
+      "name": "Track5_TownSquare_Collision_new"
+    },
+    {
+      "children": [
+        6
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.999999999999999,
+        4.3711388215090006e-08,
+        0.0,
+        0.0,
+        -4.3711388215090006e-08,
+        0.999999999999999,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Track5_TownSquare_Collision"
+    },
+    {
+      "mesh": 0,
+      "name": "Track5_TownSquare_Collision_Track5_TownSquare_Collision_new_0"
+    },
+    {
+      "children": [
+        8
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        5.199999809265131,
+        2.2729921038118235e-07,
+        0.0,
+        0.0,
+        -4.371138821509e-08,
+        0.999999999999999,
+        0.0,
+        0.0,
+        -4.800000190734863,
+        0.0,
+        1.0
+      ],
+      "name": "Track5_TownSquare_Collision_W"
+    },
+    {
+      "mesh": 1,
+      "name": "Track5_TownSquare_Collision_W_Track5_TownSquare_Collision_new_W_0"
+    },
+    {
+      "children": [
+        10,
+        11,
+        12
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.220446049250313e-16,
+        -1.0,
+        0.0,
+        0.0,
+        1.0,
+        2.220446049250313e-16,
+        0.0,
+        0.0,
+        -6.446200131904334e-06,
+        -3.926500085071893e-06,
+        1.0
+      ],
+      "name": "Track5_TownSquare"
+    },
+    {
+      "mesh": 2,
+      "name": "Track5_TownSquare_Track5_TownSquare_01_Day_Map_0"
+    },
+    {
+      "mesh": 3,
+      "name": "Track5_TownSquare_Track5_TownSquare_02_Day_Map_0"
+    },
+    {
+      "mesh": 4,
+      "name": "Track5_TownSquare_Track5_TownSquare_03_Day_Map_0"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    }
+  ]
+}
