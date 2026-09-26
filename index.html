@@ -16,12 +16,15 @@
     <!-- Estilos -->
     <link rel="stylesheet" href="./assets/css/styles.css">
 
-    <!-- Three.js -->
+    <!-- ==========================================
+         THREE.JS + RAPIER
+    =========================================== -->
     <script type="importmap">
     {
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/",
+            "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.3/+esm"
         }
     }
     </script>
@@ -34,10 +37,12 @@
     =========================================== -->
     <main id="game-container"></main>
 
+
     <!-- ==========================================
          HUD
     =========================================== -->
     <section id="hud" class="hud">
+
         <div class="hud-title">
             <span class="status-dot"></span>
             OPERATION IMPACT
@@ -47,61 +52,93 @@
 
         <div class="hud-item">
             <span>ESTADO</span>
-            <strong id="game-status">INICIO</strong>
+            <strong id="game-status">
+                INICIO
+            </strong>
         </div>
 
         <div class="hud-item">
             <span>OBJETIVOS</span>
-            <strong id="objective-counter">0 / 8</strong>
+            <strong id="objective-counter">
+                0 / 8
+            </strong>
         </div>
 
         <div class="hud-item">
             <span>PUNTOS</span>
-            <strong id="score">0000</strong>
+            <strong id="score">
+                0000
+            </strong>
         </div>
 
         <div class="hud-item">
             <span>TIEMPO</span>
-            <strong id="timer">02:00</strong>
+            <strong id="timer">
+                02:00
+            </strong>
         </div>
+
     </section>
+
 
     <!-- ==========================================
          PANEL DE CONTROLES
     =========================================== -->
     <section class="controls-panel">
+
         <div class="controls-title">
             CONTROLES
         </div>
 
         <div class="control-row">
+
             <span class="key">W</span>
             <span class="key">A</span>
             <span class="key">S</span>
             <span class="key">D</span>
+
             <span>Mover</span>
+
         </div>
 
         <div class="control-row">
-            <span class="key key-wide">SHIFT</span>
+
+            <span class="key key-wide">
+                SHIFT
+            </span>
+
             <span>Correr</span>
+
         </div>
 
         <div class="control-row">
-            <span class="key">F</span>
+
+            <span class="key">
+                F
+            </span>
+
             <span>Acción</span>
+
         </div>
 
         <div class="control-row">
-            <span class="mouse-icon">🖱</span>
+
+            <span class="mouse-icon">
+                🖱
+            </span>
+
             <span>Cámara</span>
+
         </div>
+
     </section>
+
 
     <!-- ==========================================
          PANTALLA INICIAL
     =========================================== -->
     <section id="start-screen" class="game-screen">
+
         <div class="screen-content">
 
             <span class="screen-tag">
@@ -119,12 +156,16 @@
             </p>
 
             <div class="mission-box">
-                <span>OBJETIVO PRINCIPAL</span>
+
+                <span>
+                    OBJETIVO PRINCIPAL
+                </span>
 
                 <p>
                     Destruye los 8 núcleos de energía
                     distribuidos por el escenario.
                 </p>
+
             </div>
 
             <button id="start-button" class="btn-start" type="button">
@@ -132,21 +173,28 @@
             </button>
 
             <p class="version">
-                VERSION 0.2 · ESCENARIO Y CÁMARA
+                VERSION 0.4 · FÍSICA Y COLISIONES
             </p>
 
         </div>
+
     </section>
+
 
     <!-- ==========================================
          PUNTO CENTRAL
     =========================================== -->
     <div id="crosshair" class="crosshair">
+
         <span></span>
         <span></span>
+
     </div>
 
-    <!-- JavaScript principal -->
+
+    <!-- ==========================================
+         JAVASCRIPT PRINCIPAL
+    =========================================== -->
     <script type="module" src="./assets/js/main.js"></script>
 
 </body>

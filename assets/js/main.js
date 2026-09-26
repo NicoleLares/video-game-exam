@@ -1,7 +1,12 @@
 import * as THREE from 'three';
 
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import {
+    GLTFLoader
+} from 'three/addons/loaders/GLTFLoader.js';
+
+import {
+    OrbitControls
+} from 'three/addons/controls/OrbitControls.js';
 
 import {
     startGame,
@@ -14,7 +19,11 @@ import {
 
 import {
     initPhysics,
-    updatePhysics
+    updatePhysics,
+    createEnvironmentColliders,
+    createCharacterPhysics,
+    moveCharacter,
+    setCharacterPhysicsPosition
 } from './physics.js';
 
 import {
@@ -37,10 +46,19 @@ const CHARACTER_PATH =
     './assets/models/character/Swat.glb';
 
 const ANIMATION_PATHS = {
-    idle: './assets/models/character/Idle.glb',
-    walking: './assets/models/character/walking.glb',
-    run: './assets/models/character/run.glb',
-    throw: './assets/models/character/throw.glb'
+
+    idle:
+        './assets/models/character/Idle.glb',
+
+    walking:
+        './assets/models/character/walking.glb',
+
+    run:
+        './assets/models/character/run.glb',
+
+    throw:
+        './assets/models/character/throw.glb'
+
 };
 
 
@@ -48,54 +66,47 @@ const ANIMATION_PATHS = {
 // CONFIGURACIÓN DEL PERSONAJE
 // ============================================================
 
-const CHARACTER_HEIGHT = 1.35;
+const CHARACTER_HEIGHT =
+    1.35;
 
-const WALK_SPEED = 2.7;
-const RUN_SPEED = 5.5;
+const WALK_SPEED =
+    2.7;
 
-const ROTATION_SPEED = 12;
+const RUN_SPEED =
+    5.5;
 
-
-// ============================================================
-// ORIENTACIÓN DEL MODELO
-// ============================================================
-//
-// 0 porque con Math.PI el SWAT visualmente
-// caminaba de espaldas.
-//
-
-const MODEL_FORWARD_OFFSET = 0;
+const ROTATION_SPEED =
+    12;
 
 
 // ============================================================
-// CORRECCIÓN DE BRAZOS EN IDLE
+// ORIENTACIÓN
 // ============================================================
-//
-// El Idle.glb anima directamente:
-//
-// mixamorig:LeftArm
-// mixamorig:RightArm
-//
-// y deja los brazos demasiado levantados.
-//
-// Esta corrección SOLO se aplica durante Idle.
-//
 
-const IDLE_ARM_DROP_DEGREES = 75;
-
-const IDLE_ARM_BLEND_SPEED = 12;
+const MODEL_FORWARD_OFFSET =
+    0;
 
 
 // ============================================================
-// CONFIGURACIÓN DEL SUELO
+// RAYCASTER INICIAL
+// ============================================================
+//
+// Ahora Rapier controla el suelo durante el juego.
+//
+// Este Raycaster SOLO lo usaremos para conocer
+// la altura inicial donde aparece el personaje.
+//
 // ============================================================
 
-const GROUND_RAY_HEIGHT = 40;
-const GROUND_OFFSET = 0.02;
+const GROUND_RAY_HEIGHT =
+    40;
+
+const GROUND_OFFSET =
+    0.02;
 
 
 // ============================================================
-// POSICIÓN INICIAL
+// SPAWN
 // ============================================================
 
 const PLAYER_SPAWN =
@@ -132,11 +143,16 @@ scene.fog =
 
 const camera =
     new THREE.PerspectiveCamera(
+
         60,
+
         window.innerWidth /
         window.innerHeight,
+
         0.1,
+
         500
+
     );
 
 camera.position.set(
@@ -152,7 +168,10 @@ camera.position.set(
 
 const renderer =
     new THREE.WebGLRenderer({
-        antialias: true
+
+        antialias:
+            true
+
     });
 
 renderer.setSize(
@@ -161,13 +180,16 @@ renderer.setSize(
 );
 
 renderer.setPixelRatio(
+
     Math.min(
         window.devicePixelRatio,
         2
     )
+
 );
 
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled =
+    true;
 
 renderer.shadowMap.type =
     THREE.PCFSoftShadowMap;
@@ -178,7 +200,8 @@ renderer.outputColorSpace =
 renderer.toneMapping =
     THREE.ACESFilmicToneMapping;
 
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure =
+    1.1;
 
 
 // ============================================================
@@ -205,20 +228,31 @@ const controls =
         renderer.domElement
     );
 
-controls.enableDamping = true;
-controls.dampingFactor = 0.08;
+controls.enableDamping =
+    true;
 
-controls.enablePan = false;
-controls.enableZoom = true;
+controls.dampingFactor =
+    0.08;
 
-controls.minDistance = 2.2;
-controls.maxDistance = 6;
+controls.enablePan =
+    false;
+
+controls.enableZoom =
+    true;
+
+controls.minDistance =
+    2.2;
+
+controls.maxDistance =
+    6;
 
 controls.minPolarAngle =
-    Math.PI * 0.12;
+    Math.PI *
+    0.12;
 
 controls.maxPolarAngle =
-    Math.PI * 0.47;
+    Math.PI *
+    0.47;
 
 controls.target.set(
     0,
@@ -245,6 +279,10 @@ scene.add(
 );
 
 
+// ============================================================
+// LUZ PRINCIPAL
+// ============================================================
+
 const directionalLight =
     new THREE.DirectionalLight(
         0xfff1d4,
@@ -257,25 +295,44 @@ directionalLight.position.set(
     20
 );
 
-directionalLight.castShadow = true;
+directionalLight.castShadow =
+    true;
 
-directionalLight.shadow.mapSize.width = 2048;
-directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.mapSize.width =
+    2048;
 
-directionalLight.shadow.camera.left = -50;
-directionalLight.shadow.camera.right = 50;
-directionalLight.shadow.camera.top = 50;
-directionalLight.shadow.camera.bottom = -50;
+directionalLight.shadow.mapSize.height =
+    2048;
 
-directionalLight.shadow.camera.near = 0.1;
-directionalLight.shadow.camera.far = 150;
+directionalLight.shadow.camera.left =
+    -50;
 
-directionalLight.shadow.bias = -0.0002;
+directionalLight.shadow.camera.right =
+    50;
+
+directionalLight.shadow.camera.top =
+    50;
+
+directionalLight.shadow.camera.bottom =
+    -50;
+
+directionalLight.shadow.camera.near =
+    0.1;
+
+directionalLight.shadow.camera.far =
+    150;
+
+directionalLight.shadow.bias =
+    -0.0002;
 
 scene.add(
     directionalLight
 );
 
+
+// ============================================================
+// LUZ SECUNDARIA
+// ============================================================
 
 const fillLight =
     new THREE.DirectionalLight(
@@ -306,9 +363,16 @@ const loader =
 // ESCENARIO
 // ============================================================
 
-let environment = null;
+let environment =
+    null;
 
-const collisionMeshes = [];
+
+// ============================================================
+// MALLAS FÍSICAS
+// ============================================================
+
+const collisionMeshes =
+    [];
 
 
 // ============================================================
@@ -330,59 +394,26 @@ scene.add(
 );
 
 
-let characterModel = null;
+let characterModel =
+    null;
 
-let mixer = null;
+let mixer =
+    null;
 
-let characterLoaded = false;
+let characterLoaded =
+    false;
 
-let isThrowing = false;
+let characterPhysicsCreated =
+    false;
 
-let activeAction = null;
+let isThrowing =
+    false;
 
-let activeActionName = '';
+let activeAction =
+    null;
 
-
-// ============================================================
-// HUESOS DE LOS BRAZOS
-// ============================================================
-
-let leftArmBone = null;
-let rightArmBone = null;
-
-
-// Correcciones finales.
-const leftArmCorrection =
-    new THREE.Quaternion();
-
-const rightArmCorrection =
-    new THREE.Quaternion();
-
-
-// Correcciones temporales para blending.
-const leftArmBlendQuaternion =
-    new THREE.Quaternion();
-
-const rightArmBlendQuaternion =
-    new THREE.Quaternion();
-
-
-// Quaternion identidad.
-const identityQuaternion =
-    new THREE.Quaternion();
-
-
-// Eje local Z.
-const armCorrectionAxis =
-    new THREE.Vector3(
-        0,
-        0,
-        1
-    );
-
-
-// Cantidad actual de corrección.
-let idleArmBlend = 0;
+let activeActionName =
+    '';
 
 
 // ============================================================
@@ -390,10 +421,19 @@ let idleArmBlend = 0;
 // ============================================================
 
 const actions = {
-    idle: null,
-    walking: null,
-    run: null,
-    throw: null
+
+    idle:
+        null,
+
+    walking:
+        null,
+
+    run:
+        null,
+
+    throw:
+        null
+
 };
 
 
@@ -402,11 +442,22 @@ const actions = {
 // ============================================================
 
 const keys = {
-    w: false,
-    a: false,
-    s: false,
-    d: false,
-    shift: false
+
+    w:
+        false,
+
+    a:
+        false,
+
+    s:
+        false,
+
+    d:
+        false,
+
+    shift:
+        false
+
 };
 
 
@@ -429,6 +480,16 @@ const desiredTarget =
 const targetDifference =
     new THREE.Vector3();
 
+const horizontalPhysicsMovement = {
+
+    x:
+        0,
+
+    z:
+        0
+
+};
+
 const UP =
     new THREE.Vector3(
         0,
@@ -438,7 +499,7 @@ const UP =
 
 
 // ============================================================
-// RAYCASTER DEL SUELO
+// RAYCASTER
 // ============================================================
 
 const groundRaycaster =
@@ -462,7 +523,7 @@ const normalMatrix =
 
 
 // ============================================================
-// BOUNDING BOX DEL PERSONAJE ANIMADO
+// PERSONAJE ANIMADO
 // ============================================================
 
 const animatedCharacterBox =
@@ -481,10 +542,12 @@ const clock =
 
 
 // ============================================================
-// CARGAR GLTF COMO PROMESA
+// CARGAR GLTF
 // ============================================================
 
-function loadGLTF(path) {
+function loadGLTF(
+    path
+) {
 
     return new Promise(
         (
@@ -498,20 +561,27 @@ function loadGLTF(path) {
 
                 resolve,
 
-                (progress) => {
+                (
+                    progress
+                ) => {
 
                     if (
-                        progress.total > 0
+                        progress.total >
+                        0
                     ) {
 
                         const percent =
                             (
                                 progress.loaded /
                                 progress.total
-                            ) * 100;
+                            ) *
+                            100;
+
 
                         console.log(
+
                             `📦 ${path}: ${percent.toFixed(0)}%`
+
                         );
 
                     }
@@ -556,8 +626,15 @@ async function loadEnvironment() {
         );
 
 
+        // ====================================================
+        // CONFIGURAR MALLAS
+        // ====================================================
+
         environment.traverse(
-            (child) => {
+
+            (
+                child
+            ) => {
 
                 if (
                     !child.isMesh
@@ -568,17 +645,20 @@ async function loadEnvironment() {
                 }
 
 
-                // ====================================================
+                // =================================================
                 // SOMBRAS
-                // ====================================================
+                // =================================================
 
-                child.castShadow = true;
-                child.receiveShadow = true;
+                child.castShadow =
+                    true;
+
+                child.receiveShadow =
+                    true;
 
 
-                // ====================================================
-                // MATERIALES
-                // ====================================================
+                // =================================================
+                // TEXTURAS
+                // =================================================
 
                 if (
                     child.material
@@ -588,12 +668,19 @@ async function loadEnvironment() {
                         Array.isArray(
                             child.material
                         )
-                            ? child.material
-                            : [child.material];
+                            ?
+                            child.material
+                            :
+                            [
+                                child.material
+                            ];
 
 
                     materials.forEach(
-                        (material) => {
+
+                        (
+                            material
+                        ) => {
 
                             if (
                                 material.map
@@ -601,6 +688,7 @@ async function loadEnvironment() {
 
                                 material.map.colorSpace =
                                     THREE.SRGBColorSpace;
+
 
                                 material.map.needsUpdate =
                                     true;
@@ -612,22 +700,23 @@ async function loadEnvironment() {
                                 true;
 
                         }
+
                     );
 
                 }
 
 
-                // ====================================================
-                // MALLAS DE COLISIÓN
-                // ====================================================
+                // =================================================
+                // COLLISION MESHES
+                // =================================================
 
-                const objectName =
+                const name =
                     child.name
                         .toLowerCase();
 
 
                 if (
-                    objectName.includes(
+                    name.includes(
                         'collision'
                     )
                 ) {
@@ -637,24 +726,61 @@ async function loadEnvironment() {
                     );
 
 
+                    // No mostrar geometría de colisión.
                     child.visible =
                         false;
 
 
                     console.log(
-                        '🧱 Collider detectado:',
+                        '🧱 Collision mesh:',
                         child.name
                     );
 
                 }
 
             }
+
         );
 
+
+        // ====================================================
+        // NORMALIZAR ESCENARIO
+        // ====================================================
 
         normalizeEnvironment(
             environment
         );
+
+
+        // ====================================================
+        // ACTUALIZAR MATRICES
+        // ====================================================
+
+        environment.updateMatrixWorld(
+            true
+        );
+
+
+        // ====================================================
+        // CREAR COLLIDERS RAPIER
+        // ====================================================
+
+        const created =
+            createEnvironmentColliders(
+                collisionMeshes
+            );
+
+
+        if (
+            created ===
+            0
+        ) {
+
+            console.warn(
+                '⚠️ El escenario no proporcionó Collision meshes para Rapier.'
+            );
+
+        }
 
 
         console.log(
@@ -663,11 +789,13 @@ async function loadEnvironment() {
 
 
         console.log(
-            '🧱 Mallas de colisión:',
+            '🧱 Collision meshes:',
             collisionMeshes.length
         );
 
-    } catch (error) {
+    } catch (
+    error
+    ) {
 
         console.error(
             '❌ Error cargando escenario:',
@@ -717,6 +845,10 @@ function normalizeEnvironment(
     );
 
 
+    // ========================================================
+    // ESCALAR
+    // ========================================================
+
     const largestDimension =
         Math.max(
             size.x,
@@ -729,7 +861,8 @@ function normalizeEnvironment(
 
 
     if (
-        largestDimension > 0
+        largestDimension >
+        0
     ) {
 
         const scale =
@@ -807,6 +940,10 @@ function normalizeEnvironment(
     );
 
 
+    // ========================================================
+    // TAMAÑO FINAL
+    // ========================================================
+
     const finalBox =
         new THREE.Box3()
             .setFromObject(
@@ -832,238 +969,15 @@ function normalizeEnvironment(
 
 
 // ============================================================
-// BUSCAR HUESOS DE LOS BRAZOS
+// BUSCAR ALTURA INICIAL DEL SUELO
 // ============================================================
-
-function findArmBones() {
-
-    leftArmBone = null;
-    rightArmBone = null;
-
-
-    characterModel.traverse(
-        (object) => {
-
-            if (
-                !object.isBone ||
-                !object.name
-            ) {
-
-                return;
-
-            }
-
-
-            const name =
-                object.name
-                    .toLowerCase();
-
-
-            if (
-                name ===
-                'mixamorig:leftarm' ||
-                name.endsWith(
-                    ':leftarm'
-                )
-            ) {
-
-                leftArmBone =
-                    object;
-
-            }
-
-
-            if (
-                name ===
-                'mixamorig:rightarm' ||
-                name.endsWith(
-                    ':rightarm'
-                )
-            ) {
-
-                rightArmBone =
-                    object;
-
-            }
-
-        }
-    );
-
-
-    console.log(
-        '🦴 LeftArm:',
-        leftArmBone
-            ? leftArmBone.name
-            : 'NO ENCONTRADO'
-    );
-
-
-    console.log(
-        '🦴 RightArm:',
-        rightArmBone
-            ? rightArmBone.name
-            : 'NO ENCONTRADO'
-    );
-
-
-    // ========================================================
-    // CREAR CORRECCIONES
-    // ========================================================
-
-    const angle =
-        THREE.MathUtils.degToRad(
-            IDLE_ARM_DROP_DEGREES
-        );
-
-
-    // Brazo izquierdo baja en -Z.
-    leftArmCorrection.setFromAxisAngle(
-        armCorrectionAxis,
-        -angle
-    );
-
-
-    // Brazo derecho baja en +Z.
-    rightArmCorrection.setFromAxisAngle(
-        armCorrectionAxis,
-        angle
-    );
-
-}
-
-
-// ============================================================
-// CORREGIR BRAZOS DURANTE IDLE
-// ============================================================
-
-function applyIdleArmCorrection(
-    delta,
-    immediate = false
-) {
-
-    if (
-        !leftArmBone &&
-        !rightArmBone
-    ) {
-
-        return;
-
-    }
-
-
-    // ========================================================
-    // SOLO EN IDLE
-    // ========================================================
-
-    const shouldCorrect =
-        activeActionName === 'idle' &&
-        !isThrowing;
-
-
-    const targetBlend =
-        shouldCorrect
-            ? 1
-            : 0;
-
-
-    // ========================================================
-    // TRANSICIÓN SUAVE
-    // ========================================================
-
-    if (
-        immediate
-    ) {
-
-        idleArmBlend =
-            targetBlend;
-
-    } else {
-
-        const interpolation =
-            1 -
-            Math.exp(
-                -IDLE_ARM_BLEND_SPEED *
-                delta
-            );
-
-
-        idleArmBlend =
-            THREE.MathUtils.lerp(
-                idleArmBlend,
-                targetBlend,
-                interpolation
-            );
-
-    }
-
-
-    if (
-        idleArmBlend <
-        0.001
-    ) {
-
-        idleArmBlend =
-            0;
-
-        return;
-
-    }
-
-
-    // ========================================================
-    // LEFT ARM
-    // ========================================================
-
-    if (
-        leftArmBone
-    ) {
-
-        leftArmBlendQuaternion
-            .copy(
-                identityQuaternion
-            )
-            .slerp(
-                leftArmCorrection,
-                idleArmBlend
-            );
-
-
-        leftArmBone.quaternion.multiply(
-            leftArmBlendQuaternion
-        );
-
-    }
-
-
-    // ========================================================
-    // RIGHT ARM
-    // ========================================================
-
-    if (
-        rightArmBone
-    ) {
-
-        rightArmBlendQuaternion
-            .copy(
-                identityQuaternion
-            )
-            .slerp(
-                rightArmCorrection,
-                idleArmBlend
-            );
-
-
-        rightArmBone.quaternion.multiply(
-            rightArmBlendQuaternion
-        );
-
-    }
-
-}
-
-
-// ============================================================
-// DETECTAR EL SUELO
+//
+// Este sistema ya NO controla el movimiento.
+//
+// Solo se usa cuando:
+// - carga el personaje
+// - reiniciamos la partida
+//
 // ============================================================
 
 function placeCharacterOnGround() {
@@ -1083,10 +997,14 @@ function placeCharacterOnGround() {
 
 
     groundRayOrigin.set(
+
         characterRoot.position.x,
+
         characterRoot.position.y +
         GROUND_RAY_HEIGHT,
+
         characterRoot.position.z
+
     );
 
 
@@ -1109,7 +1027,8 @@ function placeCharacterOnGround() {
 
 
     if (
-        intersections.length === 0
+        intersections.length ===
+        0
     ) {
 
         return false;
@@ -1119,23 +1038,26 @@ function placeCharacterOnGround() {
 
     const groundHit =
         intersections.find(
-            (intersection) => {
+
+            (
+                intersection
+            ) => {
 
                 const object =
                     intersection.object;
 
 
-                const objectName =
+                const name =
                     object.name
                         .toLowerCase();
 
 
-                // ====================================================
-                // IGNORAR COLLISION
-                // ====================================================
+                // =================================================
+                // IGNORAR MALLAS COLLISION
+                // =================================================
 
                 if (
-                    objectName.includes(
+                    name.includes(
                         'collision'
                     )
                 ) {
@@ -1145,9 +1067,9 @@ function placeCharacterOnGround() {
                 }
 
 
-                // ====================================================
+                // =================================================
                 // IGNORAR PAREDES
-                // ====================================================
+                // =================================================
 
                 if (
                     intersection.face
@@ -1183,6 +1105,7 @@ function placeCharacterOnGround() {
                 return true;
 
             }
+
         );
 
 
@@ -1206,7 +1129,7 @@ function placeCharacterOnGround() {
 
 
 // ============================================================
-// CALCULAR BOUNDING BOX DE LA POSE ACTUAL
+// CALCULAR CAJA DEL PERSONAJE
 // ============================================================
 
 function computeAnimatedCharacterBox() {
@@ -1221,7 +1144,7 @@ function computeAnimatedCharacterBox() {
 
 
     // ========================================================
-    // QUITAR COMPENSACIÓN PREVIA
+    // QUITAR COMPENSACIÓN ANTERIOR
     // ========================================================
 
     characterVisual.position.y =
@@ -1241,7 +1164,10 @@ function computeAnimatedCharacterBox() {
 
 
     characterModel.traverse(
-        (child) => {
+
+        (
+            child
+        ) => {
 
             if (
                 !child.isSkinnedMesh
@@ -1291,21 +1217,19 @@ function computeAnimatedCharacterBox() {
             );
 
         }
+
     );
 
-
-    // ========================================================
-    // FALLBACK
-    // ========================================================
 
     if (
         !foundSkinnedMesh ||
         animatedCharacterBox.isEmpty()
     ) {
 
-        animatedCharacterBox.setFromObject(
-            characterModel
-        );
+        animatedCharacterBox
+            .setFromObject(
+                characterModel
+            );
 
     }
 
@@ -1316,7 +1240,7 @@ function computeAnimatedCharacterBox() {
 
 
 // ============================================================
-// ALINEAR POSE AL SUELO
+// ALINEAR PERSONAJE VISUAL CON LA CÁPSULA
 // ============================================================
 
 function alignAnimatedCharacterToGround() {
@@ -1401,7 +1325,10 @@ async function loadCharacter() {
         // ====================================================
 
         characterModel.traverse(
-            (child) => {
+
+            (
+                child
+            ) => {
 
                 if (
                     child.isMesh
@@ -1416,11 +1343,12 @@ async function loadCharacter() {
                 }
 
             }
+
         );
 
 
         // ====================================================
-        // NORMALIZAR MODELO
+        // NORMALIZAR
         // ====================================================
 
         normalizeCharacter(
@@ -1429,14 +1357,7 @@ async function loadCharacter() {
 
 
         // ====================================================
-        // ENCONTRAR BRAZOS
-        // ====================================================
-
-        findArmBones();
-
-
-        // ====================================================
-        // POSICIÓN
+        // POSICIÓN INICIAL
         // ====================================================
 
         characterRoot.position.copy(
@@ -1444,11 +1365,28 @@ async function loadCharacter() {
         );
 
 
+        // ====================================================
+        // DETECTAR CALLE
+        // ====================================================
+
         placeCharacterOnGround();
 
 
         // ====================================================
-        // ORIENTACIÓN
+        // CREAR CÁPSULA RAPIER
+        // ====================================================
+
+        createCharacterPhysics(
+            characterRoot.position
+        );
+
+
+        characterPhysicsCreated =
+            true;
+
+
+        // ====================================================
+        // ORIENTACIÓN VISUAL
         // ====================================================
 
         characterModel.rotation.y =
@@ -1473,12 +1411,16 @@ async function loadCharacter() {
 
 
         // ====================================================
-        // FIN DE THROW
+        // TERMINA THROW
         // ====================================================
 
         mixer.addEventListener(
+
             'finished',
-            (event) => {
+
+            (
+                event
+            ) => {
 
                 if (
                     event.action !==
@@ -1501,9 +1443,10 @@ async function loadCharacter() {
                     false;
 
 
-                actions.throw.setEffectiveWeight(
-                    0
-                );
+                actions.throw
+                    .setEffectiveWeight(
+                        0
+                    );
 
 
                 activeAction =
@@ -1520,11 +1463,12 @@ async function loadCharacter() {
                 );
 
             }
+
         );
 
 
         // ====================================================
-        // IDLE INICIAL
+        // IDLE
         // ====================================================
 
         resetAllAnimationActions();
@@ -1551,19 +1495,6 @@ async function loadCharacter() {
         }
 
 
-        // Corrección inmediata de brazos.
-        idleArmBlend = 1;
-
-
-        applyIdleArmCorrection(
-            0,
-            true
-        );
-
-
-        placeCharacterOnGround();
-
-
         alignAnimatedCharacterToGround();
 
 
@@ -1576,16 +1507,12 @@ async function loadCharacter() {
 
 
         console.log(
-            '✅ Idle / Walking / Run / Throw cargados'
+            '⚙️ Física del SWAT activa'
         );
 
-
-        console.log(
-            '📍 Altura inicial:',
-            characterRoot.position.y
-        );
-
-    } catch (error) {
+    } catch (
+    error
+    ) {
 
         console.error(
             '❌ Error cargando personaje:',
@@ -1650,11 +1577,12 @@ function normalizeCharacter(
 
 
     // ========================================================
-    // ESCALA
+    // ESCALAR
     // ========================================================
 
     if (
-        size.y > 0
+        size.y >
+        0
     ) {
 
         const scale =
@@ -1676,7 +1604,7 @@ function normalizeCharacter(
 
 
     // ========================================================
-    // CENTRAR X/Z
+    // CENTRAR
     // ========================================================
 
     model.updateMatrixWorld(
@@ -1773,25 +1701,26 @@ async function loadAnimations() {
         walkingGLTF,
         runGLTF,
         throwGLTF
-    ] = await Promise.all([
+    ] =
+        await Promise.all([
 
-        loadGLTF(
-            ANIMATION_PATHS.idle
-        ),
+            loadGLTF(
+                ANIMATION_PATHS.idle
+            ),
 
-        loadGLTF(
-            ANIMATION_PATHS.walking
-        ),
+            loadGLTF(
+                ANIMATION_PATHS.walking
+            ),
 
-        loadGLTF(
-            ANIMATION_PATHS.run
-        ),
+            loadGLTF(
+                ANIMATION_PATHS.run
+            ),
 
-        loadGLTF(
-            ANIMATION_PATHS.throw
-        )
+            loadGLTF(
+                ANIMATION_PATHS.throw
+            )
 
-    ]);
+        ]);
 
 
     // ========================================================
@@ -1827,7 +1756,7 @@ async function loadAnimations() {
 
 
     // ========================================================
-    // ELIMINAR ROOT MOTION X/Z
+    // ROOT MOTION
     // ========================================================
 
     const idleInPlace =
@@ -1944,7 +1873,8 @@ function getAnimationClip(
 
     if (
         !gltf.animations ||
-        gltf.animations.length === 0
+        gltf.animations.length ===
+        0
     ) {
 
         throw new Error(
@@ -1971,11 +1901,6 @@ function getAnimationClip(
 // ============================================================
 // ELIMINAR ROOT MOTION X/Z
 // ============================================================
-//
-// Solamente X y Z.
-//
-// Y queda intacto.
-//
 
 function makeClipInPlace(
     originalClip
@@ -1986,7 +1911,10 @@ function makeClipInPlace(
 
 
     clip.tracks.forEach(
-        (track) => {
+
+        (
+            track
+        ) => {
 
             const trackName =
                 track.name
@@ -2009,7 +1937,8 @@ function makeClipInPlace(
 
 
             if (
-                values.length < 3
+                values.length <
+                3
             ) {
 
                 return;
@@ -2035,7 +1964,7 @@ function makeClipInPlace(
                     initialX;
 
 
-                // Y no se modifica.
+                // Y se conserva.
 
 
                 values[i + 2] =
@@ -2044,6 +1973,7 @@ function makeClipInPlace(
             }
 
         }
+
     );
 
 
@@ -2056,7 +1986,7 @@ function makeClipInPlace(
 
 
 // ============================================================
-// REINICIAR TODAS LAS ANIMACIONES
+// REINICIAR ANIMACIONES
 // ============================================================
 
 function resetAllAnimationActions() {
@@ -2064,7 +1994,10 @@ function resetAllAnimationActions() {
     Object.values(
         actions
     ).forEach(
-        (action) => {
+
+        (
+            action
+        ) => {
 
             if (
                 !action
@@ -2092,6 +2025,7 @@ function resetAllAnimationActions() {
             );
 
         }
+
     );
 
 
@@ -2105,10 +2039,6 @@ function resetAllAnimationActions() {
 
     isThrowing =
         false;
-
-
-    idleArmBlend =
-        0;
 
 }
 
@@ -2136,8 +2066,10 @@ function fadeToAction(
 
 
     if (
-        activeAction === nextAction &&
-        activeActionName === name
+        activeAction ===
+        nextAction &&
+        activeActionName ===
+        name
     ) {
 
         return;
@@ -2156,14 +2088,16 @@ function fadeToAction(
     nextAction.reset();
 
 
-    nextAction.setEffectiveTimeScale(
-        1
-    );
+    nextAction
+        .setEffectiveTimeScale(
+            1
+        );
 
 
-    nextAction.setEffectiveWeight(
-        1
-    );
+    nextAction
+        .setEffectiveWeight(
+            1
+        );
 
 
     nextAction.play();
@@ -2171,7 +2105,8 @@ function fadeToAction(
 
     if (
         previousAction &&
-        previousAction !== nextAction
+        previousAction !==
+        nextAction
     ) {
 
         previousAction.fadeOut(
@@ -2258,14 +2193,16 @@ function playThrow() {
     throwAction.reset();
 
 
-    throwAction.setEffectiveTimeScale(
-        1
-    );
+    throwAction
+        .setEffectiveTimeScale(
+            1
+        );
 
 
-    throwAction.setEffectiveWeight(
-        1
-    );
+    throwAction
+        .setEffectiveWeight(
+            1
+        );
 
 
     throwAction.play();
@@ -2273,7 +2210,8 @@ function playThrow() {
 
     if (
         previousAction &&
-        previousAction !== throwAction
+        previousAction !==
+        throwAction
     ) {
 
         previousAction.fadeOut(
@@ -2304,23 +2242,25 @@ function playThrow() {
 
 
 // ============================================================
-// ¿SE ESTÁ MOVIENDO?
+// MOVIMIENTO ACTIVO
 // ============================================================
 
 function isMoving() {
 
     return (
+
         keys.w ||
         keys.a ||
         keys.s ||
         keys.d
+
     );
 
 }
 
 
 // ============================================================
-// ANIMACIÓN SEGÚN MOVIMIENTO
+// ANIMACIÓN DE MOVIMIENTO
 // ============================================================
 
 function getMovementAnimation() {
@@ -2366,7 +2306,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // ACTUALIZAR MIXER
+    // ANIMACIONES
     // ========================================================
 
     if (
@@ -2381,30 +2321,13 @@ function updateCharacter(
 
 
     // ========================================================
-    // CORREGIR BRAZOS DESPUÉS DEL MIXER
-    // ========================================================
-    //
-    // Es importante hacerlo después de mixer.update(),
-    // porque AnimationMixer primero coloca los huesos
-    // según Idle.glb.
-    //
-
-    applyIdleArmCorrection(
-        delta
-    );
-
-
-    // ========================================================
-    // NO ESTAMOS JUGANDO
+    // NO JUGANDO
     // ========================================================
 
     if (
         getGameState() !==
         GAME_STATES.PLAYING
     ) {
-
-        placeCharacterOnGround();
-
 
         alignAnimatedCharacterToGround();
 
@@ -2422,7 +2345,24 @@ function updateCharacter(
         isThrowing
     ) {
 
-        placeCharacterOnGround();
+        horizontalPhysicsMovement.x =
+            0;
+
+
+        horizontalPhysicsMovement.z =
+            0;
+
+
+        const physicsPosition =
+            moveCharacter(
+                horizontalPhysicsMovement,
+                delta
+            );
+
+
+        syncCharacterFromPhysics(
+            physicsPosition
+        );
 
 
         alignAnimatedCharacterToGround();
@@ -2457,7 +2397,8 @@ function updateCharacter(
 
 
     if (
-        cameraForward.lengthSq() > 0
+        cameraForward.lengthSq() >
+        0
     ) {
 
         cameraForward.normalize();
@@ -2473,7 +2414,8 @@ function updateCharacter(
 
 
     if (
-        cameraRight.lengthSq() > 0
+        cameraRight.lengthSq() >
+        0
     ) {
 
         cameraRight.normalize();
@@ -2545,51 +2487,75 @@ function updateCharacter(
     // MOVIMIENTO
     // ========================================================
 
+    const hasMovement =
+        moveDirection.lengthSq() >
+        0;
+
+
     if (
-        moveDirection.lengthSq() > 0
+        hasMovement
     ) {
 
         moveDirection.normalize();
 
-
-        const speed =
-            keys.shift
-                ? RUN_SPEED
-                : WALK_SPEED;
+    }
 
 
-        const previousPosition =
-            characterRoot.position.clone();
+    const speed =
+        keys.shift
+            ?
+            RUN_SPEED
+            :
+            WALK_SPEED;
 
 
-        characterRoot.position.addScaledVector(
-            moveDirection,
-            speed * delta
+    horizontalPhysicsMovement.x =
+        hasMovement
+            ?
+            moveDirection.x *
+            speed *
+            delta
+            :
+            0;
+
+
+    horizontalPhysicsMovement.z =
+        hasMovement
+            ?
+            moveDirection.z *
+            speed *
+            delta
+            :
+            0;
+
+
+    // ========================================================
+    // RAPIER DECIDE EL MOVIMIENTO
+    // ========================================================
+
+    const physicsPosition =
+        moveCharacter(
+            horizontalPhysicsMovement,
+            delta
         );
 
 
-        // ====================================================
-        // ALTURA DEL SUELO
-        // ====================================================
+    // ========================================================
+    // SINCRONIZAR THREE.JS
+    // ========================================================
 
-        const foundGround =
-            placeCharacterOnGround();
-
-
-        if (
-            !foundGround
-        ) {
-
-            characterRoot.position.copy(
-                previousPosition
-            );
-
-        }
+    syncCharacterFromPhysics(
+        physicsPosition
+    );
 
 
-        // ====================================================
-        // ROTACIÓN
-        // ====================================================
+    // ========================================================
+    // ROTACIÓN
+    // ========================================================
+
+    if (
+        hasMovement
+    ) {
 
         const targetAngle =
             Math.atan2(
@@ -2603,15 +2569,11 @@ function updateCharacter(
             delta
         );
 
-    } else {
-
-        placeCharacterOnGround();
-
     }
 
 
     // ========================================================
-    // CAMBIAR ANIMACIÓN
+    // ANIMACIÓN
     // ========================================================
 
     const nextAnimation =
@@ -2632,7 +2594,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // ALINEAR PIES
+    // CORRECCIÓN VISUAL
     // ========================================================
 
     alignAnimatedCharacterToGround();
@@ -2643,6 +2605,36 @@ function updateCharacter(
     // ========================================================
 
     updateThirdPersonCamera();
+
+}
+
+
+// ============================================================
+// SINCRONIZAR THREE CON RAPIER
+// ============================================================
+
+function syncCharacterFromPhysics(
+    physicsPosition
+) {
+
+    if (
+        !physicsPosition
+    ) {
+
+        return;
+
+    }
+
+
+    characterRoot.position.set(
+
+        physicsPosition.x,
+
+        physicsPosition.y,
+
+        physicsPosition.z
+
+    );
 
 }
 
@@ -2667,12 +2659,15 @@ function rotateCharacterTowards(
 
     difference =
         Math.atan2(
+
             Math.sin(
                 difference
             ),
+
             Math.cos(
                 difference
             )
+
         );
 
 
@@ -2694,9 +2689,11 @@ function rotateCharacterTowards(
     } else {
 
         currentAngle +=
+
             Math.sign(
                 difference
             ) *
+
             maxRotation;
 
     }
@@ -2715,10 +2712,14 @@ function rotateCharacterTowards(
 function resetThirdPersonCamera() {
 
     desiredTarget.set(
+
         characterRoot.position.x,
+
         characterRoot.position.y +
         0.95,
+
         characterRoot.position.z
+
     );
 
 
@@ -2728,12 +2729,16 @@ function resetThirdPersonCamera() {
 
 
     camera.position.set(
+
         characterRoot.position.x +
         2.4,
+
         characterRoot.position.y +
         2.0,
+
         characterRoot.position.z +
         3.4
+
     );
 
 
@@ -2763,10 +2768,14 @@ function updateThirdPersonCamera() {
 
 
     desiredTarget.set(
+
         characterRoot.position.x,
+
         characterRoot.position.y +
         0.95,
+
         characterRoot.position.z
+
     );
 
 
@@ -2796,8 +2805,12 @@ function updateThirdPersonCamera() {
 // ============================================================
 
 window.addEventListener(
+
     'keydown',
-    (event) => {
+
+    (
+        event
+    ) => {
 
         const key =
             event.key
@@ -2805,11 +2818,12 @@ window.addEventListener(
 
 
         // ====================================================
-        // F = THROW
+        // THROW
         // ====================================================
 
         if (
-            key === 'f' &&
+            key ===
+            'f' &&
             !event.repeat
         ) {
 
@@ -2867,6 +2881,7 @@ window.addEventListener(
         }
 
     }
+
 );
 
 
@@ -2875,8 +2890,12 @@ window.addEventListener(
 // ============================================================
 
 window.addEventListener(
+
     'keyup',
-    (event) => {
+
+    (
+        event
+    ) => {
 
         const key =
             event.key
@@ -2929,6 +2948,7 @@ window.addEventListener(
         }
 
     }
+
 );
 
 
@@ -2937,7 +2957,9 @@ window.addEventListener(
 // ============================================================
 
 window.addEventListener(
+
     'blur',
+
     () => {
 
         keys.w =
@@ -2956,6 +2978,7 @@ window.addEventListener(
             false;
 
     }
+
 );
 
 
@@ -2980,8 +3003,11 @@ function updateUI() {
 
 
     updateObjectives(
+
         objectives.destroyed,
+
         objectives.total
+
     );
 
 }
@@ -3004,7 +3030,7 @@ function updateVersionLabel() {
     ) {
 
         label.textContent =
-            'VERSION 0.3 · PERSONAJE Y ANIMACIONES';
+            'VERSION 0.4 · FÍSICA Y COLISIONES';
 
     }
 
@@ -3012,7 +3038,7 @@ function updateVersionLabel() {
 
 
 // ============================================================
-// ESTADO DE CARGA
+// LOADING
 // ============================================================
 
 function setLoadingState(
@@ -3060,13 +3086,13 @@ function setLoadingState(
 
 
 // ============================================================
-// INICIALIZACIÓN
+// INICIALIZAR
 // ============================================================
 
 async function init() {
 
     console.log(
-        '🎮 OPERATION IMPACT v0.3'
+        '🎮 OPERATION IMPACT v0.4'
     );
 
 
@@ -3084,38 +3110,39 @@ async function init() {
     try {
 
         // ====================================================
-        // FÍSICA
+        // RAPIER
         // ====================================================
 
         await initPhysics();
 
 
         // ====================================================
-        // ESCENARIO
+        // ESCENARIO + COLLIDERS
         // ====================================================
 
         await loadEnvironment();
 
 
         // ====================================================
-        // PERSONAJE
+        // PERSONAJE + CÁPSULA
         // ====================================================
 
         await loadCharacter();
 
 
         // ====================================================
-        // BOTÓN INICIAR
+        // BOTÓN
         // ====================================================
 
         setupStartButton(
+
             () => {
 
                 startGame();
 
 
                 // =================================================
-                // POSICIÓN
+                // POSICIÓN VISUAL
                 // =================================================
 
                 characterRoot.position.copy(
@@ -3127,7 +3154,26 @@ async function init() {
                     0;
 
 
+                // =================================================
+                // OBTENER ALTURA DE LA CALLE
+                // =================================================
+
                 placeCharacterOnGround();
+
+
+                // =================================================
+                // REPOSICIONAR CÁPSULA
+                // =================================================
+
+                if (
+                    characterPhysicsCreated
+                ) {
+
+                    setCharacterPhysicsPosition(
+                        characterRoot.position
+                    );
+
+                }
 
 
                 // =================================================
@@ -3139,7 +3185,7 @@ async function init() {
 
 
                 // =================================================
-                // REINICIAR ANIMACIONES
+                // ANIMACIONES
                 // =================================================
 
                 resetAllAnimationActions();
@@ -3151,10 +3197,6 @@ async function init() {
                 );
 
 
-                // =================================================
-                // ACTUALIZAR MIXER
-                // =================================================
-
                 if (
                     mixer
                 ) {
@@ -3164,20 +3206,6 @@ async function init() {
                     );
 
                 }
-
-
-                // =================================================
-                // BRAZOS EN IDLE
-                // =================================================
-
-                idleArmBlend =
-                    1;
-
-
-                applyIdleArmCorrection(
-                    0,
-                    true
-                );
 
 
                 // =================================================
@@ -3200,11 +3228,11 @@ async function init() {
 
 
                 console.log(
-                    '📍 Posición inicial:',
-                    characterRoot.position
+                    '⚙️ Character Controller activo'
                 );
 
             }
+
         );
 
 
@@ -3214,10 +3242,12 @@ async function init() {
 
 
         console.log(
-            '✅ OPERATION IMPACT LISTO'
+            '✅ OPERATION IMPACT v0.4 LISTO'
         );
 
-    } catch (error) {
+    } catch (
+    error
+    ) {
 
         console.error(
             '❌ Error de inicialización:',
@@ -3277,6 +3307,15 @@ function animate() {
 
 
     // ========================================================
+    // RAPIER
+    // ========================================================
+
+    updatePhysics(
+        delta
+    );
+
+
+    // ========================================================
     // CÁMARA
     // ========================================================
 
@@ -3288,15 +3327,6 @@ function animate() {
     // ========================================================
 
     updateGame(
-        delta
-    );
-
-
-    // ========================================================
-    // FÍSICA
-    // ========================================================
-
-    updatePhysics(
         delta
     );
 
@@ -3325,7 +3355,9 @@ function animate() {
 // ============================================================
 
 window.addEventListener(
+
     'resize',
+
     () => {
 
         camera.aspect =
@@ -3343,13 +3375,16 @@ window.addEventListener(
 
 
         renderer.setPixelRatio(
+
             Math.min(
                 window.devicePixelRatio,
                 2
             )
+
         );
 
     }
+
 );
 
 
