@@ -1261,3 +1261,211 @@ body {
     font-variant-numeric:
         tabular-nums;
 }
+
+/* =========================================================
+   OPERATION IMPACT v1.0.4
+   HUD DE ARMA
+   ========================================================= */
+
+#weapon-hud {
+    position: fixed;
+
+    left: 24px;
+    bottom: 24px;
+
+    z-index: 40;
+
+    min-width: 190px;
+
+    padding: 15px 18px;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(7, 14, 20, 0.94),
+            rgba(15, 24, 31, 0.90)
+        );
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.14);
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 12px 30px
+        rgba(0, 0, 0, 0.38);
+
+    backdrop-filter:
+        blur(10px);
+}
+
+
+/* =========================================================
+   NOMBRE DEL ARMA
+   ========================================================= */
+
+.weapon-name {
+    margin-bottom: 5px;
+
+    color:
+        rgba(255, 255, 255, 0.55);
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 2px;
+}
+
+
+/* =========================================================
+   MUNICIÓN
+   ========================================================= */
+
+.weapon-ammo {
+    display: flex;
+
+    align-items: baseline;
+
+    gap: 6px;
+
+    color: #ffffff;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+#weapon-magazine {
+    font-size: 35px;
+
+    font-weight: 900;
+
+    line-height: 1;
+}
+
+
+.weapon-divider {
+    color:
+        rgba(255, 255, 255, 0.28);
+
+    font-size: 18px;
+}
+
+
+#weapon-reserve {
+    color:
+        rgba(255, 255, 255, 0.62);
+
+    font-size: 18px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   RECARGA
+   ========================================================= */
+
+#weapon-reload {
+    margin-top: 8px;
+
+    color:
+        rgba(255, 255, 255, 0.48);
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 1.6px;
+}
+
+
+/* =========================================================
+   CARGADOR VACÍO
+   ========================================================= */
+
+#weapon-hud.weapon-empty
+#weapon-magazine {
+    color: #ff5252;
+
+    text-shadow:
+        0 0 8px
+        rgba(255, 82, 82, 0.5);
+}
+
+
+#weapon-hud.weapon-empty
+#weapon-reload {
+    color: #ff7676;
+
+    animation:
+        ammoWarning
+        0.85s
+        infinite;
+}
+
+
+/* =========================================================
+   RECARGANDO
+   ========================================================= */
+
+#weapon-hud.weapon-reloading
+#weapon-reload {
+    color: #ffd54f;
+}
+
+
+#weapon-hud.weapon-reloading
+#weapon-magazine {
+    opacity: 0.45;
+}
+
+
+/* =========================================================
+   ANIMACIÓN
+   ========================================================= */
+
+@keyframes ammoWarning {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    #weapon-hud {
+        left: 10px;
+        bottom: 10px;
+
+        min-width: 150px;
+
+        padding: 11px 13px;
+    }
+
+
+    #weapon-magazine {
+        font-size: 28px;
+    }
+
+
+    #weapon-reserve {
+        font-size: 15px;
+    }
+
+}

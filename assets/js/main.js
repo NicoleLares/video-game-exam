@@ -52,7 +52,8 @@ import {
     shoot,
     updateShooting,
     resetShooting,
-    setAimingMode
+    setAimingMode,
+    startReload
 } from './shooting.js';
 
 import {
@@ -66,6 +67,21 @@ import {
 
 
 // ============================================================
+// OPERATION IMPACT
+// MAIN.JS
+// VERSION 1.0.5
+//
+// CÁMARA TPS LIBRE CON MOUSE
+// POINTER LOCK
+// APUNTADO
+// DISPARO
+// MUNICIÓN
+// RECARGA
+// GRANADAS
+// ============================================================
+
+
+// ============================================================
 // RUTAS
 // ============================================================
 
@@ -76,6 +92,7 @@ const CHARACTER_PATH =
     './assets/models/character/Swat.glb';
 
 const ANIMATION_PATHS = {
+
     idle:
         './assets/models/character/Idle.glb',
 
@@ -87,6 +104,7 @@ const ANIMATION_PATHS = {
 
     throw:
         './assets/models/character/throw.glb'
+
 };
 
 
@@ -148,6 +166,23 @@ const AIM_SHOULDER_OFFSET =
 
 
 // ============================================================
+// v1.0.5
+// CÁMARA LIBRE CON MOUSE
+// ============================================================
+
+const MOUSE_SENSITIVITY =
+    0.0022;
+
+const CAMERA_MIN_POLAR =
+    Math.PI *
+    0.05;
+
+const CAMERA_MAX_POLAR =
+    Math.PI *
+    0.68;
+
+
+// ============================================================
 // RETROCESO
 // ============================================================
 
@@ -178,9 +213,16 @@ const MAX_RECOIL_ZOOM =
 // ============================================================
 
 const FIXED_SPAWN = {
-    x: -18.605,
-    y: 0.603,
-    z: -0.321
+
+    x:
+        -18.605,
+
+    y:
+        0.603,
+
+    z:
+        -0.321
+
 };
 
 
@@ -231,11 +273,16 @@ scene.fog =
 
 const camera =
     new THREE.PerspectiveCamera(
+
         60,
+
         window.innerWidth /
-            window.innerHeight,
+        window.innerHeight,
+
         0.1,
+
         500
+
     );
 
 
@@ -252,8 +299,10 @@ camera.position.set(
 
 const renderer =
     new THREE.WebGLRenderer({
+
         antialias:
             true
+
     });
 
 
@@ -264,10 +313,12 @@ renderer.setSize(
 
 
 renderer.setPixelRatio(
+
     Math.min(
         window.devicePixelRatio,
         2
     )
+
 );
 
 
@@ -309,6 +360,17 @@ container.appendChild(
 // ============================================================
 // ORBIT CONTROLS
 // ============================================================
+//
+// OrbitControls sigue manejando:
+//
+// - Zoom con rueda.
+// - Target de la cámara.
+// - Damping.
+//
+// La rotación ya NO la controla OrbitControls.
+// Ahora la controla directamente el movimiento del mouse.
+//
+// ============================================================
 
 const controls =
     new OrbitControls(
@@ -333,6 +395,14 @@ controls.enableZoom =
     true;
 
 
+// ============================================================
+// IMPORTANTE v1.0.5
+// ============================================================
+
+controls.enableRotate =
+    false;
+
+
 controls.minDistance =
     3.3;
 
@@ -341,22 +411,20 @@ controls.maxDistance =
     11;
 
 
-// ============================================================
-// MOVIMIENTO VERTICAL
-// ============================================================
-
 controls.minPolarAngle =
-    Math.PI *
-    0.05;
+    CAMERA_MIN_POLAR;
 
 
 controls.maxPolarAngle =
-    Math.PI *
-    0.68;
+    CAMERA_MAX_POLAR;
 
 
 // ============================================================
-// MOUSE
+// BOTONES ORBIT CONTROLS
+// ============================================================
+//
+// El clic derecho YA NO mueve la cámara.
+//
 // ============================================================
 
 controls.mouseButtons.LEFT =
@@ -364,7 +432,7 @@ controls.mouseButtons.LEFT =
 
 
 controls.mouseButtons.RIGHT =
-    THREE.MOUSE.ROTATE;
+    null;
 
 
 controls.mouseButtons.MIDDLE =
@@ -382,10 +450,11 @@ controls.update();
 
 
 // ============================================================
-// EVITAR MENÚ DEL CLICK DERECHO
+// EVITAR MENÚ CONTEXTUAL
 // ============================================================
 
 renderer.domElement.addEventListener(
+
     'contextmenu',
 
     (event) => {
@@ -393,6 +462,7 @@ renderer.domElement.addEventListener(
         event.preventDefault();
 
     }
+
 );
 
 
@@ -402,9 +472,13 @@ renderer.domElement.addEventListener(
 
 const hemisphereLight =
     new THREE.HemisphereLight(
+
         0xdbeeff,
+
         0x45433c,
+
         2.4
+
     );
 
 
@@ -415,8 +489,11 @@ scene.add(
 
 const directionalLight =
     new THREE.DirectionalLight(
+
         0xffefd5,
+
         3.4
+
     );
 
 
@@ -474,8 +551,11 @@ scene.add(
 
 const fillLight =
     new THREE.DirectionalLight(
+
         0xaac7dd,
+
         1.1
+
     );
 
 
@@ -574,7 +654,7 @@ let activeActionName =
 
 
 // ============================================================
-// ESTADO DEL MOUSE
+// MOUSE
 // ============================================================
 
 let leftMouseDown =
@@ -626,6 +706,7 @@ const currentSpawn =
 // ============================================================
 
 const actions = {
+
     idle:
         null,
 
@@ -637,6 +718,7 @@ const actions = {
 
     throw:
         null
+
 };
 
 
@@ -645,6 +727,7 @@ const actions = {
 // ============================================================
 
 const keys = {
+
     w:
         false,
 
@@ -659,6 +742,7 @@ const keys = {
 
     shift:
         false
+
 };
 
 
@@ -698,9 +782,27 @@ const UP =
     );
 
 
+// ============================================================
+// v1.0.5
+// VECTORES PARA ROTACIÓN LIBRE
+// ============================================================
+
+const cameraOrbitOffset =
+    new THREE.Vector3();
+
+
+const cameraOrbitSpherical =
+    new THREE.Spherical();
+
+
 const horizontalPhysicsMovement = {
-    x: 0,
-    z: 0
+
+    x:
+        0,
+
+    z:
+        0
+
 };
 
 
@@ -761,6 +863,7 @@ function loadGLTF(
 ) {
 
     return new Promise(
+
         (
             resolve,
             reject
@@ -800,6 +903,7 @@ function loadGLTF(
             );
 
         }
+
     );
 
 }
@@ -840,6 +944,7 @@ async function loadEnvironment() {
 
 
     environment.traverse(
+
         (child) => {
 
             if (
@@ -881,6 +986,7 @@ async function loadEnvironment() {
 
 
                 materials.forEach(
+
                     (material) => {
 
                         if (
@@ -901,6 +1007,7 @@ async function loadEnvironment() {
                             true;
 
                     }
+
                 );
 
             }
@@ -934,6 +1041,7 @@ async function loadEnvironment() {
             }
 
         }
+
     );
 
 
@@ -1216,6 +1324,7 @@ function getHorizontalSurfaces(
 
         const duplicate =
             surfaces.some(
+
                 (surface) =>
 
                     Math.abs(
@@ -1223,6 +1332,7 @@ function getHorizontalSurfaces(
                         intersection.point.y
                     ) <
                     0.04
+
             );
 
 
@@ -1236,6 +1346,7 @@ function getHorizontalSurfaces(
 
 
         surfaces.push({
+
             x:
                 intersection.point.x,
 
@@ -1246,6 +1357,7 @@ function getHorizontalSurfaces(
                 intersection.point.z,
 
             object
+
         });
 
     }
@@ -1360,7 +1472,7 @@ function getTopSurfaceHeight(
 
 
 // ============================================================
-// ESTIMAR ALTURA DEL PISO
+// ESTIMAR PISO
 // ============================================================
 
 function estimateFloorHeight() {
@@ -1394,7 +1506,7 @@ function estimateFloorHeight() {
                     environmentBounds.min.x,
                     environmentBounds.max.x,
                     column /
-                        columns
+                    columns
                 );
 
 
@@ -1403,7 +1515,7 @@ function estimateFloorHeight() {
                     environmentBounds.min.z,
                     environmentBounds.max.z,
                     row /
-                        rows
+                    rows
                 );
 
 
@@ -1461,7 +1573,7 @@ function estimateFloorHeight() {
         Math.min(
             index,
             heights.length -
-                1
+            1
         )
     ];
 
@@ -1469,7 +1581,7 @@ function estimateFloorHeight() {
 
 
 // ============================================================
-// DETECTAR PLATAFORMAS ELEVADAS
+// DETECTAR PLATAFORMAS
 // ============================================================
 
 function collectColumnPlatforms() {
@@ -1521,7 +1633,9 @@ function collectColumnPlatforms() {
 
     const columns =
         Math.max(
+
             1,
+
             Math.ceil(
                 (
                     maxX -
@@ -1529,12 +1643,15 @@ function collectColumnPlatforms() {
                 ) /
                 STEP
             )
+
         );
 
 
     const rows =
         Math.max(
+
             1,
+
             Math.ceil(
                 (
                     maxZ -
@@ -1542,6 +1659,7 @@ function collectColumnPlatforms() {
                 ) /
                 STEP
             )
+
         );
 
 
@@ -1560,7 +1678,7 @@ function collectColumnPlatforms() {
                 minZ,
                 maxZ,
                 row /
-                    rows
+                rows
             );
 
 
@@ -1575,7 +1693,7 @@ function collectColumnPlatforms() {
                     minX,
                     maxX,
                     column /
-                        columns
+                    columns
                 );
 
 
@@ -1610,9 +1728,9 @@ function collectColumnPlatforms() {
 
             if (
                 elevation <
-                    MIN_ELEVATION ||
+                MIN_ELEVATION ||
                 elevation >
-                    MAX_ELEVATION
+                MAX_ELEVATION
             ) {
 
                 continue;
@@ -1625,10 +1743,27 @@ function collectColumnPlatforms() {
 
 
             const samples = [
-                [probe, 0],
-                [-probe, 0],
-                [0, probe],
-                [0, -probe]
+
+                [
+                    probe,
+                    0
+                ],
+
+                [
+                    -probe,
+                    0
+                ],
+
+                [
+                    0,
+                    probe
+                ],
+
+                [
+                    0,
+                    -probe
+                ]
+
             ];
 
 
@@ -1645,10 +1780,13 @@ function collectColumnPlatforms() {
 
                 const nearbyY =
                     getTopSurfaceHeight(
+
                         x +
-                            offsetX,
+                        offsetX,
+
                         z +
-                            offsetZ
+                        offsetZ
+
                     );
 
 
@@ -1684,15 +1822,24 @@ function collectColumnPlatforms() {
 
 
             elevatedPoints.set(
+
                 `${column},${row}`,
+
                 {
+
                     column,
+
                     row,
+
                     x,
+
                     y:
                         top.y,
+
                     z
+
                 }
+
             );
 
         }
@@ -1709,14 +1856,47 @@ function collectColumnPlatforms() {
 
 
     const neighbors = [
-        [-1, 0],
-        [1, 0],
-        [0, -1],
-        [0, 1],
-        [-1, -1],
-        [1, -1],
-        [-1, 1],
-        [1, 1]
+
+        [
+            -1,
+            0
+        ],
+
+        [
+            1,
+            0
+        ],
+
+        [
+            0,
+            -1
+        ],
+
+        [
+            0,
+            1
+        ],
+
+        [
+            -1,
+            -1
+        ],
+
+        [
+            1,
+            -1
+        ],
+
+        [
+            -1,
+            1
+        ],
+
+        [
+            1,
+            1
+        ]
+
     ];
 
 
@@ -1871,6 +2051,7 @@ function collectColumnPlatforms() {
 
 
         component.forEach(
+
             (point) => {
 
                 componentMinX =
@@ -1905,6 +2086,7 @@ function collectColumnPlatforms() {
                     point.y;
 
             }
+
         );
 
 
@@ -1949,6 +2131,7 @@ function collectColumnPlatforms() {
 
 
         platforms.push({
+
             x:
                 (
                     componentMinX +
@@ -1977,6 +2160,7 @@ function collectColumnPlatforms() {
             area:
                 width *
                 depth
+
         });
 
     }
@@ -2061,6 +2245,7 @@ function computeAnimatedCharacterBox() {
 
 
     characterModel.traverse(
+
         (child) => {
 
             if (
@@ -2111,6 +2296,7 @@ function computeAnimatedCharacterBox() {
             );
 
         }
+
     );
 
 
@@ -2201,6 +2387,7 @@ async function loadCharacter() {
 
 
     characterModel.traverse(
+
         (child) => {
 
             if (
@@ -2217,6 +2404,7 @@ async function loadCharacter() {
             }
 
         }
+
     );
 
 
@@ -2251,6 +2439,7 @@ async function loadCharacter() {
 
 
     mixer.addEventListener(
+
         'finished',
 
         (event) => {
@@ -2314,6 +2503,7 @@ async function loadCharacter() {
             );
 
         }
+
     );
 
 
@@ -2567,7 +2757,7 @@ async function loadAnimations() {
 
 
 // ============================================================
-// CLIP
+// OBTENER CLIP
 // ============================================================
 
 function getAnimationClip(
@@ -2603,7 +2793,7 @@ function getAnimationClip(
 
 
 // ============================================================
-// ROOT MOTION
+// ELIMINAR ROOT MOTION
 // ============================================================
 
 function makeClipInPlace(
@@ -2615,6 +2805,7 @@ function makeClipInPlace(
 
 
     clip.tracks.forEach(
+
         (track) => {
 
             const trackName =
@@ -2672,6 +2863,7 @@ function makeClipInPlace(
             }
 
         }
+
     );
 
 
@@ -2692,6 +2884,7 @@ function resetAllAnimationActions() {
     Object.values(
         actions
     ).forEach(
+
         (action) => {
 
             if (
@@ -2720,6 +2913,7 @@ function resetAllAnimationActions() {
             );
 
         }
+
     );
 
 
@@ -2769,9 +2963,9 @@ function fadeToAction(
 
     if (
         activeAction ===
-            nextAction &&
+        nextAction &&
         activeActionName ===
-            name
+        name
     ) {
 
         return;
@@ -2806,7 +3000,7 @@ function fadeToAction(
     if (
         previousAction &&
         previousAction !==
-            nextAction
+        nextAction
     ) {
 
         previousAction.fadeOut(
@@ -2842,7 +3036,7 @@ function setAiming(
     const canAim =
         active &&
         getGameState() ===
-            GAME_STATES.PLAYING &&
+        GAME_STATES.PLAYING &&
         !isThrowing;
 
 
@@ -2875,32 +3069,45 @@ function triggerRecoil() {
 
     recoilPitch =
         Math.min(
+
             MAX_RECOIL_PITCH,
+
             recoilPitch +
-                RECOIL_PITCH
+            RECOIL_PITCH
+
         );
 
 
     recoilYaw +=
         THREE.MathUtils.randFloat(
+
             -RECOIL_YAW,
+
             RECOIL_YAW
+
         );
 
 
     recoilYaw =
         THREE.MathUtils.clamp(
+
             recoilYaw,
+
             -MAX_RECOIL_YAW,
+
             MAX_RECOIL_YAW
+
         );
 
 
     recoilZoom =
         Math.min(
+
             MAX_RECOIL_ZOOM,
+
             recoilZoom +
-                RECOIL_ZOOM
+            RECOIL_ZOOM
+
         );
 
 }
@@ -3112,7 +3319,7 @@ function playThrow() {
     if (
         previousAction &&
         previousAction !==
-            throwAction
+        throwAction
     ) {
 
         previousAction.fadeOut(
@@ -3250,7 +3457,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // LANZANDO GRANADA
+    // GRANADA
     // ========================================================
 
     if (
@@ -3264,7 +3471,7 @@ function updateCharacter(
         if (
             !grenadeReleased &&
             throwElapsed >=
-                GRENADE_RELEASE_TIME
+            GRENADE_RELEASE_TIME
         ) {
 
             launchGrenade(
@@ -3287,10 +3494,12 @@ function updateCharacter(
 
 
         syncCharacterFromPhysics(
+
             moveCharacter(
                 horizontalPhysicsMovement,
                 delta
             )
+
         );
 
 
@@ -3308,7 +3517,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // DIRECCIÓN CÁMARA
+    // DIRECCIÓN DE CÁMARA
     // ========================================================
 
     moveDirection.set(
@@ -3444,8 +3653,8 @@ function updateCharacter(
         hasMovement
             ?
             moveDirection.x *
-                speed *
-                delta
+            speed *
+            delta
             :
             0;
 
@@ -3454,8 +3663,8 @@ function updateCharacter(
         hasMovement
             ?
             moveDirection.z *
-                speed *
-                delta
+            speed *
+            delta
             :
             0;
 
@@ -3477,7 +3686,15 @@ function updateCharacter(
 
 
     // ========================================================
-    // ROTACIÓN
+    // ROTACIÓN DEL SWAT
+    // ========================================================
+    //
+    // APUNTANDO:
+    // siempre mira hacia la cámara.
+    //
+    // SIN APUNTAR:
+    // mira hacia donde se está desplazando.
+    //
     // ========================================================
 
     if (
@@ -3547,7 +3764,7 @@ function updateCharacter(
 
 
 // ============================================================
-// SINCRONIZAR CON FÍSICA
+// SINCRONIZAR CON RAPIER
 // ============================================================
 
 function syncCharacterFromPhysics(
@@ -3592,12 +3809,15 @@ function rotateCharacterTowards(
 
     difference =
         Math.atan2(
+
             Math.sin(
                 difference
             ),
+
             Math.cos(
                 difference
             )
+
         );
 
 
@@ -3659,10 +3879,14 @@ function resetThirdPersonCamera() {
 
 
     desiredTarget.set(
+
         characterRoot.position.x,
+
         characterRoot.position.y +
-            NORMAL_TARGET_HEIGHT,
+        NORMAL_TARGET_HEIGHT,
+
         characterRoot.position.z
+
     );
 
 
@@ -3672,14 +3896,16 @@ function resetThirdPersonCamera() {
 
 
     camera.position.set(
+
         characterRoot.position.x +
-            4.2,
+        4.2,
 
         characterRoot.position.y +
-            3,
+        3,
 
         characterRoot.position.z +
-            6.2
+        6.2
+
     );
 
 
@@ -3732,27 +3958,29 @@ function updateThirdPersonCamera(
 
 
     // ========================================================
-    // TARGET
+    // TARGET DEL PERSONAJE
     // ========================================================
 
     desiredTarget.set(
+
         characterRoot.position.x,
 
         characterRoot.position.y +
-            (
-                isAiming
-                    ?
-                    AIM_TARGET_HEIGHT
-                    :
-                    NORMAL_TARGET_HEIGHT
-            ),
+        (
+            isAiming
+                ?
+                AIM_TARGET_HEIGHT
+                :
+                NORMAL_TARGET_HEIGHT
+        ),
 
         characterRoot.position.z
+
     );
 
 
     // ========================================================
-    // HOMBRO
+    // DESPLAZAMIENTO SOBRE HOMBRO
     // ========================================================
 
     if (
@@ -3768,7 +3996,7 @@ function updateThirdPersonCamera(
 
 
     // ========================================================
-    // FOLLOW SUAVE
+    // FOLLOW
     // ========================================================
 
     targetDifference
@@ -3835,9 +4063,13 @@ function updateThirdPersonCamera(
 
     camera.zoom =
         THREE.MathUtils.lerp(
+
             camera.zoom,
+
             targetZoom,
+
             zoomAmount
+
         );
 
 
@@ -3847,10 +4079,300 @@ function updateThirdPersonCamera(
 
 
 // ============================================================
+// v1.0.5
+// POINTER LOCK
+// ============================================================
+
+function isMouseLocked() {
+
+    return (
+        document.pointerLockElement ===
+        renderer.domElement
+    );
+
+}
+
+
+// ============================================================
+// CAPTURAR MOUSE
+// ============================================================
+
+function requestMouseLock() {
+
+    if (
+        isMouseLocked()
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        getGameState() !==
+        GAME_STATES.PLAYING
+    ) {
+
+        return;
+
+    }
+
+
+    renderer.domElement
+        .requestPointerLock()
+        .catch?.(
+            () => {
+
+                console.warn(
+                    '⚠️ No se pudo capturar el mouse.'
+                );
+
+            }
+        );
+
+}
+
+
+// ============================================================
+// v1.0.5
+// ROTAR CÁMARA CON EL MOUSE
+// ============================================================
+//
+// NO requiere mantener ningún botón.
+//
+// ============================================================
+
+function rotateCameraWithMouse(
+    movementX,
+    movementY
+) {
+
+    if (
+        !characterLoaded
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        getGameState() !==
+        GAME_STATES.PLAYING
+    ) {
+
+        return;
+
+    }
+
+
+    // ========================================================
+    // VECTOR TARGET -> CÁMARA
+    // ========================================================
+
+    cameraOrbitOffset
+        .copy(
+            camera.position
+        )
+        .sub(
+            controls.target
+        );
+
+
+    if (
+        cameraOrbitOffset.lengthSq() <=
+        0.000001
+    ) {
+
+        return;
+
+    }
+
+
+    // ========================================================
+    // VECTOR -> COORDENADAS ESFÉRICAS
+    // ========================================================
+
+    cameraOrbitSpherical
+        .setFromVector3(
+            cameraOrbitOffset
+        );
+
+
+    // ========================================================
+    // MOVIMIENTO HORIZONTAL
+    // ========================================================
+
+    cameraOrbitSpherical.theta -=
+        movementX *
+        MOUSE_SENSITIVITY;
+
+
+    // ========================================================
+    // MOVIMIENTO VERTICAL
+    // ========================================================
+
+    cameraOrbitSpherical.phi -=
+        movementY *
+        MOUSE_SENSITIVITY;
+
+
+    // ========================================================
+    // LIMITAR MOVIMIENTO VERTICAL
+    // ========================================================
+
+    cameraOrbitSpherical.phi =
+        THREE.MathUtils.clamp(
+
+            cameraOrbitSpherical.phi,
+
+            CAMERA_MIN_POLAR,
+
+            CAMERA_MAX_POLAR
+
+        );
+
+
+    cameraOrbitSpherical.makeSafe();
+
+
+    // ========================================================
+    // COORDENADAS ESFÉRICAS -> VECTOR
+    // ========================================================
+
+    cameraOrbitOffset
+        .setFromSpherical(
+            cameraOrbitSpherical
+        );
+
+
+    // ========================================================
+    // NUEVA POSICIÓN DE CÁMARA
+    // ========================================================
+
+    camera.position
+        .copy(
+            controls.target
+        )
+        .add(
+            cameraOrbitOffset
+        );
+
+
+    camera.lookAt(
+        controls.target
+    );
+
+}
+
+
+// ============================================================
+// MOVIMIENTO LIBRE DEL MOUSE
+// ============================================================
+
+document.addEventListener(
+
+    'mousemove',
+
+    (event) => {
+
+        if (
+            !isMouseLocked()
+        ) {
+
+            return;
+
+        }
+
+
+        rotateCameraWithMouse(
+
+            event.movementX,
+
+            event.movementY
+
+        );
+
+    }
+
+);
+
+
+// ============================================================
+// POINTER LOCK CHANGE
+// ============================================================
+
+document.addEventListener(
+
+    'pointerlockchange',
+
+    () => {
+
+        if (
+            isMouseLocked()
+        ) {
+
+            console.log(
+                '🔒 Mouse capturado · Cámara TPS libre'
+            );
+
+
+            return;
+
+        }
+
+
+        // ====================================================
+        // ESC / MOUSE LIBERADO
+        // ====================================================
+
+        leftMouseDown =
+            false;
+
+
+        rightMouseDown =
+            false;
+
+
+        setAiming(
+            false
+        );
+
+
+        console.log(
+            '🖱️ Mouse liberado · Haz clic en el escenario para continuar'
+        );
+
+    }
+
+);
+
+
+// ============================================================
+// ERROR POINTER LOCK
+// ============================================================
+
+document.addEventListener(
+
+    'pointerlockerror',
+
+    () => {
+
+        console.warn(
+            '⚠️ Error al activar Pointer Lock'
+        );
+
+    }
+
+);
+
+
+// ============================================================
 // TECLADO
 // ============================================================
 
 window.addEventListener(
+
     'keydown',
 
     (event) => {
@@ -3858,6 +4380,35 @@ window.addEventListener(
         const key =
             event.key
                 .toLowerCase();
+
+
+        // ====================================================
+        // R = RECARGAR
+        // ====================================================
+
+        if (
+            key === 'r' &&
+            !event.repeat
+        ) {
+
+            if (
+                getGameState() ===
+                GAME_STATES.PLAYING &&
+                !isThrowing
+            ) {
+
+                leftMouseDown =
+                    false;
+
+
+                startReload();
+
+            }
+
+
+            return;
+
+        }
 
 
         // ====================================================
@@ -3932,10 +4483,16 @@ window.addEventListener(
         }
 
     }
+
 );
 
 
+// ============================================================
+// SOLTAR TECLAS
+// ============================================================
+
 window.addEventListener(
+
     'keyup',
 
     (event) => {
@@ -3995,25 +4552,104 @@ window.addEventListener(
         }
 
     }
+
 );
 
 
 // ============================================================
-// MOUSE
+// CLICK SOBRE ESCENARIO
 // ============================================================
 //
-// DERECHO SOSTENIDO = APUNTAR
-// IZQUIERDO SOSTENIDO = DISPARAR
+// Si el mouse está libre, cualquier click sobre el canvas
+// vuelve a capturarlo.
 //
 // ============================================================
 
 renderer.domElement.addEventListener(
+
+    'click',
+
+    () => {
+
+        if (
+            getGameState() !==
+            GAME_STATES.PLAYING
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            !isMouseLocked()
+        ) {
+
+            requestMouseLock();
+
+        }
+
+    }
+
+);
+
+
+// ============================================================
+// BOTONES DEL MOUSE
+// ============================================================
+//
+// MOVIMIENTO DEL MOUSE:
+//     cámara.
+//
+// CLICK DERECHO:
+//     apuntar.
+//
+// CLICK IZQUIERDO:
+//     disparar.
+//
+// ============================================================
+
+renderer.domElement.addEventListener(
+
     'mousedown',
 
     (event) => {
 
         // ====================================================
-        // DERECHO
+        // PARTIDA ACTIVA
+        // ====================================================
+
+        if (
+            getGameState() !==
+            GAME_STATES.PLAYING
+        ) {
+
+            return;
+
+        }
+
+
+        // ====================================================
+        // CAPTURAR MOUSE
+        // ====================================================
+
+        if (
+            !isMouseLocked()
+        ) {
+
+            event.preventDefault();
+
+
+            requestMouseLock();
+
+
+            return;
+
+        }
+
+
+        // ====================================================
+        // CLICK DERECHO = APUNTAR
         // ====================================================
 
         if (
@@ -4029,8 +4665,6 @@ renderer.domElement.addEventListener(
 
 
             if (
-                getGameState() !==
-                    GAME_STATES.PLAYING ||
                 isThrowing
             ) {
 
@@ -4055,7 +4689,7 @@ renderer.domElement.addEventListener(
 
 
         // ====================================================
-        // IZQUIERDO
+        // CLICK IZQUIERDO = DISPARAR
         // ====================================================
 
         if (
@@ -4070,12 +4704,12 @@ renderer.domElement.addEventListener(
                 true;
 
 
-            // Primer disparo instantáneo.
             tryShoot();
 
         }
 
     }
+
 );
 
 
@@ -4084,6 +4718,7 @@ renderer.domElement.addEventListener(
 // ============================================================
 
 window.addEventListener(
+
     'mouseup',
 
     (event) => {
@@ -4132,6 +4767,7 @@ window.addEventListener(
         }
 
     }
+
 );
 
 
@@ -4140,6 +4776,7 @@ window.addEventListener(
 // ============================================================
 
 window.addEventListener(
+
     'blur',
 
     () => {
@@ -4177,6 +4814,7 @@ window.addEventListener(
         );
 
     }
+
 );
 
 
@@ -4230,7 +4868,7 @@ function updateVersionLabel() {
     ) {
 
         version.textContent =
-            'VERSION 1.0.3 · FEEDBACK DE COMBATE';
+            'VERSION 1.0.5 · CÁMARA TPS LIBRE';
 
     }
 
@@ -4281,7 +4919,7 @@ function setLoadingState(
 async function init() {
 
     console.log(
-        '🎮 OPERATION IMPACT v1.0.3'
+        '🎮 OPERATION IMPACT v1.0.5'
     );
 
 
@@ -4333,9 +4971,13 @@ async function init() {
         // ====================================================
 
         initShootingSystem(
+
             scene,
+
             camera,
+
             environmentMeshes
+
         );
 
 
@@ -4353,9 +4995,13 @@ async function init() {
 
         const objectivePositions =
             initObjectives(
+
                 scene,
+
                 getGroundHeight,
+
                 {
+
                     minX:
                         environmentBounds.min.x,
 
@@ -4369,15 +5015,19 @@ async function init() {
                         environmentBounds.max.z,
 
                     spawn: {
+
                         x:
                             currentSpawn.x,
 
                         z:
                             currentSpawn.z
+
                     },
 
                     columnPlatforms
+
                 }
+
             );
 
 
@@ -4390,9 +5040,13 @@ async function init() {
         ) {
 
             initDynamicObjects(
+
                 scene,
+
                 getGroundHeight,
+
                 {
+
                     minX:
                         environmentBounds.min.x,
 
@@ -4406,18 +5060,22 @@ async function init() {
                         environmentBounds.max.z,
 
                     spawn: {
+
                         x:
                             currentSpawn.x,
 
                         z:
                             currentSpawn.z
+
                     },
 
                     columnPlatforms,
 
                     reservedPositions:
                         objectivePositions
+
                 }
+
             );
 
         }
@@ -4428,10 +5086,11 @@ async function init() {
         // ====================================================
 
         setupStartButton(
+
             () => {
 
                 // =============================================
-                // JUEGO
+                // PARTIDA
                 // =============================================
 
                 startGame();
@@ -4445,7 +5104,7 @@ async function init() {
 
 
                 // =============================================
-                // DISPAROS
+                // DISPAROS / MUNICIÓN
                 // =============================================
 
                 resetShooting();
@@ -4567,7 +5226,14 @@ async function init() {
 
 
                 // =============================================
-                // INFORMACIÓN
+                // POINTER LOCK
+                // =============================================
+
+                requestMouseLock();
+
+
+                // =============================================
+                // CONTROLES
                 // =============================================
 
                 console.log(
@@ -4576,27 +5242,22 @@ async function init() {
 
 
                 console.log(
-                    '🎯 Clic derecho sostenido = apuntar'
+                    '🖱️ Mover mouse = mover cámara'
                 );
 
 
                 console.log(
-                    '🔫 Clic izquierdo sostenido = disparar'
+                    '🎯 Clic derecho = apuntar'
                 );
 
 
                 console.log(
-                    '✕ Hitmarker de impactos activado'
+                    '🔫 Clic izquierdo = disparar'
                 );
 
 
                 console.log(
-                    '❤️ Barra de vida de objetivos activada'
-                );
-
-
-                console.log(
-                    '💥 Retroceso activado'
+                    '🔄 R = recargar'
                 );
 
 
@@ -4604,7 +5265,18 @@ async function init() {
                     '💣 F = lanzar granada'
                 );
 
+
+                console.log(
+                    '🏃 SHIFT = correr'
+                );
+
+
+                console.log(
+                    '🖱️ ESC = liberar mouse'
+                );
+
             }
+
         );
 
 
@@ -4614,7 +5286,7 @@ async function init() {
 
 
         console.log(
-            '✅ OPERATION IMPACT v1.0.3 LISTO'
+            '✅ OPERATION IMPACT v1.0.5 LISTO'
         );
 
     } catch (
@@ -4710,7 +5382,7 @@ function animate() {
 
 
     // ========================================================
-    // DISPARO
+    // DISPARO / MUNICIÓN / RECARGA
     // ========================================================
 
     updateShooting(
@@ -4728,7 +5400,7 @@ function animate() {
         isAiming &&
         !isThrowing &&
         getGameState() ===
-            GAME_STATES.PLAYING
+        GAME_STATES.PLAYING
     ) {
 
         tryShoot();
@@ -4741,14 +5413,22 @@ function animate() {
     // ========================================================
 
     updateObjectives3D(
+
         delta,
+
         performance.now() /
-            1000
+        1000
+
     );
 
 
     // ========================================================
     // ORBIT CONTROLS
+    // ========================================================
+    //
+    // Solo actualiza damping/zoom.
+    // Ya NO rota cámara.
+    //
     // ========================================================
 
     controls.update();
@@ -4796,6 +5476,7 @@ function animate() {
 // ============================================================
 
 window.addEventListener(
+
     'resize',
 
     () => {
@@ -4815,13 +5496,16 @@ window.addEventListener(
 
 
         renderer.setPixelRatio(
+
             Math.min(
                 window.devicePixelRatio,
                 2
             )
+
         );
 
     }
+
 );
 
 
