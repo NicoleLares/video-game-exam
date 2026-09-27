@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-
 import RAPIER from '@dimforge/rapier3d-compat';
 
 import {
@@ -10,180 +9,149 @@ import {
 // ============================================================
 // OPERATION IMPACT
 // OBJECTS.JS
-// VERSION 1.0.7
+// VERSION 1.0.8
 //
-// FIGURAS FÍSICAS
-// DISTRIBUCIÓN ALEATORIA
-// PLATAFORMAS
-// TORRE
+// FIGURAS DINÁMICAS
 // VIDA
+// DAÑO VISUAL PROGRESIVO
+// FLASH DE IMPACTO
 // DESTRUCCIÓN
 // CCD
+// LÍMITE DE VELOCIDAD
 // PROTECCIÓN CONTRA TUNNELING
-// LÍMITES DE VELOCIDAD
 // RESET DE SEGURIDAD
 // ============================================================
 
 
 // ============================================================
-// CONFIGURACIÓN GENERAL
+// VIDA
 // ============================================================
 
-const DEFAULT_OBJECT_HEALTH =
-    100;
+const DEFAULT_OBJECT_HEALTH = 100;
 
-const FLOOR_OBJECT_COUNT =
-    18;
 
-const PLATFORM_GROUP_COUNT =
-    3;
+// ============================================================
+// DAÑO VISUAL
+// ============================================================
+
+const DAMAGE_FLASH_DURATION = 100;
+
+// Salud:
+// > 60% = normal
+// > 20% = dañado
+// <=20% = crítico
+
+const DAMAGED_HEALTH_RATIO = 0.60;
+const CRITICAL_HEALTH_RATIO = 0.20;
+
+
+// ============================================================
+// CANTIDAD DE OBJETOS
+// ============================================================
+
+const FLOOR_OBJECT_COUNT = 18;
+const PLATFORM_GROUP_COUNT = 3;
 
 
 // ============================================================
 // DISTANCIAS DE SEGURIDAD
 // ============================================================
 
-const SPAWN_SAFE_DISTANCE =
-    5.0;
-
-const RESERVED_SAFE_DISTANCE =
-    2.3;
-
-const OBJECT_SPACING =
-    1.45;
+const SPAWN_SAFE_DISTANCE = 5.0;
+const RESERVED_SAFE_DISTANCE = 2.3;
+const OBJECT_SPACING = 1.45;
 
 
 // ============================================================
-// FÍSICA
-// ============================================================
-//
-// Estas densidades hacen que las figuras tengan más peso
-// y no salgan disparadas exageradamente con cada bala.
-//
+// DENSIDADES
 // ============================================================
 
-const BOX_DENSITY =
-    6.0;
-
-const SPHERE_DENSITY =
-    5.0;
-
-const CYLINDER_DENSITY =
-    7.0;
-
-const CONE_DENSITY =
-    5.5;
-
-const TOWER_DENSITY =
-    7.5;
+const BOX_DENSITY = 6.0;
+const SPHERE_DENSITY = 5.0;
+const CYLINDER_DENSITY = 7.0;
+const CONE_DENSITY = 5.5;
+const TOWER_DENSITY = 7.5;
 
 
 // ============================================================
 // DAMPING
 // ============================================================
 
-const LINEAR_DAMPING =
-    0.65;
-
-const ANGULAR_DAMPING =
-    0.90;
+const LINEAR_DAMPING = 0.65;
+const ANGULAR_DAMPING = 0.90;
 
 
 // ============================================================
 // SEGURIDAD DE VELOCIDAD
 // ============================================================
-//
-// Muy importante.
-//
-// Aunque CCD esté habilitado, evitar velocidades absurdamente
-// grandes ayuda todavía más a impedir que los cuerpos atraviesen
-// paredes del escenario.
-//
-// ============================================================
 
-const MAX_HORIZONTAL_SPEED =
-    11;
-
-const MAX_VERTICAL_SPEED =
-    8;
-
-const MAX_ANGULAR_SPEED =
-    16;
+const MAX_HORIZONTAL_SPEED = 11;
+const MAX_VERTICAL_SPEED = 8;
+const MAX_ANGULAR_SPEED = 16;
 
 
 // ============================================================
-// SEGURIDAD DEL ESCENARIO
+// SEGURIDAD DEL MAPA
 // ============================================================
 
-const MAP_RESET_MARGIN =
-    2.5;
-
-const MIN_SAFE_Y =
-    -7;
-
-const MAX_SAFE_Y =
-    20;
+const MAP_RESET_MARGIN = 2.5;
+const MIN_SAFE_Y = -7;
+const MAX_SAFE_Y = 20;
 
 
 // ============================================================
 // OBJETOS
 // ============================================================
 
-const dynamicObjects =
-    [];
+const dynamicObjects = [];
+const initialStates = [];
+const usedPositions = [];
 
 
 // ============================================================
-// ESTADOS INICIALES
+// GRUPO VISUAL
 // ============================================================
 
-const initialStates =
-    [];
-
-
-// ============================================================
-// POSICIONES UTILIZADAS
-// ============================================================
-
-const usedPositions =
-    [];
+let objectsGroup = null;
 
 
 // ============================================================
-// GRUPO
-// ============================================================
-
-let objectsGroup =
-    null;
-
-
-// ============================================================
-// LÍMITES DEL MAPA
+// LÍMITES
 // ============================================================
 
 const mapBounds = {
-
-    minX:
-        -22,
-
-    maxX:
-        22,
-
-    minZ:
-        -22,
-
-    maxZ:
-        22
-
+    minX: -22,
+    maxX: 22,
+    minZ: -22,
+    maxZ: 22
 };
 
 
 // ============================================================
-// GENERADOR ALEATORIO DETERMINISTA
+// RANDOM DETERMINISTA
 // ============================================================
 
-let randomSeed =
-    123456789;
+let randomSeed = 123456789;
+
+
+// ============================================================
+// COLORES PARA EFECTOS
+// ============================================================
+
+const whiteColor =
+    new THREE.Color(0xffffff);
+
+const impactColor =
+    new THREE.Color(0xffcc88);
+
+const damagedEmissive =
+    new THREE.Color(0x401000);
+
+const criticalEmissive =
+    new THREE.Color(0xff1800);
+
+const temporaryColor =
+    new THREE.Color();
 
 
 // ============================================================
@@ -192,81 +160,46 @@ let randomSeed =
 
 const boxMaterial =
     new THREE.MeshStandardMaterial({
-
-        color:
-            0x795548,
-
-        roughness:
-            0.75,
-
-        metalness:
-            0.05
-
+        color: 0x795548,
+        roughness: 0.75,
+        metalness: 0.05
     });
 
 
 const sphereMaterial =
     new THREE.MeshStandardMaterial({
-
-        color:
-            0x1565c0,
-
-        roughness:
-            0.45,
-
-        metalness:
-            0.20
-
+        color: 0x1565c0,
+        roughness: 0.45,
+        metalness: 0.20
     });
 
 
 const cylinderMaterial =
     new THREE.MeshStandardMaterial({
-
-        color:
-            0xb71c1c,
-
-        roughness:
-            0.55,
-
-        metalness:
-            0.35
-
+        color: 0xb71c1c,
+        roughness: 0.55,
+        metalness: 0.35
     });
 
 
 const coneMaterial =
     new THREE.MeshStandardMaterial({
-
-        color:
-            0xef6c00,
-
-        roughness:
-            0.60,
-
-        metalness:
-            0.05
-
+        color: 0xef6c00,
+        roughness: 0.60,
+        metalness: 0.05
     });
 
 
 const towerMaterial =
     new THREE.MeshStandardMaterial({
-
-        color:
-            0x8d6e63,
-
-        roughness:
-            0.75,
-
-        metalness:
-            0.05
-
+        color: 0x8d6e63,
+        roughness: 0.75,
+        metalness: 0.05
     });
 
 
 // ============================================================
-// RANDOM DETERMINISTA
+// RANDOM
 // ============================================================
 
 function seededRandom() {
@@ -279,18 +212,9 @@ function seededRandom() {
         ) %
         4294967296;
 
-
-    return (
-        randomSeed /
-        4294967296
-    );
-
+    return randomSeed / 4294967296;
 }
 
-
-// ============================================================
-// RANDOM ENTRE DOS NÚMEROS
-// ============================================================
 
 function randomRange(
     min,
@@ -305,19 +229,11 @@ function randomRange(
             min
         )
     );
-
 }
 
 
 // ============================================================
-// CREAR MATERIAL ÚNICO
-// ============================================================
-//
-// Cada figura recibe su propio material.
-//
-// Esto será importante después para poder mostrar daño visual
-// sin cambiar el color de todas las demás figuras.
-//
+// MATERIAL ÚNICO
 // ============================================================
 
 function cloneMaterial(
@@ -325,22 +241,15 @@ function cloneMaterial(
 ) {
 
     return material.clone();
-
 }
 
 
 // ============================================================
-// CREAR CUERPO DINÁMICO
+// CUERPO RAPIER
 // ============================================================
 //
-// AQUÍ ESTÁ UNA DE LAS CORRECCIONES MÁS IMPORTANTES.
-//
-// setCcdEnabled(true)
-//
-// CCD = Continuous Collision Detection.
-//
-// Rapier comprobará mejor las colisiones de objetos que se
-// desplazan rápidamente.
+// CCD permanece activado para evitar que las figuras
+// atraviesen paredes a velocidades altas.
 //
 // ============================================================
 
@@ -355,30 +264,24 @@ function createHeavyBody(
         RAPIER
             .RigidBodyDesc
             .dynamic()
-
             .setTranslation(
                 x,
                 y,
                 z
             )
-
             .setCcdEnabled(
                 true
             )
-
             .setLinearDamping(
                 LINEAR_DAMPING
             )
-
             .setAngularDamping(
                 ANGULAR_DAMPING
             );
 
-
     return world.createRigidBody(
         bodyDesc
     );
-
 }
 
 
@@ -397,73 +300,56 @@ function distance2D(
         x1 -
         x2;
 
-
     const dz =
         z1 -
         z2;
-
 
     return Math.sqrt(
         dx * dx +
         dz * dz
     );
-
 }
 
 
 // ============================================================
-// LEER POSICIÓN X/Z
+// LEER X/Z
 // ============================================================
 
 function getXZ(
     value
 ) {
 
-    if (
-        !value
-    ) {
-
+    if (!value) {
         return null;
-
     }
-
 
     const x =
         Number(
             value.x
         );
 
-
     const z =
         Number(
             value.z
         );
 
-
     if (
-        !Number.isFinite(
-            x
-        ) ||
-        !Number.isFinite(
-            z
-        )
+        !Number.isFinite(x) ||
+        !Number.isFinite(z)
     ) {
 
         return null;
-
     }
-
 
     return {
         x,
         z
     };
-
 }
 
 
 // ============================================================
-// COMPROBAR POSICIÓN SEGURA
+// POSICIÓN SEGURA
 // ============================================================
 
 function isPositionSafe(
@@ -473,47 +359,27 @@ function isPositionSafe(
     reservedPositions = []
 ) {
 
-    // ========================================================
-    // SPAWN DEL JUGADOR
-    // ========================================================
-
     const spawnPosition =
         getXZ(
             spawn
         );
 
-
-    if (
-        spawnPosition
-    ) {
-
-        const distanceFromSpawn =
-            distance2D(
-
-                x,
-                z,
-
-                spawnPosition.x,
-                spawnPosition.z
-
-            );
-
+    if (spawnPosition) {
 
         if (
-            distanceFromSpawn <
+            distance2D(
+                x,
+                z,
+                spawnPosition.x,
+                spawnPosition.z
+            ) <
             SPAWN_SAFE_DISTANCE
         ) {
 
             return false;
-
         }
-
     }
 
-
-    // ========================================================
-    // OBJETIVOS / NÚCLEOS
-    // ========================================================
 
     for (
         const reserved of
@@ -525,80 +391,50 @@ function isPositionSafe(
                 reserved
             );
 
-
-        if (
-            !position
-        ) {
-
+        if (!position) {
             continue;
-
         }
 
-
-        const distance =
+        if (
             distance2D(
-
                 x,
                 z,
-
                 position.x,
                 position.z
-
-            );
-
-
-        if (
-            distance <
+            ) <
             RESERVED_SAFE_DISTANCE
         ) {
 
             return false;
-
         }
-
     }
 
-
-    // ========================================================
-    // OTRAS FIGURAS
-    // ========================================================
 
     for (
         const used of
         usedPositions
     ) {
 
-        const distance =
+        if (
             distance2D(
-
                 x,
                 z,
-
                 used.x,
                 used.z
-
-            );
-
-
-        if (
-            distance <
+            ) <
             OBJECT_SPACING
         ) {
 
             return false;
-
         }
-
     }
 
-
     return true;
-
 }
 
 
 // ============================================================
-// REGISTRAR POSICIÓN
+// RESERVAR POSICIÓN
 // ============================================================
 
 function reservePosition(
@@ -607,13 +443,50 @@ function reservePosition(
 ) {
 
     usedPositions.push({
-
         x,
-
         z
-
     });
+}
 
+
+// ============================================================
+// GUARDAR DATOS VISUALES BASE
+// ============================================================
+
+function createVisualState(
+    mesh
+) {
+
+    const material =
+        mesh.material;
+
+    return {
+
+        baseColor:
+            material.color.clone(),
+
+        baseEmissive:
+            material.emissive
+                ?
+                material.emissive.clone()
+                :
+                new THREE.Color(0x000000),
+
+        baseEmissiveIntensity:
+            material.emissiveIntensity ??
+            0,
+
+        baseRoughness:
+            material.roughness ??
+            0.5,
+
+        baseMetalness:
+            material.metalness ??
+            0,
+
+        hitFlashUntil:
+            0
+    };
 }
 
 
@@ -630,10 +503,13 @@ function registerDynamicObject(
     const translation =
         body.translation();
 
-
     const rotation =
         body.rotation();
 
+    const visual =
+        createVisualState(
+            mesh
+        );
 
     const item = {
 
@@ -652,8 +528,7 @@ function registerDynamicObject(
         destroyed:
             false,
 
-        hitFlash:
-            0
+        visual
 
     };
 
@@ -672,39 +547,317 @@ function registerDynamicObject(
         mesh,
 
         position: {
-
-            x:
-                translation.x,
-
-            y:
-                translation.y,
-
-            z:
-                translation.z
-
+            x: translation.x,
+            y: translation.y,
+            z: translation.z
         },
 
         rotation: {
-
-            x:
-                rotation.x,
-
-            y:
-                rotation.y,
-
-            z:
-                rotation.z,
-
-            w:
-                rotation.w
-
+            x: rotation.x,
+            y: rotation.y,
+            z: rotation.z,
+            w: rotation.w
         }
 
     });
 
 
     return item;
+}
 
+
+// ============================================================
+// RESTAURAR MATERIAL ORIGINAL
+// ============================================================
+
+function restoreOriginalMaterial(
+    item
+) {
+
+    if (
+        !item ||
+        !item.mesh ||
+        !item.mesh.material
+    ) {
+
+        return;
+    }
+
+
+    const material =
+        item.mesh.material;
+
+    const visual =
+        item.visual;
+
+
+    material.color.copy(
+        visual.baseColor
+    );
+
+
+    if (material.emissive) {
+
+        material.emissive.copy(
+            visual.baseEmissive
+        );
+    }
+
+
+    material.emissiveIntensity =
+        visual.baseEmissiveIntensity;
+
+
+    material.roughness =
+        visual.baseRoughness;
+
+
+    material.metalness =
+        visual.baseMetalness;
+
+
+    material.needsUpdate =
+        true;
+}
+
+
+// ============================================================
+// ACTUALIZAR DAÑO VISUAL
+// ============================================================
+
+function updateDamageVisual(
+    item
+) {
+
+    if (
+        !item ||
+        !item.mesh ||
+        !item.mesh.material ||
+        item.destroyed
+    ) {
+
+        return;
+    }
+
+
+    const material =
+        item.mesh.material;
+
+    const visual =
+        item.visual;
+
+    const now =
+        performance.now();
+
+
+    // ========================================================
+    // FLASH AL RECIBIR IMPACTO
+    // ========================================================
+
+    if (
+        now <
+        visual.hitFlashUntil
+    ) {
+
+        const remaining =
+            THREE.MathUtils.clamp(
+                (
+                    visual.hitFlashUntil -
+                    now
+                ) /
+                DAMAGE_FLASH_DURATION,
+                0,
+                1
+            );
+
+
+        temporaryColor
+            .copy(
+                visual.baseColor
+            )
+            .lerp(
+                whiteColor,
+                0.45 *
+                remaining
+            );
+
+
+        material.color.copy(
+            temporaryColor
+        );
+
+
+        if (material.emissive) {
+
+            material.emissive.copy(
+                impactColor
+            );
+        }
+
+
+        material.emissiveIntensity =
+            1.2 +
+            remaining *
+            1.3;
+
+
+        return;
+    }
+
+
+    // ========================================================
+    // PORCENTAJE DE VIDA
+    // ========================================================
+
+    const healthRatio =
+        THREE.MathUtils.clamp(
+            item.health /
+            item.maxHealth,
+            0,
+            1
+        );
+
+
+    // ========================================================
+    // ESTADO NORMAL
+    // ========================================================
+
+    if (
+        healthRatio >
+        DAMAGED_HEALTH_RATIO
+    ) {
+
+        restoreOriginalMaterial(
+            item
+        );
+
+        return;
+    }
+
+
+    // ========================================================
+    // ESTADO DAÑADO
+    //
+    // 60% → 21%
+    // ========================================================
+
+    if (
+        healthRatio >
+        CRITICAL_HEALTH_RATIO
+    ) {
+
+        temporaryColor
+            .copy(
+                visual.baseColor
+            )
+            .multiplyScalar(
+                0.68
+            );
+
+
+        material.color.copy(
+            temporaryColor
+        );
+
+
+        if (material.emissive) {
+
+            material.emissive.copy(
+                damagedEmissive
+            );
+        }
+
+
+        material.emissiveIntensity =
+            0.30;
+
+
+        material.roughness =
+            Math.min(
+                1,
+                visual.baseRoughness +
+                0.10
+            );
+
+
+        return;
+    }
+
+
+    // ========================================================
+    // ESTADO CRÍTICO
+    //
+    // 20% o menos
+    // ========================================================
+
+    temporaryColor
+        .copy(
+            visual.baseColor
+        )
+        .multiplyScalar(
+            0.42
+        );
+
+
+    material.color.copy(
+        temporaryColor
+    );
+
+
+    const pulse =
+        (
+            Math.sin(
+                now *
+                0.018
+            ) +
+            1
+        ) /
+        2;
+
+
+    if (material.emissive) {
+
+        material.emissive.copy(
+            criticalEmissive
+        );
+    }
+
+
+    material.emissiveIntensity =
+        0.35 +
+        pulse *
+        0.85;
+
+
+    material.roughness =
+        Math.min(
+            1,
+            visual.baseRoughness +
+            0.18
+        );
+}
+
+
+// ============================================================
+// FLASH DE IMPACTO
+// ============================================================
+
+function triggerHitFlash(
+    item
+) {
+
+    if (
+        !item ||
+        !item.visual
+    ) {
+
+        return;
+    }
+
+
+    item.visual.hitFlashUntil =
+        performance.now() +
+        DAMAGE_FLASH_DURATION;
 }
 
 
@@ -713,28 +866,15 @@ function registerDynamicObject(
 // ============================================================
 
 function createBox({
-
     x,
-
     z,
-
     width,
-
     height,
-
     depth,
-
     baseY,
-
-    material =
-        boxMaterial,
-
-    density =
-        BOX_DENSITY,
-
-    type =
-        'box'
-
+    material = boxMaterial,
+    density = BOX_DENSITY,
+    type = 'box'
 }) {
 
     const world =
@@ -749,7 +889,6 @@ function createBox({
     ) {
 
         return null;
-
     }
 
 
@@ -760,26 +899,14 @@ function createBox({
         0.035;
 
 
-    // ========================================================
-    // THREE.JS
-    // ========================================================
-
-    const geometry =
-        new THREE.BoxGeometry(
-
-            width,
-
-            height,
-
-            depth
-
-        );
-
-
     const mesh =
         new THREE.Mesh(
 
-            geometry,
+            new THREE.BoxGeometry(
+                width,
+                height,
+                depth
+            ),
 
             cloneMaterial(
                 material
@@ -790,7 +917,6 @@ function createBox({
 
     mesh.castShadow =
         true;
-
 
     mesh.receiveShadow =
         true;
@@ -808,10 +934,6 @@ function createBox({
     );
 
 
-    // ========================================================
-    // RAPIER
-    // ========================================================
-
     const body =
         createHeavyBody(
             world,
@@ -825,16 +947,9 @@ function createBox({
         RAPIER
             .ColliderDesc
             .cuboid(
-
-                width /
-                2,
-
-                height /
-                2,
-
-                depth /
-                2
-
+                width / 2,
+                height / 2,
+                depth / 2
             );
 
 
@@ -864,24 +979,16 @@ function createBox({
 
 
     world.createCollider(
-
         colliderDesc,
-
         body
-
     );
 
 
     return registerDynamicObject(
-
         mesh,
-
         body,
-
         type
-
     );
-
 }
 
 
@@ -890,15 +997,10 @@ function createBox({
 // ============================================================
 
 function createSphere({
-
     x,
-
     z,
-
     radius,
-
     baseY
-
 }) {
 
     const world =
@@ -913,7 +1015,6 @@ function createSphere({
     ) {
 
         return null;
-
     }
 
 
@@ -923,22 +1024,14 @@ function createSphere({
         0.035;
 
 
-    const geometry =
-        new THREE.SphereGeometry(
-
-            radius,
-
-            24,
-
-            18
-
-        );
-
-
     const mesh =
         new THREE.Mesh(
 
-            geometry,
+            new THREE.SphereGeometry(
+                radius,
+                24,
+                18
+            ),
 
             cloneMaterial(
                 sphereMaterial
@@ -949,7 +1042,6 @@ function createSphere({
 
     mesh.castShadow =
         true;
-
 
     mesh.receiveShadow =
         true;
@@ -1000,24 +1092,16 @@ function createSphere({
 
 
     world.createCollider(
-
         colliderDesc,
-
         body
-
     );
 
 
     return registerDynamicObject(
-
         mesh,
-
         body,
-
         'sphere'
-
     );
-
 }
 
 
@@ -1026,17 +1110,11 @@ function createSphere({
 // ============================================================
 
 function createCylinder({
-
     x,
-
     z,
-
     radius,
-
     height,
-
     baseY
-
 }) {
 
     const world =
@@ -1051,7 +1129,6 @@ function createCylinder({
     ) {
 
         return null;
-
     }
 
 
@@ -1062,24 +1139,15 @@ function createCylinder({
         0.035;
 
 
-    const geometry =
-        new THREE.CylinderGeometry(
-
-            radius,
-
-            radius,
-
-            height,
-
-            24
-
-        );
-
-
     const mesh =
         new THREE.Mesh(
 
-            geometry,
+            new THREE.CylinderGeometry(
+                radius,
+                radius,
+                height,
+                24
+            ),
 
             cloneMaterial(
                 cylinderMaterial
@@ -1090,7 +1158,6 @@ function createCylinder({
 
     mesh.castShadow =
         true;
-
 
     mesh.receiveShadow =
         true;
@@ -1121,12 +1188,8 @@ function createCylinder({
         RAPIER
             .ColliderDesc
             .cylinder(
-
-                height /
-                2,
-
+                height / 2,
                 radius
-
             );
 
 
@@ -1146,24 +1209,16 @@ function createCylinder({
 
 
     world.createCollider(
-
         colliderDesc,
-
         body
-
     );
 
 
     return registerDynamicObject(
-
         mesh,
-
         body,
-
         'cylinder'
-
     );
-
 }
 
 
@@ -1172,17 +1227,11 @@ function createCylinder({
 // ============================================================
 
 function createCone({
-
     x,
-
     z,
-
     radius,
-
     height,
-
     baseY
-
 }) {
 
     const world =
@@ -1197,7 +1246,6 @@ function createCone({
     ) {
 
         return null;
-
     }
 
 
@@ -1208,22 +1256,14 @@ function createCone({
         0.035;
 
 
-    const geometry =
-        new THREE.ConeGeometry(
-
-            radius,
-
-            height,
-
-            24
-
-        );
-
-
     const mesh =
         new THREE.Mesh(
 
-            geometry,
+            new THREE.ConeGeometry(
+                radius,
+                height,
+                24
+            ),
 
             cloneMaterial(
                 coneMaterial
@@ -1234,7 +1274,6 @@ function createCone({
 
     mesh.castShadow =
         true;
-
 
     mesh.receiveShadow =
         true;
@@ -1265,12 +1304,8 @@ function createCone({
         RAPIER
             .ColliderDesc
             .cone(
-
-                height /
-                2,
-
+                height / 2,
                 radius
-
             );
 
 
@@ -1290,29 +1325,21 @@ function createCone({
 
 
     world.createCollider(
-
         colliderDesc,
-
         body
-
     );
 
 
     return registerDynamicObject(
-
         mesh,
-
         body,
-
         'cone'
-
     );
-
 }
 
 
 // ============================================================
-// CREAR FIGURA ALEATORIA
+// FIGURA ALEATORIA
 // ============================================================
 
 function createRandomShape(
@@ -1327,10 +1354,6 @@ function createRandomShape(
         4;
 
 
-    // ========================================================
-    // CAJA
-    // ========================================================
-
     if (
         type ===
         0
@@ -1339,7 +1362,6 @@ function createRandomShape(
         return createBox({
 
             x,
-
             z,
 
             width:
@@ -1364,13 +1386,8 @@ function createRandomShape(
                 groundY
 
         });
-
     }
 
-
-    // ========================================================
-    // ESFERA
-    // ========================================================
 
     if (
         type ===
@@ -1380,7 +1397,6 @@ function createRandomShape(
         return createSphere({
 
             x,
-
             z,
 
             radius:
@@ -1393,13 +1409,8 @@ function createRandomShape(
                 groundY
 
         });
-
     }
 
-
-    // ========================================================
-    // CILINDRO
-    // ========================================================
 
     if (
         type ===
@@ -1409,7 +1420,6 @@ function createRandomShape(
         return createCylinder({
 
             x,
-
             z,
 
             radius:
@@ -1428,18 +1438,12 @@ function createRandomShape(
                 groundY
 
         });
-
     }
 
-
-    // ========================================================
-    // CONO
-    // ========================================================
 
     return createCone({
 
         x,
-
         z,
 
         radius:
@@ -1458,12 +1462,11 @@ function createRandomShape(
             groundY
 
     });
-
 }
 
 
 // ============================================================
-// CREAR FIGURAS DEL PISO
+// FIGURAS DE PISO
 // ============================================================
 
 function createFloorObjects(
@@ -1472,40 +1475,30 @@ function createFloorObjects(
 ) {
 
     const {
-
         minX,
-
         maxX,
-
         minZ,
-
         maxZ,
-
         spawn,
-
         reservedPositions = []
-
     } = options;
 
 
     const margin =
-        2.0;
+        2;
 
 
     const safeMinX =
         minX +
         margin;
 
-
     const safeMaxX =
         maxX -
         margin;
 
-
     const safeMinZ =
         minZ +
         margin;
-
 
     const safeMaxZ =
         maxZ -
@@ -1514,7 +1507,6 @@ function createFloorObjects(
 
     let created =
         0;
-
 
     let attempts =
         0;
@@ -1550,19 +1542,14 @@ function createFloorObjects(
 
         if (
             !isPositionSafe(
-
                 x,
                 z,
-
                 spawn,
-
                 reservedPositions
-
             )
         ) {
 
             continue;
-
         }
 
 
@@ -1580,30 +1567,20 @@ function createFloorObjects(
         ) {
 
             continue;
-
         }
 
 
         const object =
             createRandomShape(
-
                 created,
-
                 x,
-
                 z,
-
                 groundY
-
             );
 
 
-        if (
-            !object
-        ) {
-
+        if (!object) {
             continue;
-
         }
 
 
@@ -1614,19 +1591,17 @@ function createFloorObjects(
 
 
         created++;
-
     }
 
 
     console.log(
         `📦 Figuras de piso creadas: ${created}`
     );
-
 }
 
 
 // ============================================================
-// FIGURAS EN PLATAFORMAS
+// FIGURAS SOBRE PLATAFORMAS
 // ============================================================
 
 function createPlatformObjects(
@@ -1634,13 +1609,9 @@ function createPlatformObjects(
 ) {
 
     const {
-
         columnPlatforms = [],
-
         spawn,
-
         reservedPositions = []
-
     } = options;
 
 
@@ -1653,7 +1624,6 @@ function createPlatformObjects(
     ) {
 
         return;
-
     }
 
 
@@ -1672,7 +1642,6 @@ function createPlatformObjects(
         ) {
 
             break;
-
         }
 
 
@@ -1689,7 +1658,6 @@ function createPlatformObjects(
         ) {
 
             continue;
-
         }
 
 
@@ -1701,58 +1669,37 @@ function createPlatformObjects(
         ) {
 
             continue;
-
         }
 
 
         if (
             !isPositionSafe(
-
                 platform.x,
-
                 platform.z,
-
                 spawn,
-
                 reservedPositions
-
             )
         ) {
 
             continue;
-
         }
 
 
-        // ====================================================
-        // TAMAÑO DE OFFSETS
-        // ====================================================
-
         const offsetX =
             Math.min(
-
                 0.38,
-
                 platform.width *
                 0.22
-
             );
 
 
         const offsetZ =
             Math.min(
-
                 0.38,
-
                 platform.depth *
                 0.22
-
             );
 
-
-        // ====================================================
-        // CAJA CENTRAL
-        // ====================================================
 
         createBox({
 
@@ -1777,10 +1724,6 @@ function createPlatformObjects(
         });
 
 
-        // ====================================================
-        // CILINDRO
-        // ====================================================
-
         createCylinder({
 
             x:
@@ -1802,10 +1745,6 @@ function createPlatformObjects(
 
         });
 
-
-        // ====================================================
-        // CONO
-        // ====================================================
 
         createCone({
 
@@ -1836,19 +1775,17 @@ function createPlatformObjects(
 
 
         groups++;
-
     }
 
 
     console.log(
         `🏛️ Grupos sobre plataformas: ${groups}`
     );
-
 }
 
 
 // ============================================================
-// COMPROBAR PISO PLANO PARA TORRE
+// PISO PARA TORRE
 // ============================================================
 
 function getFlatTowerGround(
@@ -1863,30 +1800,15 @@ function getFlatTowerGround(
 
     const samples = [
 
-        [
-            0,
-            0
-        ],
+        [0, 0],
 
-        [
-            probe,
-            0
-        ],
+        [probe, 0],
 
-        [
-            -probe,
-            0
-        ],
+        [-probe, 0],
 
-        [
-            0,
-            probe
-        ],
+        [0, probe],
 
-        [
-            0,
-            -probe
-        ]
+        [0, -probe]
 
     ];
 
@@ -1899,18 +1821,14 @@ function getFlatTowerGround(
         const [
             dx,
             dz
-        ] of samples
+        ] of
+        samples
     ) {
 
         const y =
             getGroundHeight(
-
-                x +
-                dx,
-
-                z +
-                dz
-
+                x + dx,
+                z + dz
             );
 
 
@@ -1921,14 +1839,12 @@ function getFlatTowerGround(
         ) {
 
             return null;
-
         }
 
 
         heights.push(
             y
         );
-
     }
 
 
@@ -1951,31 +1867,26 @@ function getFlatTowerGround(
     ) {
 
         return null;
-
     }
 
 
     return (
         heights.reduce(
-
             (
                 total,
                 value
             ) =>
                 total +
                 value,
-
             0
-
         ) /
         heights.length
     );
-
 }
 
 
 // ============================================================
-// BUSCAR POSICIÓN PARA TORRE
+// POSICIÓN PARA TORRE
 // ============================================================
 
 function findTowerPosition(
@@ -1984,19 +1895,12 @@ function findTowerPosition(
 ) {
 
     const {
-
         minX,
-
         maxX,
-
         minZ,
-
         maxZ,
-
         spawn,
-
         reservedPositions = []
-
     } = options;
 
 
@@ -2012,48 +1916,27 @@ function findTowerPosition(
 
     const candidates = [
 
-        [
-            0.60,
-            0.63
-        ],
+        [0.60, 0.63],
 
-        [
-            0.38,
-            0.68
-        ],
+        [0.38, 0.68],
 
-        [
-            0.68,
-            0.38
-        ],
+        [0.68, 0.38],
 
-        [
-            0.32,
-            0.35
-        ],
+        [0.32, 0.35],
 
-        [
-            0.72,
-            0.72
-        ],
+        [0.72, 0.72],
 
-        [
-            0.50,
-            0.78
-        ]
+        [0.50, 0.78]
 
     ];
 
-
-    // ========================================================
-    // CANDIDATOS FIJOS
-    // ========================================================
 
     for (
         const [
             rx,
             rz
-        ] of candidates
+        ] of
+        candidates
     ) {
 
         const x =
@@ -2070,31 +1953,22 @@ function findTowerPosition(
 
         if (
             !isPositionSafe(
-
                 x,
                 z,
-
                 spawn,
-
                 reservedPositions
-
             )
         ) {
 
             continue;
-
         }
 
 
         const ground =
             getFlatTowerGround(
-
                 getGroundHeight,
-
                 x,
-
                 z
-
             );
 
 
@@ -2105,82 +1979,52 @@ function findTowerPosition(
         ) {
 
             return {
-
                 x,
-
                 z,
-
                 ground
-
             };
-
         }
-
     }
 
 
-    // ========================================================
-    // BÚSQUEDA ALEATORIA
-    // ========================================================
-
     for (
         let attempt = 0;
-        attempt <
-        100;
+        attempt < 100;
         attempt++
     ) {
 
         const x =
             randomRange(
-
-                minX +
-                2,
-
-                maxX -
-                2
-
+                minX + 2,
+                maxX - 2
             );
 
 
         const z =
             randomRange(
-
-                minZ +
-                2,
-
-                maxZ -
-                2
-
+                minZ + 2,
+                maxZ - 2
             );
 
 
         if (
             !isPositionSafe(
-
                 x,
                 z,
-
                 spawn,
-
                 reservedPositions
-
             )
         ) {
 
             continue;
-
         }
 
 
         const ground =
             getFlatTowerGround(
-
                 getGroundHeight,
-
                 x,
-
                 z
-
             );
 
 
@@ -2191,27 +2035,20 @@ function findTowerPosition(
         ) {
 
             return {
-
                 x,
-
                 z,
-
                 ground
-
             };
-
         }
-
     }
 
 
     return null;
-
 }
 
 
 // ============================================================
-// CREAR TORRE
+// TORRE
 // ============================================================
 
 function createTower(
@@ -2221,60 +2058,43 @@ function createTower(
 
     const position =
         findTowerPosition(
-
             getGroundHeight,
-
             options
-
         );
 
 
-    if (
-        !position
-    ) {
+    if (!position) {
 
         console.warn(
             '⚠️ No se encontró zona segura para la torre'
         );
 
-
         return;
-
     }
 
 
     const width =
         0.55;
 
-
     const height =
         0.38;
-
 
     const depth =
         0.55;
 
-
     const horizontalSpacing =
         0.58;
 
-
     const verticalSpacing =
         0.018;
-
 
     const rows =
         4;
 
 
-    // ========================================================
-    // 4 + 3 + 2 + 1 = 10 BLOQUES
-    // ========================================================
-
     for (
         let row = 0;
-        row <
-        rows;
+        row < rows;
         row++
     ) {
 
@@ -2285,8 +2105,7 @@ function createTower(
 
         for (
             let column = 0;
-            column <
-            count;
+            column < count;
             column++
         ) {
 
@@ -2337,37 +2156,24 @@ function createTower(
                     'tower'
 
             });
-
         }
-
     }
 
 
     reservePosition(
-
         position.x,
-
         position.z
-
     );
 
 
     console.log(
         '🧱 Torre física creada'
     );
-
 }
 
 
 // ============================================================
 // LIMITAR VELOCIDAD
-// ============================================================
-//
-// SEGUNDA PROTECCIÓN CONTRA ATRAVESAR PAREDES.
-//
-// Si una explosión o disparo aplica demasiada fuerza,
-// reducimos la velocidad a un máximo razonable.
-//
 // ============================================================
 
 function limitObjectVelocity(
@@ -2381,7 +2187,6 @@ function limitObjectVelocity(
     ) {
 
         return;
-
     }
 
 
@@ -2392,10 +2197,8 @@ function limitObjectVelocity(
     let vx =
         velocity.x;
 
-
     let vy =
         velocity.y;
-
 
     let vz =
         velocity.z;
@@ -2405,19 +2208,10 @@ function limitObjectVelocity(
         false;
 
 
-    // ========================================================
-    // VELOCIDAD HORIZONTAL
-    // ========================================================
-
     const horizontalSpeed =
         Math.sqrt(
-
-            vx *
-            vx +
-
-            vz *
-            vz
-
+            vx * vx +
+            vz * vz
         );
 
 
@@ -2441,23 +2235,14 @@ function limitObjectVelocity(
 
         changed =
             true;
-
     }
 
 
-    // ========================================================
-    // VELOCIDAD VERTICAL
-    // ========================================================
-
     const clampedY =
         THREE.MathUtils.clamp(
-
             vy,
-
             -MAX_VERTICAL_SPEED,
-
             MAX_VERTICAL_SPEED
-
         );
 
 
@@ -2472,43 +2257,24 @@ function limitObjectVelocity(
 
         changed =
             true;
-
     }
 
 
-    // ========================================================
-    // APLICAR
-    // ========================================================
-
-    if (
-        changed
-    ) {
+    if (changed) {
 
         item.body.setLinvel(
 
             {
-
-                x:
-                    vx,
-
-                y:
-                    vy,
-
-                z:
-                    vz
-
+                x: vx,
+                y: vy,
+                z: vz
             },
 
             true
 
         );
-
     }
 
-
-    // ========================================================
-    // VELOCIDAD ANGULAR
-    // ========================================================
 
     const angular =
         item.body.angvel();
@@ -2542,7 +2308,6 @@ function limitObjectVelocity(
         item.body.setAngvel(
 
             {
-
                 x:
                     angular.x *
                     scale,
@@ -2554,20 +2319,17 @@ function limitObjectVelocity(
                 z:
                     angular.z *
                     scale
-
             },
 
             true
 
         );
-
     }
-
 }
 
 
 // ============================================================
-// OBJETO FUERA DEL ESCENARIO
+// FUERA DEL MAPA
 // ============================================================
 
 function isObjectOutsideMap(
@@ -2580,45 +2342,41 @@ function isObjectOutsideMap(
 
     if (
         position.x <
-            mapBounds.minX -
-            MAP_RESET_MARGIN
+        mapBounds.minX -
+        MAP_RESET_MARGIN
     ) {
 
         return true;
-
     }
 
 
     if (
         position.x >
-            mapBounds.maxX +
-            MAP_RESET_MARGIN
+        mapBounds.maxX +
+        MAP_RESET_MARGIN
     ) {
 
         return true;
-
     }
 
 
     if (
         position.z <
-            mapBounds.minZ -
-            MAP_RESET_MARGIN
+        mapBounds.minZ -
+        MAP_RESET_MARGIN
     ) {
 
         return true;
-
     }
 
 
     if (
         position.z >
-            mapBounds.maxZ +
-            MAP_RESET_MARGIN
+        mapBounds.maxZ +
+        MAP_RESET_MARGIN
     ) {
 
         return true;
-
     }
 
 
@@ -2628,7 +2386,6 @@ function isObjectOutsideMap(
     ) {
 
         return true;
-
     }
 
 
@@ -2638,17 +2395,15 @@ function isObjectOutsideMap(
     ) {
 
         return true;
-
     }
 
 
     return false;
-
 }
 
 
 // ============================================================
-// BUSCAR ESTADO INICIAL
+// ESTADO INICIAL
 // ============================================================
 
 function getInitialState(
@@ -2656,26 +2411,22 @@ function getInitialState(
 ) {
 
     return initialStates.find(
-
         (
             state
         ) =>
             state.item ===
             item
-
     );
-
 }
 
 
 // ============================================================
-// REINICIAR UNA FIGURA
+// RESET DE UNA FIGURA
 // ============================================================
 
 function resetSingleObject(
     item,
-    resetHealth =
-        false
+    resetHealth = false
 ) {
 
     const state =
@@ -2684,100 +2435,59 @@ function resetSingleObject(
         );
 
 
-    if (
-        !state
-    ) {
-
+    if (!state) {
         return;
-
     }
 
 
     item.body.setTranslation(
-
         state.position,
-
         true
-
     );
 
 
     item.body.setRotation(
-
         state.rotation,
-
         true
-
     );
 
 
     item.body.setLinvel(
-
         {
-
-            x:
-                0,
-
-            y:
-                0,
-
-            z:
-                0
-
+            x: 0,
+            y: 0,
+            z: 0
         },
-
         true
-
     );
 
 
     item.body.setAngvel(
-
         {
-
-            x:
-                0,
-
-            y:
-                0,
-
-            z:
-                0
-
+            x: 0,
+            y: 0,
+            z: 0
         },
-
         true
-
     );
 
 
     item.mesh.position.set(
-
         state.position.x,
-
         state.position.y,
-
         state.position.z
-
     );
 
 
     item.mesh.quaternion.set(
-
         state.rotation.x,
-
         state.rotation.y,
-
         state.rotation.z,
-
         state.rotation.w
-
     );
 
 
-    if (
-        resetHealth
-    ) {
+    if (resetHealth) {
 
         item.health =
             item.maxHealth;
@@ -2790,8 +2500,15 @@ function resetSingleObject(
         item.mesh.visible =
             true;
 
-    }
 
+        item.visual.hitFlashUntil =
+            0;
+
+
+        restoreOriginalMaterial(
+            item
+        );
+    }
 }
 
 
@@ -2813,25 +2530,28 @@ export function updateDynamicObjects() {
         ) {
 
             continue;
-
         }
 
-
-        // ====================================================
-        // DESTRUIDO
-        // ====================================================
 
         if (
             item.destroyed
         ) {
 
             continue;
-
         }
 
 
         // ====================================================
-        // LIMITAR VELOCIDAD
+        // DAÑO VISUAL
+        // ====================================================
+
+        updateDamageVisual(
+            item
+        );
+
+
+        // ====================================================
+        // VELOCIDAD
         // ====================================================
 
         limitObjectVelocity(
@@ -2840,7 +2560,7 @@ export function updateDynamicObjects() {
 
 
         // ====================================================
-        // SALIÓ DEL MAPA
+        // OBJETO FUERA DEL MAPA
         // ====================================================
 
         if (
@@ -2861,12 +2581,11 @@ export function updateDynamicObjects() {
 
 
             continue;
-
         }
 
 
         // ====================================================
-        // SINCRONIZAR RAPIER -> THREE.JS
+        // RAPIER -> THREE.JS
         // ====================================================
 
         const position =
@@ -2878,83 +2597,52 @@ export function updateDynamicObjects() {
 
 
         item.mesh.position.set(
-
             position.x,
-
             position.y,
-
             position.z
-
         );
 
 
         item.mesh.quaternion.set(
-
             rotation.x,
-
             rotation.y,
-
             rotation.z,
-
             rotation.w
-
         );
-
     }
-
 }
 
 
 // ============================================================
-// DAÑAR FIGURA
-// ============================================================
-//
-// shooting.js utiliza esta función.
-//
+// DAÑAR OBJETO
 // ============================================================
 
 export function damageDynamicObject(
     target,
-    damage =
-        0
+    damage = 0
 ) {
 
     const item =
         dynamicObjects.find(
-
             (
                 object
             ) =>
-
                 object ===
                     target ||
-
                 object.mesh ===
                     target
-
         );
 
 
-    if (
-        !item
-    ) {
+    if (!item) {
 
         return {
-
-            health:
-                0,
-
+            health: 0,
             maxHealth:
                 DEFAULT_OBJECT_HEALTH,
-
-            destroyed:
-                false,
-
-            valid:
-                false
-
+            destroyed: false,
+            valid: false
         };
-
     }
 
 
@@ -2963,26 +2651,17 @@ export function damageDynamicObject(
     ) {
 
         return {
-
-            health:
-                0,
-
+            health: 0,
             maxHealth:
                 item.maxHealth,
-
-            destroyed:
-                true,
-
-            valid:
-                true
-
+            destroyed: true,
+            valid: true
         };
-
     }
 
 
     // ========================================================
-    // DAÑO
+    // QUITAR VIDA
     // ========================================================
 
     item.health =
@@ -3000,7 +2679,25 @@ export function damageDynamicObject(
 
 
     // ========================================================
-    // DESTRUIR
+    // FLASH
+    // ========================================================
+
+    triggerHitFlash(
+        item
+    );
+
+
+    // ========================================================
+    // ACTUALIZAR VISUAL INMEDIATAMENTE
+    // ========================================================
+
+    updateDamageVisual(
+        item
+    );
+
+
+    // ========================================================
+    // DESTRUCCIÓN
     // ========================================================
 
     if (
@@ -3020,62 +2717,32 @@ export function damageDynamicObject(
             false;
 
 
-        // ====================================================
-        // DETENER OBJETO
-        // ====================================================
-
         item.body.setLinvel(
-
             {
-
-                x:
-                    0,
-
-                y:
-                    0,
-
-                z:
-                    0
-
+                x: 0,
+                y: 0,
+                z: 0
             },
-
             true
-
         );
 
 
         item.body.setAngvel(
-
             {
-
-                x:
-                    0,
-
-                y:
-                    0,
-
-                z:
-                    0
-
+                x: 0,
+                y: 0,
+                z: 0
             },
-
             true
-
         );
 
-
-        // ====================================================
-        // MOVER CUERPO FUERA DEL ESCENARIO
-        // ====================================================
 
         const position =
             item.body.translation();
 
 
         item.body.setTranslation(
-
             {
-
                 x:
                     position.x,
 
@@ -3084,13 +2751,14 @@ export function damageDynamicObject(
 
                 z:
                     position.z
-
             },
-
             true
-
         );
 
+
+        console.log(
+            `💥 ${item.type} destruido`
+        );
     }
 
 
@@ -3109,7 +2777,6 @@ export function damageDynamicObject(
             true
 
     };
-
 }
 
 
@@ -3136,98 +2803,80 @@ export function resetDynamicObjects() {
             true;
 
 
-        resetSingleObject(
+        item.visual.hitFlashUntil =
+            0;
 
-            item,
 
-            true
-
+        restoreOriginalMaterial(
+            item
         );
 
+
+        resetSingleObject(
+            item,
+            true
+        );
     }
 
 
     console.log(
         '🔄 Objetos físicos reiniciados'
     );
-
 }
 
 
 // ============================================================
-// OBTENER FIGURAS ACTIVAS
-// ============================================================
-//
-// shooting.js y grenades.js usan esta función.
-//
-// Los objetos destruidos no deben recibir nuevos disparos,
-// impulsos o explosiones.
-//
+// OBTENER OBJETOS ACTIVOS
 // ============================================================
 
 export function getDynamicObjects() {
 
     return dynamicObjects.filter(
-
         (
             item
         ) =>
             !item.destroyed &&
             item.mesh.visible
-
     );
-
 }
 
 
 // ============================================================
-// INICIALIZAR OBJETOS
+// INICIALIZAR
 // ============================================================
 
 export function initDynamicObjects(
-
     scene,
-
     getGroundHeight,
-
-    options =
-        {}
-
+    options = {}
 ) {
 
     const world =
         getPhysicsWorld();
 
 
-    if (
-        !world
-    ) {
+    if (!world) {
 
         console.error(
             '❌ No existe el mundo Rapier.'
         );
 
-
         return [];
-
     }
 
 
     // ========================================================
-    // LIMPIAR DATOS
+    // LIMPIAR
     // ========================================================
 
     dynamicObjects.length =
         0;
 
-
     initialStates.length =
         0;
 
-
     usedPositions.length =
         0;
-
 
     randomSeed =
         123456789;
@@ -3280,31 +2929,25 @@ export function initDynamicObjects(
     mapBounds.minX =
         minX;
 
-
     mapBounds.maxX =
         maxX;
 
-
     mapBounds.minZ =
         minZ;
-
 
     mapBounds.maxZ =
         maxZ;
 
 
     // ========================================================
-    // OPCIONES NORMALIZADAS
+    // OPCIONES
     // ========================================================
 
     const normalizedOptions = {
 
         minX,
-
         maxX,
-
         minZ,
-
         maxZ,
 
         spawn:
@@ -3333,7 +2976,7 @@ export function initDynamicObjects(
 
 
     // ========================================================
-    // GRUPO VISUAL
+    // GRUPO
     // ========================================================
 
     objectsGroup =
@@ -3350,20 +2993,17 @@ export function initDynamicObjects(
 
 
     // ========================================================
-    // FIGURAS DISTRIBUIDAS POR EL MAPA
+    // FIGURAS DEL PISO
     // ========================================================
 
     createFloorObjects(
-
         getGroundHeight,
-
         normalizedOptions
-
     );
 
 
     // ========================================================
-    // FIGURAS SOBRE PLATAFORMAS
+    // FIGURAS DE PLATAFORMAS
     // ========================================================
 
     createPlatformObjects(
@@ -3372,15 +3012,12 @@ export function initDynamicObjects(
 
 
     // ========================================================
-    // TORRE DERRIBABLE
+    // TORRE
     // ========================================================
 
     createTower(
-
         getGroundHeight,
-
         normalizedOptions
-
     );
 
 
@@ -3396,15 +3033,19 @@ export function initDynamicObjects(
 
 
     console.log(
-        `🚧 Velocidad horizontal máxima: ${MAX_HORIZONTAL_SPEED}`
+        '❤️ Daño visual progresivo activado'
     );
 
 
     console.log(
-        `⬆️ Velocidad vertical máxima: ${MAX_VERTICAL_SPEED}`
+        '🟠 60 HP = objeto dañado'
+    );
+
+
+    console.log(
+        '🔴 20 HP = objeto crítico'
     );
 
 
     return dynamicObjects;
-
 }
