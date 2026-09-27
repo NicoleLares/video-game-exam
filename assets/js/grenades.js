@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+
 import RAPIER from '@dimforge/rapier3d-compat';
 
 import {
@@ -9,43 +10,59 @@ import {
     getDynamicObjects
 } from './objects.js';
 
+import {
+    damageObjectives
+} from './objectives.js';
+
 
 // ============================================================
 // CONFIGURACIÓN
 // ============================================================
 
-const GRENADE_RADIUS = 0.12;
+const GRENADE_RADIUS =
+    0.12;
 
-const THROW_FORCE = 8.5;
+const THROW_FORCE =
+    8.5;
 
-const THROW_UP_FORCE = 3.8;
+const THROW_UP_FORCE =
+    3.8;
 
-const FUSE_TIME = 2.5;
+const FUSE_TIME =
+    2.5;
 
-const EXPLOSION_RADIUS = 4.2;
+const EXPLOSION_RADIUS =
+    4.2;
 
-const EXPLOSION_FORCE = 5.8;
+const EXPLOSION_FORCE =
+    8.5;
 
-const GRENADE_COOLDOWN = 1.0;
+const GRENADE_COOLDOWN =
+    1.0;
 
-const MAX_ACTIVE_GRENADES = 5;
+const MAX_ACTIVE_GRENADES =
+    5;
 
 
 // ============================================================
 // ESTADO
 // ============================================================
 
-let sceneRef = null;
+let sceneRef =
+    null;
 
-let cooldownRemaining = 0;
+let cooldownRemaining =
+    0;
 
-const grenades = [];
+const grenades =
+    [];
 
-const explosionEffects = [];
+const explosionEffects =
+    [];
 
 
 // ============================================================
-// VECTORES TEMPORALES
+// VECTORES
 // ============================================================
 
 const forwardVector =
@@ -62,9 +79,13 @@ const explosionDirection =
 // INICIALIZAR
 // ============================================================
 
-export function initGrenadeSystem(scene) {
+export function initGrenadeSystem(
+    scene
+) {
 
-    sceneRef = scene;
+    sceneRef =
+        scene;
+
 
     console.log(
         '💣 Sistema de granadas listo'
@@ -79,20 +100,34 @@ export function initGrenadeSystem(scene) {
 
 export function canThrowGrenade() {
 
-    if (!sceneRef) {
+    if (
+        !sceneRef
+    ) {
+
         return false;
+
     }
 
-    if (cooldownRemaining > 0) {
+
+    if (
+        cooldownRemaining >
+        0
+    ) {
+
         return false;
+
     }
+
 
     if (
         grenades.length >=
         MAX_ACTIVE_GRENADES
     ) {
+
         return false;
+
     }
+
 
     return true;
 
@@ -100,15 +135,19 @@ export function canThrowGrenade() {
 
 
 // ============================================================
-// LANZAR GRANADA
+// LANZAR
 // ============================================================
 
 export function launchGrenade(
     characterRoot
 ) {
 
-    if (!canThrowGrenade()) {
+    if (
+        !canThrowGrenade()
+    ) {
+
         return false;
+
     }
 
 
@@ -116,11 +155,9 @@ export function launchGrenade(
         getPhysicsWorld();
 
 
-    if (!world) {
-
-        console.warn(
-            '⚠️ Mundo Rapier no disponible.'
-        );
+    if (
+        !world
+    ) {
 
         return false;
 
@@ -128,7 +165,7 @@ export function launchGrenade(
 
 
     // ========================================================
-    // DIRECCIÓN DEL PERSONAJE
+    // DIRECCIÓN
     // ========================================================
 
     forwardVector.set(
@@ -143,11 +180,13 @@ export function launchGrenade(
     );
 
 
-    forwardVector.y = 0;
+    forwardVector.y =
+        0;
 
 
     if (
-        forwardVector.lengthSq() === 0
+        forwardVector.lengthSq() ===
+        0
     ) {
 
         forwardVector.set(
@@ -163,7 +202,7 @@ export function launchGrenade(
 
 
     // ========================================================
-    // POSICIÓN DE SALIDA
+    // ORIGEN
     // ========================================================
 
     grenadeOrigin
@@ -181,7 +220,7 @@ export function launchGrenade(
 
 
     // ========================================================
-    // MODELO VISUAL
+    // VISUAL
     // ========================================================
 
     const grenadeMesh =
@@ -202,23 +241,21 @@ export function launchGrenade(
     // RIGID BODY
     // ========================================================
 
-    const rigidBodyDesc =
-        RAPIER
-            .RigidBodyDesc
-            .dynamic()
-            .setTranslation(
-                grenadeOrigin.x,
-                grenadeOrigin.y,
-                grenadeOrigin.z
-            )
-            .setCcdEnabled(
-                true
-            );
-
-
     const body =
         world.createRigidBody(
-            rigidBodyDesc
+
+            RAPIER
+                .RigidBodyDesc
+                .dynamic()
+                .setTranslation(
+                    grenadeOrigin.x,
+                    grenadeOrigin.y,
+                    grenadeOrigin.z
+                )
+                .setCcdEnabled(
+                    true
+                )
+
         );
 
 
@@ -286,10 +323,6 @@ export function launchGrenade(
     );
 
 
-    // ========================================================
-    // REGISTRAR
-    // ========================================================
-
     grenades.push({
         mesh:
             grenadeMesh,
@@ -316,7 +349,7 @@ export function launchGrenade(
 
 
 // ============================================================
-// CREAR MODELO DE GRANADA
+// VISUAL GRANADA
 // ============================================================
 
 function createGrenadeVisual() {
@@ -370,10 +403,6 @@ function createGrenadeVisual() {
         true;
 
 
-    bodyMesh.receiveShadow =
-        true;
-
-
     group.add(
         bodyMesh
     );
@@ -382,19 +411,6 @@ function createGrenadeVisual() {
     // ========================================================
     // BANDA
     // ========================================================
-
-    const bandMaterial =
-        new THREE.MeshStandardMaterial({
-            color:
-                0x252a1b,
-
-            roughness:
-                0.65,
-
-            metalness:
-                0.45
-        });
-
 
     const band =
         new THREE.Mesh(
@@ -406,7 +422,16 @@ function createGrenadeVisual() {
                 20
             ),
 
-            bandMaterial
+            new THREE.MeshStandardMaterial({
+                color:
+                    0x252a1b,
+
+                roughness:
+                    0.65,
+
+                metalness:
+                    0.45
+            })
 
         );
 
@@ -426,7 +451,7 @@ function createGrenadeVisual() {
 
 
     // ========================================================
-    // PARTE SUPERIOR
+    // METAL
     // ========================================================
 
     const metalMaterial =
@@ -499,10 +524,6 @@ function createGrenadeVisual() {
         -0.25;
 
 
-    lever.castShadow =
-        true;
-
-
     group.add(
         lever
     );
@@ -550,7 +571,7 @@ function createGrenadeVisual() {
 
 
 // ============================================================
-// ACTUALIZAR GRANADAS
+// ACTUALIZAR
 // ============================================================
 
 export function updateGrenades(
@@ -592,10 +613,6 @@ export function updateGrenades(
             delta;
 
 
-        // ====================================================
-        // SINCRONIZAR THREE / RAPIER
-        // ====================================================
-
         const position =
             grenade.body.translation();
 
@@ -619,10 +636,6 @@ export function updateGrenades(
         );
 
 
-        // ====================================================
-        // EXPLOTAR
-        // ====================================================
-
         if (
             grenade.fuse <=
             0
@@ -637,10 +650,6 @@ export function updateGrenades(
     }
 
 
-    // ========================================================
-    // EFECTOS DE EXPLOSIÓN
-    // ========================================================
-
     updateExplosionEffects(
         delta
     );
@@ -649,7 +658,7 @@ export function updateGrenades(
 
 
 // ============================================================
-// EXPLOTAR GRANADA
+// EXPLOTAR
 // ============================================================
 
 function explodeGrenade(
@@ -660,8 +669,12 @@ function explodeGrenade(
         grenades[index];
 
 
-    if (!grenade) {
+    if (
+        !grenade
+    ) {
+
         return;
+
     }
 
 
@@ -688,7 +701,7 @@ function explodeGrenade(
 
 
     // ========================================================
-    // ONDA EXPANSIVA
+    // OBJETOS FÍSICOS
     // ========================================================
 
     applyExplosionForce(
@@ -697,7 +710,30 @@ function explodeGrenade(
 
 
     // ========================================================
-    // EFECTO VISUAL
+    // NÚCLEOS
+    // ========================================================
+
+    const destroyed =
+        damageObjectives(
+            explosionPosition,
+            EXPLOSION_RADIUS
+        );
+
+
+    if (
+        destroyed >
+        0
+    ) {
+
+        console.log(
+            `⚡ La explosión destruyó ${destroyed} núcleo(s)`
+        );
+
+    }
+
+
+    // ========================================================
+    // VISUAL
     // ========================================================
 
     createExplosionEffect(
@@ -739,7 +775,7 @@ function explodeGrenade(
 
 
 // ============================================================
-// APLICAR FUERZA DE EXPLOSIÓN
+// ONDA EXPANSIVA
 // ============================================================
 
 function applyExplosionForce(
@@ -768,7 +804,6 @@ function applyExplosionForce(
 
 
         explosionDirection.set(
-
             translation.x -
                 explosionPosition.x,
 
@@ -777,7 +812,6 @@ function applyExplosionForce(
 
             translation.z -
                 explosionPosition.z
-
         );
 
 
@@ -813,20 +847,13 @@ function applyExplosionForce(
         }
 
 
-        // ====================================================
-        // UN POCO MÁS DE FUERZA HACIA ARRIBA
-        // ====================================================
-
+        // Más fuerza vertical.
         explosionDirection.y +=
-            0.45;
+            0.50;
 
 
         explosionDirection.normalize();
 
-
-        // ====================================================
-        // FUERZA SEGÚN DISTANCIA
-        // ====================================================
 
         const falloff =
             1 -
@@ -839,7 +866,7 @@ function applyExplosionForce(
 
 
         const strength =
-            0.8 +
+            1 +
             EXPLOSION_FORCE *
             falloff;
 
@@ -867,15 +894,19 @@ function applyExplosionForce(
 
 
 // ============================================================
-// EFECTO VISUAL
+// EFECTO EXPLOSIÓN
 // ============================================================
 
 function createExplosionEffect(
     position
 ) {
 
-    if (!sceneRef) {
+    if (
+        !sceneRef
+    ) {
+
         return;
+
     }
 
 
@@ -894,24 +925,8 @@ function createExplosionEffect(
 
 
     // ========================================================
-    // BOLA DE FUEGO
+    // FLASH
     // ========================================================
-
-    const flashMaterial =
-        new THREE.MeshBasicMaterial({
-            color:
-                0xffa000,
-
-            transparent:
-                true,
-
-            opacity:
-                1,
-
-            depthWrite:
-                false
-        });
-
 
     const flash =
         new THREE.Mesh(
@@ -922,7 +937,19 @@ function createExplosionEffect(
                 16
             ),
 
-            flashMaterial
+            new THREE.MeshBasicMaterial({
+                color:
+                    0xffa000,
+
+                transparent:
+                    true,
+
+                opacity:
+                    1,
+
+                depthWrite:
+                    false
+            })
 
         );
 
@@ -933,27 +960,8 @@ function createExplosionEffect(
 
 
     // ========================================================
-    // ONDA EXPANSIVA
+    // ONDA
     // ========================================================
-
-    const waveMaterial =
-        new THREE.MeshBasicMaterial({
-            color:
-                0xffd54f,
-
-            transparent:
-                true,
-
-            opacity:
-                0.8,
-
-            wireframe:
-                true,
-
-            depthWrite:
-                false
-        });
-
 
     const wave =
         new THREE.Mesh(
@@ -964,7 +972,22 @@ function createExplosionEffect(
                 12
             ),
 
-            waveMaterial
+            new THREE.MeshBasicMaterial({
+                color:
+                    0xffd54f,
+
+                transparent:
+                    true,
+
+                opacity:
+                    0.8,
+
+                wireframe:
+                    true,
+
+                depthWrite:
+                    false
+            })
 
         );
 
@@ -978,68 +1001,51 @@ function createExplosionEffect(
     // PARTÍCULAS
     // ========================================================
 
-    const particleGeometry =
-        new THREE.SphereGeometry(
-            0.055,
-            6,
-            6
-        );
-
-
-    const particleMaterial =
-        new THREE.MeshBasicMaterial({
-            color:
-                0xff6d00,
-
-            transparent:
-                true,
-
-            opacity:
-                1,
-
-            depthWrite:
-                false
-        });
-
-
-    const particles = [];
+    const particles =
+        [];
 
 
     for (
         let i = 0;
-        i < 24;
+        i < 28;
         i++
     ) {
 
         const particle =
             new THREE.Mesh(
-                particleGeometry,
-                particleMaterial
+
+                new THREE.SphereGeometry(
+                    0.055,
+                    6,
+                    6
+                ),
+
+                new THREE.MeshBasicMaterial({
+                    color:
+                        i % 2 === 0
+                            ?
+                            0xff6d00
+                            :
+                            0xffca28,
+
+                    transparent:
+                        true,
+
+                    opacity:
+                        1,
+
+                    depthWrite:
+                        false
+                })
+
             );
-
-
-        particle.position.set(
-            0,
-            0,
-            0
-        );
 
 
         const direction =
             new THREE.Vector3(
-
-                Math.random() *
-                    2 -
-                    1,
-
-                Math.random() *
-                    1.6 +
-                    0.2,
-
-                Math.random() *
-                    2 -
-                    1
-
+                Math.random() * 2 - 1,
+                Math.random() * 1.6 + 0.2,
+                Math.random() * 2 - 1
             )
                 .normalize();
 
@@ -1070,7 +1076,7 @@ function createExplosionEffect(
 
 
     // ========================================================
-    // LUZ DE EXPLOSIÓN
+    // LUZ
     // ========================================================
 
     const light =
@@ -1082,11 +1088,8 @@ function createExplosionEffect(
         );
 
 
-    light.position.set(
-        0,
-        0.3,
-        0
-    );
+    light.position.y =
+        0.3;
 
 
     group.add(
@@ -1094,35 +1097,23 @@ function createExplosionEffect(
     );
 
 
-    // ========================================================
-    // REGISTRAR EFECTO
-    // ========================================================
-
     explosionEffects.push({
-
         group,
-
         flash,
-
         wave,
-
         particles,
-
         light,
-
         age:
             0,
-
         duration:
             0.7
-
     });
 
 }
 
 
 // ============================================================
-// ACTUALIZAR EXPLOSIONES
+// ACTUALIZAR EFECTOS
 // ============================================================
 
 function updateExplosionEffects(
@@ -1154,10 +1145,6 @@ function updateExplosionEffects(
             );
 
 
-        // ====================================================
-        // BOLA DE FUEGO
-        // ====================================================
-
         const flashScale =
             1 +
             progress *
@@ -1173,10 +1160,6 @@ function updateExplosionEffects(
             1 -
             progress;
 
-
-        // ====================================================
-        // ONDA EXPANSIVA
-        // ====================================================
 
         const waveScale =
             1 +
@@ -1197,18 +1180,13 @@ function updateExplosionEffects(
             0.75;
 
 
-        // ====================================================
-        // PARTÍCULAS
-        // ====================================================
-
         for (
             const particle of
             effect.particles
         ) {
 
             const velocity =
-                particle.userData
-                    .velocity;
+                particle.userData.velocity;
 
 
             particle.position.addScaledVector(
@@ -1222,6 +1200,11 @@ function updateExplosionEffects(
                 delta;
 
 
+            particle.material.opacity =
+                1 -
+                progress;
+
+
             particle.scale.setScalar(
                 Math.max(
                     0.1,
@@ -1231,17 +1214,8 @@ function updateExplosionEffects(
                 )
             );
 
-
-            particle.material.opacity =
-                1 -
-                progress;
-
         }
 
-
-        // ====================================================
-        // LUZ
-        // ====================================================
 
         effect.light.intensity =
             35 *
@@ -1250,10 +1224,6 @@ function updateExplosionEffects(
                 progress
             );
 
-
-        // ====================================================
-        // TERMINAR
-        // ====================================================
 
         if (
             progress >=
@@ -1283,7 +1253,7 @@ function updateExplosionEffects(
 
 
 // ============================================================
-// REINICIAR GRANADAS
+// REINICIAR
 // ============================================================
 
 export function resetGrenades() {
@@ -1363,7 +1333,7 @@ export function resetGrenades() {
 
 
 // ============================================================
-// LIBERAR GEOMETRÍAS / MATERIALES
+// DISPOSE
 // ============================================================
 
 function disposeObject3D(

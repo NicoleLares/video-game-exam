@@ -14,6 +14,7 @@ import {
     getGameState,
     getScore,
     getObjectives,
+    getRemainingTime,
     GAME_STATES
 } from './game.js';
 
@@ -41,10 +42,17 @@ import {
 } from './grenades.js';
 
 import {
+    initObjectives,
+    updateObjectives as updateObjectives3D,
+    resetObjectives
+} from './objectives.js';
+
+import {
     setupStartButton,
     updateGameStatus,
     updateScore,
     updateObjectives,
+    updateTimer,
     resetUI
 } from './ui.js';
 
@@ -75,7 +83,7 @@ const ANIMATION_PATHS = {
 
 
 // ============================================================
-// CONFIGURACIÓN GENERAL
+// CONFIGURACIÓN
 // ============================================================
 
 const ENABLE_DYNAMIC_OBJECTS =
@@ -106,12 +114,7 @@ const MODEL_FORWARD_OFFSET =
 
 
 // ============================================================
-// SPAWN FIJO
-// ============================================================
-//
-// Estas son las coordenadas que obtuvimos
-// directamente dentro del escenario.
-//
+// SPAWN
 // ============================================================
 
 const FIXED_SPAWN = {
@@ -124,9 +127,6 @@ const FIXED_SPAWN = {
 // ============================================================
 // GRANADA
 // ============================================================
-
-// Momento de la animación Throw donde
-// la granada sale de la mano.
 
 const GRENADE_RELEASE_TIME =
     0.33;
@@ -150,10 +150,12 @@ const COVER_HEIGHT_THRESHOLD =
 const scene =
     new THREE.Scene();
 
+
 scene.background =
     new THREE.Color(
         0x879eaa
     );
+
 
 scene.fog =
     new THREE.Fog(
@@ -171,14 +173,15 @@ const camera =
     new THREE.PerspectiveCamera(
         60,
         window.innerWidth /
-        window.innerHeight,
+            window.innerHeight,
         0.1,
         500
     );
 
+
 camera.position.set(
     4.2,
-    3.0,
+    3,
     6.2
 );
 
@@ -189,13 +192,16 @@ camera.position.set(
 
 const renderer =
     new THREE.WebGLRenderer({
-        antialias: true
+        antialias:
+            true
     });
+
 
 renderer.setSize(
     window.innerWidth,
     window.innerHeight
 );
+
 
 renderer.setPixelRatio(
     Math.min(
@@ -204,17 +210,23 @@ renderer.setPixelRatio(
     )
 );
 
+
 renderer.shadowMap.enabled =
     true;
 
+
+// Three 0.186 recomienda PCFShadowMap.
 renderer.shadowMap.type =
-    THREE.PCFSoftShadowMap;
+    THREE.PCFShadowMap;
+
 
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
+
 renderer.toneMapping =
     THREE.ACESFilmicToneMapping;
+
 
 renderer.toneMappingExposure =
     1.12;
@@ -229,13 +241,14 @@ const container =
         'game-container'
     );
 
+
 container.appendChild(
     renderer.domElement
 );
 
 
 // ============================================================
-// ORBIT CONTROLS
+// CONTROLES
 // ============================================================
 
 const controls =
@@ -244,35 +257,47 @@ const controls =
         renderer.domElement
     );
 
+
 controls.enableDamping =
     true;
+
 
 controls.dampingFactor =
     0.08;
 
+
 controls.enablePan =
     false;
+
 
 controls.enableZoom =
     true;
 
+
 controls.minDistance =
     3.5;
+
 
 controls.maxDistance =
     12;
 
+
 controls.minPolarAngle =
-    Math.PI * 0.12;
+    Math.PI *
+    0.12;
+
 
 controls.maxPolarAngle =
-    Math.PI * 0.48;
+    Math.PI *
+    0.48;
+
 
 controls.target.set(
     0,
     1,
     0
 );
+
 
 controls.update();
 
@@ -288,6 +313,7 @@ const hemisphereLight =
         2.4
     );
 
+
 scene.add(
     hemisphereLight
 );
@@ -299,41 +325,53 @@ const directionalLight =
         3.4
     );
 
+
 directionalLight.position.set(
     30,
     45,
     20
 );
 
+
 directionalLight.castShadow =
     true;
+
 
 directionalLight.shadow.mapSize.width =
     2048;
 
+
 directionalLight.shadow.mapSize.height =
     2048;
+
 
 directionalLight.shadow.camera.left =
     -55;
 
+
 directionalLight.shadow.camera.right =
     55;
+
 
 directionalLight.shadow.camera.top =
     55;
 
+
 directionalLight.shadow.camera.bottom =
     -55;
+
 
 directionalLight.shadow.camera.near =
     0.1;
 
+
 directionalLight.shadow.camera.far =
     170;
 
+
 directionalLight.shadow.bias =
     -0.0002;
+
 
 scene.add(
     directionalLight
@@ -346,11 +384,13 @@ const fillLight =
         1.1
     );
 
+
 fillLight.position.set(
     -25,
     18,
     -20
 );
+
 
 scene.add(
     fillLight
@@ -372,11 +412,14 @@ const loader =
 let environment =
     null;
 
+
 const environmentBounds =
     new THREE.Box3();
 
+
 const collisionMeshes =
     [];
+
 
 const environmentMeshes =
     [];
@@ -389,12 +432,15 @@ const environmentMeshes =
 const characterRoot =
     new THREE.Group();
 
+
 const characterVisual =
     new THREE.Group();
+
 
 characterRoot.add(
     characterVisual
 );
+
 
 scene.add(
     characterRoot
@@ -404,31 +450,38 @@ scene.add(
 let characterModel =
     null;
 
+
 let mixer =
     null;
+
 
 let characterLoaded =
     false;
 
+
 let characterPhysicsCreated =
     false;
+
 
 let isThrowing =
     false;
 
+
 let activeAction =
     null;
+
 
 let activeActionName =
     '';
 
 
 // ============================================================
-// THROW / GRANADA
+// THROW
 // ============================================================
 
 let throwElapsed =
     0;
+
 
 let grenadeReleased =
     false;
@@ -447,10 +500,17 @@ const currentSpawn =
 // ============================================================
 
 const actions = {
-    idle: null,
-    walking: null,
-    run: null,
-    throw: null
+    idle:
+        null,
+
+    walking:
+        null,
+
+    run:
+        null,
+
+    throw:
+        null
 };
 
 
@@ -459,11 +519,20 @@ const actions = {
 // ============================================================
 
 const keys = {
-    w: false,
-    a: false,
-    s: false,
-    d: false,
-    shift: false
+    w:
+        false,
+
+    a:
+        false,
+
+    s:
+        false,
+
+    d:
+        false,
+
+    shift:
+        false
 };
 
 
@@ -474,17 +543,22 @@ const keys = {
 const cameraForward =
     new THREE.Vector3();
 
+
 const cameraRight =
     new THREE.Vector3();
+
 
 const moveDirection =
     new THREE.Vector3();
 
+
 const desiredTarget =
     new THREE.Vector3();
 
+
 const targetDifference =
     new THREE.Vector3();
+
 
 const UP =
     new THREE.Vector3(
@@ -493,6 +567,7 @@ const UP =
         0
     );
 
+
 const horizontalPhysicsMovement = {
     x: 0,
     z: 0
@@ -500,14 +575,16 @@ const horizontalPhysicsMovement = {
 
 
 // ============================================================
-// RAYCASTER
+// RAYCAST
 // ============================================================
 
 const groundRaycaster =
     new THREE.Raycaster();
 
+
 const groundRayOrigin =
     new THREE.Vector3();
+
 
 const groundRayDirection =
     new THREE.Vector3(
@@ -516,19 +593,22 @@ const groundRayDirection =
         0
     );
 
+
 const groundNormal =
     new THREE.Vector3();
+
 
 const normalMatrix =
     new THREE.Matrix3();
 
 
 // ============================================================
-// BOUNDING BOX PERSONAJE
+// BOUNDING BOX
 // ============================================================
 
 const animatedCharacterBox =
     new THREE.Box3();
+
 
 const temporaryBox =
     new THREE.Box3();
@@ -546,7 +626,9 @@ const clock =
 // CARGAR GLTF
 // ============================================================
 
-function loadGLTF(path) {
+function loadGLTF(
+    path
+) {
 
     return new Promise(
         (
@@ -574,6 +656,7 @@ function loadGLTF(path) {
                             ) *
                             100;
 
+
                         console.log(
                             `📦 ${path}: ${percent.toFixed(0)}%`
                         );
@@ -593,7 +676,7 @@ function loadGLTF(path) {
 
 
 // ============================================================
-// CARGAR ESCENARIO
+// ESCENARIO
 // ============================================================
 
 async function loadEnvironment() {
@@ -621,6 +704,7 @@ async function loadEnvironment() {
     collisionMeshes.length =
         0;
 
+
     environmentMeshes.length =
         0;
 
@@ -645,13 +729,10 @@ async function loadEnvironment() {
             child.castShadow =
                 true;
 
+
             child.receiveShadow =
                 true;
 
-
-            // =================================================
-            // MATERIALES
-            // =================================================
 
             if (
                 child.material
@@ -679,6 +760,7 @@ async function loadEnvironment() {
                             material.map.colorSpace =
                                 THREE.SRGBColorSpace;
 
+
                             material.map.needsUpdate =
                                 true;
 
@@ -693,10 +775,6 @@ async function loadEnvironment() {
 
             }
 
-
-            // =================================================
-            // COLLIDERS DEDICADOS
-            // =================================================
 
             const name =
                 (
@@ -729,10 +807,6 @@ async function loadEnvironment() {
     );
 
 
-    // ========================================================
-    // NORMALIZAR
-    // ========================================================
-
     normalizeEnvironment(
         environment
     );
@@ -743,28 +817,14 @@ async function loadEnvironment() {
     );
 
 
-    // ========================================================
-    // LÍMITES
-    // ========================================================
-
     environmentBounds.setFromObject(
         environment
     );
 
 
-    console.log(
-        '🗺️ Límites del mapa:',
-        environmentBounds
-    );
-
-
-    // ========================================================
-    // COLLIDERS RAPIER
-    // ========================================================
-
     const physicsMeshes =
         collisionMeshes.length >
-            0
+        0
             ?
             collisionMeshes
             :
@@ -790,7 +850,7 @@ async function loadEnvironment() {
 
 
 // ============================================================
-// NORMALIZAR ESCENARIO
+// NORMALIZAR MAPA
 // ============================================================
 
 function normalizeEnvironment(
@@ -856,10 +916,6 @@ function normalizeEnvironment(
     }
 
 
-    // ========================================================
-    // CENTRAR EN X / Z
-    // ========================================================
-
     model.updateMatrixWorld(
         true
     );
@@ -887,10 +943,6 @@ function normalizeEnvironment(
         center.z;
 
 
-    // ========================================================
-    // BASE Y = 0
-    // ========================================================
-
     model.updateMatrixWorld(
         true
     );
@@ -913,7 +965,7 @@ function normalizeEnvironment(
 
 
 // ============================================================
-// SUPERFICIES HORIZONTALES
+// SUPERFICIES
 // ============================================================
 
 function getHorizontalSurfaces(
@@ -965,8 +1017,8 @@ function getHorizontalSurfaces(
 
 
     for (
-        const intersection
-        of intersections
+        const intersection of
+        intersections
     ) {
 
         const object =
@@ -994,10 +1046,6 @@ function getHorizontalSurfaces(
 
         }
 
-
-        // ====================================================
-        // NORMAL
-        // ====================================================
 
         if (
             intersection.face
@@ -1029,10 +1077,6 @@ function getHorizontalSurfaces(
 
         }
 
-
-        // ====================================================
-        // EVITAR SUPERFICIES DUPLICADAS
-        // ====================================================
 
         const duplicate =
             surfaces.some(
@@ -1087,7 +1131,7 @@ function getHorizontalSurfaces(
 
 
 // ============================================================
-// ALTURA DEL SUELO
+// PISO
 // ============================================================
 
 function getGroundHeight(
@@ -1116,10 +1160,6 @@ function getGroundHeight(
         surfaces[0];
 
 
-    // ========================================================
-    // EVITAR ZONAS CUBIERTAS
-    // ========================================================
-
     for (
         let i = 1;
         i <
@@ -1127,13 +1167,9 @@ function getGroundHeight(
         i++
     ) {
 
-        const difference =
-            surfaces[i].y -
-            ground.y;
-
-
         if (
-            difference >
+            surfaces[i].y -
+            ground.y >
             COVER_HEIGHT_THRESHOLD
         ) {
 
@@ -1150,7 +1186,7 @@ function getGroundHeight(
 
 
 // ============================================================
-// SUPERFICIE MÁS ALTA
+// SUPERFICIE SUPERIOR
 // ============================================================
 
 function getTopSurfaceHeight(
@@ -1184,7 +1220,7 @@ function getTopSurfaceHeight(
 
 
 // ============================================================
-// ESTIMAR ALTURA GENERAL DEL PISO
+// PISO GENERAL
 // ============================================================
 
 function estimateFloorHeight() {
@@ -1239,18 +1275,15 @@ function estimateFloorHeight() {
 
 
             if (
-                surfaces.length ===
+                surfaces.length >
                 0
             ) {
 
-                continue;
+                heights.push(
+                    surfaces[0].y
+                );
 
             }
-
-
-            heights.push(
-                surfaces[0].y
-            );
 
         }
 
@@ -1277,18 +1310,10 @@ function estimateFloorHeight() {
     );
 
 
-    const index =
+    return heights[
         Math.floor(
             heights.length *
             0.25
-        );
-
-
-    return heights[
-        Math.min(
-            index,
-            heights.length -
-            1
         )
     ];
 
@@ -1308,12 +1333,6 @@ function collectColumnPlatforms() {
 
     const floorHeight =
         estimateFloorHeight();
-
-
-    console.log(
-        '📏 Piso aproximado:',
-        floorHeight
-    );
 
 
     const STEP =
@@ -1378,10 +1397,6 @@ function collectColumnPlatforms() {
         );
 
 
-    // ========================================================
-    // PUNTOS ELEVADOS
-    // ========================================================
-
     const elevatedPoints =
         new Map();
 
@@ -1435,8 +1450,8 @@ function collectColumnPlatforms() {
 
             const top =
                 surfaces[
-                surfaces.length -
-                1
+                    surfaces.length -
+                    1
                 ];
 
 
@@ -1447,9 +1462,9 @@ function collectColumnPlatforms() {
 
             if (
                 elevation <
-                MIN_ELEVATION ||
+                    MIN_ELEVATION ||
                 elevation >
-                MAX_ELEVATION
+                    MAX_ELEVATION
             ) {
 
                 continue;
@@ -1457,31 +1472,15 @@ function collectColumnPlatforms() {
             }
 
 
-            // =================================================
-            // COMPROBAR PLANICIDAD
-            // =================================================
-
             const probe =
                 0.16;
 
 
             const samples = [
-                [
-                    probe,
-                    0
-                ],
-                [
-                    -probe,
-                    0
-                ],
-                [
-                    0,
-                    probe
-                ],
-                [
-                    0,
-                    -probe
-                ]
+                [probe, 0],
+                [-probe, 0],
+                [0, probe],
+                [0, -probe]
             ];
 
 
@@ -1493,16 +1492,13 @@ function collectColumnPlatforms() {
                 const [
                     offsetX,
                     offsetZ
-                ]
-                of samples
+                ] of samples
             ) {
 
                 const nearbyY =
                     getTopSurfaceHeight(
-                        x +
-                        offsetX,
-                        z +
-                        offsetZ
+                        x + offsetX,
+                        z + offsetZ
                     );
 
 
@@ -1554,16 +1550,6 @@ function collectColumnPlatforms() {
     }
 
 
-    console.log(
-        '🔎 Puntos elevados:',
-        elevatedPoints.size
-    );
-
-
-    // ========================================================
-    // AGRUPAR PUNTOS
-    // ========================================================
-
     const visited =
         new Set();
 
@@ -1588,8 +1574,7 @@ function collectColumnPlatforms() {
         const [
             key,
             startPoint
-        ]
-        of elevatedPoints
+        ] of elevatedPoints
     ) {
 
         if (
@@ -1635,22 +1620,17 @@ function collectColumnPlatforms() {
                 const [
                     dx,
                     dz
-                ]
-                of neighbors
+                ] of neighbors
             ) {
 
-                const nextColumn =
-                    point.column +
-                    dx;
-
-
-                const nextRow =
-                    point.row +
-                    dz;
-
-
                 const nextKey =
-                    `${nextColumn},${nextRow}`;
+                    `${
+                        point.column +
+                        dx
+                    },${
+                        point.row +
+                        dz
+                    }`;
 
 
                 if (
@@ -1715,10 +1695,6 @@ function collectColumnPlatforms() {
 
         }
 
-
-        // ====================================================
-        // CALCULAR ÁREA
-        // ====================================================
 
         let componentMinX =
             Infinity;
@@ -1794,10 +1770,6 @@ function collectColumnPlatforms() {
             STEP;
 
 
-        // ====================================================
-        // FILTROS
-        // ====================================================
-
         if (
             width >
             4 ||
@@ -1856,10 +1828,6 @@ function collectColumnPlatforms() {
     }
 
 
-    // ========================================================
-    // ORDENAR
-    // ========================================================
-
     platforms.sort(
         (
             a,
@@ -1876,28 +1844,13 @@ function collectColumnPlatforms() {
     );
 
 
-    platforms.forEach(
-        (
-            platform,
-            index
-        ) => {
-
-            console.log(
-                `🏛️ Plataforma ${index + 1}:`,
-                platform
-            );
-
-        }
-    );
-
-
     return platforms;
 
 }
 
 
 // ============================================================
-// SPAWN FIJO
+// SPAWN
 // ============================================================
 
 function placeCharacterAtSpawn() {
@@ -1915,36 +1868,15 @@ function placeCharacterAtSpawn() {
 
 
     console.log(
-        '📍 SPAWN FIJO:',
-        {
-            x:
-                currentSpawn.x,
-
-            y:
-                currentSpawn.y,
-
-            z:
-                currentSpawn.z
-        }
+        '📍 Spawn fijo:',
+        currentSpawn
     );
-
-
-    return {
-        x:
-            currentSpawn.x,
-
-        y:
-            currentSpawn.y,
-
-        z:
-            currentSpawn.z
-    };
 
 }
 
 
 // ============================================================
-// BOUNDING BOX ANIMADO
+// BOUNDING BOX
 // ============================================================
 
 function computeAnimatedCharacterBox() {
@@ -2046,7 +1978,7 @@ function computeAnimatedCharacterBox() {
 
 
 // ============================================================
-// ALINEAR PERSONAJE
+// ALINEAR
 // ============================================================
 
 function alignAnimatedCharacterToGround() {
@@ -2132,25 +2064,13 @@ async function loadCharacter() {
     );
 
 
-    // ========================================================
-    // NORMALIZAR
-    // ========================================================
-
     normalizeCharacter(
         characterModel
     );
 
 
-    // ========================================================
-    // SPAWN
-    // ========================================================
-
     placeCharacterAtSpawn();
 
-
-    // ========================================================
-    // FÍSICA
-    // ========================================================
 
     createCharacterPhysics(
         characterRoot.position
@@ -2165,10 +2085,6 @@ async function loadCharacter() {
         MODEL_FORWARD_OFFSET;
 
 
-    // ========================================================
-    // MIXER
-    // ========================================================
-
     mixer =
         new THREE.AnimationMixer(
             characterModel
@@ -2177,10 +2093,6 @@ async function loadCharacter() {
 
     await loadAnimations();
 
-
-    // ========================================================
-    // EVENTO FIN DE ANIMACIÓN
-    // ========================================================
 
     mixer.addEventListener(
         'finished',
@@ -2197,8 +2109,6 @@ async function loadCharacter() {
             }
 
 
-            // Si por alguna razón no se lanzó
-            // durante la animación, lanzarla aquí.
             if (
                 !grenadeReleased
             ) {
@@ -2338,10 +2248,6 @@ function normalizeCharacter(
     }
 
 
-    // ========================================================
-    // CENTRAR X / Z
-    // ========================================================
-
     model.updateMatrixWorld(
         true
     );
@@ -2369,10 +2275,6 @@ function normalizeCharacter(
         center.z;
 
 
-    // ========================================================
-    // PIES SOBRE Y = 0 LOCAL
-    // ========================================================
-
     model.updateMatrixWorld(
         true
     );
@@ -2395,15 +2297,10 @@ function normalizeCharacter(
 
 
 // ============================================================
-// CARGAR ANIMACIONES
+// ANIMACIONES
 // ============================================================
 
 async function loadAnimations() {
-
-    console.log(
-        '🎞️ Cargando animaciones...'
-    );
-
 
     const [
         idleGLTF,
@@ -2412,7 +2309,6 @@ async function loadAnimations() {
         throwGLTF
     ] =
         await Promise.all([
-
             loadGLTF(
                 ANIMATION_PATHS.idle
             ),
@@ -2428,7 +2324,6 @@ async function loadAnimations() {
             loadGLTF(
                 ANIMATION_PATHS.throw
             )
-
         ]);
 
 
@@ -2500,16 +2395,11 @@ async function loadAnimations() {
     actions.throw.clampWhenFinished =
         false;
 
-
-    console.log(
-        '✅ Animaciones cargadas'
-    );
-
 }
 
 
 // ============================================================
-// OBTENER CLIP
+// CLIP
 // ============================================================
 
 function getAnimationClip(
@@ -2545,7 +2435,7 @@ function getAnimationClip(
 
 
 // ============================================================
-// QUITAR ROOT MOTION
+// ROOT MOTION
 // ============================================================
 
 function makeClipInPlace(
@@ -2626,7 +2516,7 @@ function makeClipInPlace(
 
 
 // ============================================================
-// REINICIAR ANIMACIONES
+// RESET ANIMACIONES
 // ============================================================
 
 function resetAllAnimationActions() {
@@ -2711,9 +2601,9 @@ function fadeToAction(
 
     if (
         activeAction ===
-        nextAction &&
+            nextAction &&
         activeActionName ===
-        name
+            name
     ) {
 
         return;
@@ -2748,7 +2638,7 @@ function fadeToAction(
     if (
         previousAction &&
         previousAction !==
-        nextAction
+            nextAction
     ) {
 
         previousAction.fadeOut(
@@ -2774,7 +2664,7 @@ function fadeToAction(
 
 
 // ============================================================
-// INICIAR THROW
+// THROW
 // ============================================================
 
 function playThrow() {
@@ -2846,12 +2736,12 @@ function playThrow() {
     throwAction.reset();
 
 
-    throwAction.setEffectiveTimeScale(
+    throwAction.setEffectiveWeight(
         1
     );
 
 
-    throwAction.setEffectiveWeight(
+    throwAction.setEffectiveTimeScale(
         1
     );
 
@@ -2862,7 +2752,7 @@ function playThrow() {
     if (
         previousAction &&
         previousAction !==
-        throwAction
+            throwAction
     ) {
 
         previousAction.fadeOut(
@@ -2888,7 +2778,7 @@ function playThrow() {
 
 
 // ============================================================
-// COMPROBAR MOVIMIENTO
+// MOVIMIENTO
 // ============================================================
 
 function isMoving() {
@@ -2902,10 +2792,6 @@ function isMoving() {
 
 }
 
-
-// ============================================================
-// ANIMACIÓN DE MOVIMIENTO
-// ============================================================
 
 function getMovementAnimation() {
 
@@ -2944,10 +2830,6 @@ function updateCharacter(
     }
 
 
-    // ========================================================
-    // MIXER
-    // ========================================================
-
     if (
         mixer
     ) {
@@ -2958,10 +2840,6 @@ function updateCharacter(
 
     }
 
-
-    // ========================================================
-    // NO JUGANDO
-    // ========================================================
 
     if (
         getGameState() !==
@@ -2976,7 +2854,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // LANZANDO GRANADA
+    // THROW
     // ========================================================
 
     if (
@@ -2986,10 +2864,6 @@ function updateCharacter(
         throwElapsed +=
             delta;
 
-
-        // ====================================================
-        // SOLTAR GRANADA
-        // ====================================================
 
         if (
             !grenadeReleased &&
@@ -3008,10 +2882,6 @@ function updateCharacter(
         }
 
 
-        // ====================================================
-        // DETENER MOVIMIENTO DURANTE THROW
-        // ====================================================
-
         horizontalPhysicsMovement.x =
             0;
 
@@ -3020,15 +2890,13 @@ function updateCharacter(
             0;
 
 
-        const physicsPosition =
+        syncCharacterFromPhysics(
+
             moveCharacter(
                 horizontalPhysicsMovement,
                 delta
-            );
+            )
 
-
-        syncCharacterFromPhysics(
-            physicsPosition
         );
 
 
@@ -3044,7 +2912,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // DIRECCIÓN
+    // DIRECCIÓN DE CÁMARA
     // ========================================================
 
     moveDirection.set(
@@ -3073,11 +2941,10 @@ function updateCharacter(
     }
 
 
-    cameraRight
-        .crossVectors(
-            cameraForward,
-            UP
-        );
+    cameraRight.crossVectors(
+        cameraForward,
+        UP
+    );
 
 
     if (
@@ -3089,10 +2956,6 @@ function updateCharacter(
 
     }
 
-
-    // ========================================================
-    // WASD
-    // ========================================================
 
     if (
         keys.w
@@ -3152,10 +3015,6 @@ function updateCharacter(
     }
 
 
-    // ========================================================
-    // VELOCIDAD
-    // ========================================================
-
     const speed =
         keys.shift
             ?
@@ -3184,10 +3043,6 @@ function updateCharacter(
             0;
 
 
-    // ========================================================
-    // RAPIER
-    // ========================================================
-
     const physicsPosition =
         moveCharacter(
             horizontalPhysicsMovement,
@@ -3199,10 +3054,6 @@ function updateCharacter(
         physicsPosition
     );
 
-
-    // ========================================================
-    // ROTACIÓN
-    // ========================================================
 
     if (
         hasMovement
@@ -3222,10 +3073,6 @@ function updateCharacter(
 
     }
 
-
-    // ========================================================
-    // ANIMACIÓN
-    // ========================================================
 
     const nextAnimation =
         getMovementAnimation();
@@ -3253,7 +3100,7 @@ function updateCharacter(
 
 
 // ============================================================
-// SINCRONIZAR PERSONAJE CON RAPIER
+// SINCRONIZAR
 // ============================================================
 
 function syncCharacterFromPhysics(
@@ -3279,7 +3126,7 @@ function syncCharacterFromPhysics(
 
 
 // ============================================================
-// ROTAR PERSONAJE
+// ROTACIÓN
 // ============================================================
 
 function rotateCharacterTowards(
@@ -3340,7 +3187,7 @@ function rotateCharacterTowards(
 
 
 // ============================================================
-// REINICIAR CÁMARA
+// CÁMARA
 // ============================================================
 
 function resetThirdPersonCamera() {
@@ -3348,7 +3195,7 @@ function resetThirdPersonCamera() {
     desiredTarget.set(
         characterRoot.position.x,
         characterRoot.position.y +
-        0.9,
+            0.9,
         characterRoot.position.z
     );
 
@@ -3360,11 +3207,11 @@ function resetThirdPersonCamera() {
 
     camera.position.set(
         characterRoot.position.x +
-        4.2,
+            4.2,
         characterRoot.position.y +
-        3.0,
+            3,
         characterRoot.position.z +
-        6.2
+            6.2
     );
 
 
@@ -3377,10 +3224,6 @@ function resetThirdPersonCamera() {
 
 }
 
-
-// ============================================================
-// CÁMARA SIGUIENDO AL PERSONAJE
-// ============================================================
 
 function updateThirdPersonCamera() {
 
@@ -3396,7 +3239,7 @@ function updateThirdPersonCamera() {
     desiredTarget.set(
         characterRoot.position.x,
         characterRoot.position.y +
-        0.9,
+            0.9,
         characterRoot.position.z
     );
 
@@ -3436,12 +3279,9 @@ window.addEventListener(
                 .toLowerCase();
 
 
-        // ====================================================
-        // F = LANZAR GRANADA
-        // ====================================================
-
         if (
-            key === 'f' &&
+            key ===
+                'f' &&
             !event.repeat
         ) {
 
@@ -3453,7 +3293,8 @@ window.addEventListener(
 
 
         if (
-            key === 'w'
+            key ===
+            'w'
         ) {
 
             keys.w =
@@ -3463,7 +3304,8 @@ window.addEventListener(
 
 
         if (
-            key === 'a'
+            key ===
+            'a'
         ) {
 
             keys.a =
@@ -3473,7 +3315,8 @@ window.addEventListener(
 
 
         if (
-            key === 's'
+            key ===
+            's'
         ) {
 
             keys.s =
@@ -3483,7 +3326,8 @@ window.addEventListener(
 
 
         if (
-            key === 'd'
+            key ===
+            'd'
         ) {
 
             keys.d =
@@ -3493,7 +3337,8 @@ window.addEventListener(
 
 
         if (
-            key === 'shift'
+            key ===
+            'shift'
         ) {
 
             keys.shift =
@@ -3516,7 +3361,8 @@ window.addEventListener(
 
 
         if (
-            key === 'w'
+            key ===
+            'w'
         ) {
 
             keys.w =
@@ -3526,7 +3372,8 @@ window.addEventListener(
 
 
         if (
-            key === 'a'
+            key ===
+            'a'
         ) {
 
             keys.a =
@@ -3536,7 +3383,8 @@ window.addEventListener(
 
 
         if (
-            key === 's'
+            key ===
+            's'
         ) {
 
             keys.s =
@@ -3546,7 +3394,8 @@ window.addEventListener(
 
 
         if (
-            key === 'd'
+            key ===
+            'd'
         ) {
 
             keys.d =
@@ -3556,7 +3405,8 @@ window.addEventListener(
 
 
         if (
-            key === 'shift'
+            key ===
+            'shift'
         ) {
 
             keys.shift =
@@ -3576,14 +3426,18 @@ window.addEventListener(
         keys.w =
             false;
 
+
         keys.a =
             false;
+
 
         keys.s =
             false;
 
+
         keys.d =
             false;
+
 
         keys.shift =
             false;
@@ -3598,7 +3452,7 @@ window.addEventListener(
 
 function updateUI() {
 
-    const objectives =
+    const objectiveData =
         getObjectives();
 
 
@@ -3613,8 +3467,13 @@ function updateUI() {
 
 
     updateObjectives(
-        objectives.destroyed,
-        objectives.total
+        objectiveData.destroyed,
+        objectiveData.total
+    );
+
+
+    updateTimer(
+        getRemainingTime()
     );
 
 }
@@ -3637,7 +3496,7 @@ function updateVersionLabel() {
     ) {
 
         version.textContent =
-            'VERSION 0.6 · GRANADAS Y FÍSICAS';
+            'VERSION 0.7 · NÚCLEOS DE ENERGÍA';
 
     }
 
@@ -3645,7 +3504,7 @@ function updateVersionLabel() {
 
 
 // ============================================================
-// ESTADO DE CARGA
+// LOADING
 // ============================================================
 
 function setLoadingState(
@@ -3682,13 +3541,13 @@ function setLoadingState(
 
 
 // ============================================================
-// INICIALIZAR JUEGO
+// INIT
 // ============================================================
 
 async function init() {
 
     console.log(
-        '🎮 OPERATION IMPACT v0.6'
+        '🎮 OPERATION IMPACT v0.7'
     );
 
 
@@ -3706,7 +3565,7 @@ async function init() {
     try {
 
         // ====================================================
-        // FÍSICA
+        // RAPIER
         // ====================================================
 
         await initPhysics();
@@ -3744,7 +3603,45 @@ async function init() {
 
 
         // ====================================================
-        // OBJETOS DINÁMICOS
+        // NÚCLEOS
+        // ====================================================
+
+        const objectivePositions =
+            initObjectives(
+
+                scene,
+
+                getGroundHeight,
+
+                {
+                    minX:
+                        environmentBounds.min.x,
+
+                    maxX:
+                        environmentBounds.max.x,
+
+                    minZ:
+                        environmentBounds.min.z,
+
+                    maxZ:
+                        environmentBounds.max.z,
+
+                    spawn: {
+                        x:
+                            currentSpawn.x,
+
+                        z:
+                            currentSpawn.z
+                    },
+
+                    columnPlatforms
+                }
+
+            );
+
+
+        // ====================================================
+        // OBJETOS FÍSICOS
         // ====================================================
 
         if (
@@ -3778,7 +3675,11 @@ async function init() {
                             currentSpawn.z
                     },
 
-                    columnPlatforms
+                    columnPlatforms,
+
+                    // Evitar colocar figuras sobre núcleos.
+                    reservedPositions:
+                        objectivePositions
                 }
 
             );
@@ -3787,11 +3688,15 @@ async function init() {
 
 
         // ====================================================
-        // BOTÓN INICIAR
+        // BOTÓN INICIO
         // ====================================================
 
         setupStartButton(
             () => {
+
+                // =============================================
+                // JUEGO
+                // =============================================
 
                 startGame();
 
@@ -3804,7 +3709,14 @@ async function init() {
 
 
                 // =============================================
-                // PERSONAJE AL SPAWN FIJO
+                // OBJETIVOS
+                // =============================================
+
+                resetObjectives();
+
+
+                // =============================================
+                // PERSONAJE
                 // =============================================
 
                 characterRoot.position.copy(
@@ -3859,7 +3771,7 @@ async function init() {
 
 
                 // =============================================
-                // REINICIAR OBJETOS
+                // OBJETOS FÍSICOS
                 // =============================================
 
                 if (
@@ -3884,17 +3796,7 @@ async function init() {
 
 
                 console.log(
-                    '📍 Spawn:',
-                    {
-                        x:
-                            currentSpawn.x,
-
-                        y:
-                            currentSpawn.y,
-
-                        z:
-                            currentSpawn.z
-                    }
+                    '🎯 Objetivo: destruir los 8 núcleos'
                 );
 
             }
@@ -3907,11 +3809,11 @@ async function init() {
 
 
         console.log(
-            '✅ OPERATION IMPACT LISTO'
+            '✅ OPERATION IMPACT v0.7 LISTO'
         );
 
     } catch (
-    error
+        error
     ) {
 
         console.error(
@@ -3945,7 +3847,7 @@ async function init() {
 
 
 // ============================================================
-// LOOP PRINCIPAL
+// LOOP
 // ============================================================
 
 function animate() {
@@ -3972,7 +3874,7 @@ function animate() {
 
 
     // ========================================================
-    // FÍSICA RAPIER
+    // FÍSICA
     // ========================================================
 
     updatePhysics(
@@ -4003,6 +3905,17 @@ function animate() {
 
 
     // ========================================================
+    // NÚCLEOS
+    // ========================================================
+
+    updateObjectives3D(
+        delta,
+        performance.now() /
+        1000
+    );
+
+
+    // ========================================================
     // CÁMARA
     // ========================================================
 
@@ -4010,7 +3923,7 @@ function animate() {
 
 
     // ========================================================
-    // JUEGO
+    // LÓGICA DEL JUEGO
     // ========================================================
 
     updateGame(
@@ -4019,7 +3932,7 @@ function animate() {
 
 
     // ========================================================
-    // INTERFAZ
+    // HUD
     // ========================================================
 
     updateUI();

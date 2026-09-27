@@ -11,7 +11,6 @@ import {
 // CONFIGURACIÓN
 // ============================================================
 
-// Cantidad de objetos distribuidos por el escenario.
 const FLOOR_OBJECT_COUNT =
     18;
 
@@ -49,6 +48,9 @@ const SPAWN_SAFE_DISTANCE =
 const MIN_OBJECT_DISTANCE =
     2.1;
 
+const RESERVED_CLEARANCE =
+    1.55;
+
 const MAX_LOCAL_HEIGHT_DIFFERENCE =
     0.28;
 
@@ -74,71 +76,46 @@ let objectsGroup =
 
 
 // ============================================================
-// MATERIALES OBJETOS DEL SUELO
+// MATERIALES
 // ============================================================
 
 const boxMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0x795548,
-
-        roughness:
-            0.75,
-
-        metalness:
-            0.05
+        color: 0x795548,
+        roughness: 0.75,
+        metalness: 0.05
     });
 
 
 const sphereMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0x1565c0,
-
-        roughness:
-            0.45,
-
-        metalness:
-            0.2
+        color: 0x1565c0,
+        roughness: 0.45,
+        metalness: 0.2
     });
 
 
 const cylinderMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0xb71c1c,
-
-        roughness:
-            0.55,
-
-        metalness:
-            0.35
+        color: 0xb71c1c,
+        roughness: 0.55,
+        metalness: 0.35
     });
 
 
 const coneMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0xef6c00,
-
-        roughness:
-            0.6,
-
-        metalness:
-            0.05
+        color: 0xef6c00,
+        roughness: 0.6,
+        metalness: 0.05
     });
 
 
 const towerMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0x8d6e63,
-
-        roughness:
-            0.78,
-
-        metalness:
-            0.05
+        color: 0x8d6e63,
+        roughness: 0.78,
+        metalness: 0.05
     });
 
 
@@ -148,77 +125,41 @@ const towerMaterial =
 
 const columnSphereMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0x00bcd4,
-
-        emissive:
-            0x003b44,
-
-        emissiveIntensity:
-            1.2,
-
-        roughness:
-            0.3,
-
-        metalness:
-            0.35
+        color: 0x00bcd4,
+        emissive: 0x003b44,
+        emissiveIntensity: 1.2,
+        roughness: 0.3,
+        metalness: 0.35
     });
 
 
 const columnBoxMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0xffc107,
-
-        emissive:
-            0x442500,
-
-        emissiveIntensity:
-            0.9,
-
-        roughness:
-            0.4,
-
-        metalness:
-            0.25
+        color: 0xffc107,
+        emissive: 0x442500,
+        emissiveIntensity: 0.9,
+        roughness: 0.4,
+        metalness: 0.25
     });
 
 
 const columnCylinderMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0xe53935,
-
-        emissive:
-            0x330000,
-
-        emissiveIntensity:
-            0.7,
-
-        roughness:
-            0.5,
-
-        metalness:
-            0.2
+        color: 0xe53935,
+        emissive: 0x330000,
+        emissiveIntensity: 0.7,
+        roughness: 0.5,
+        metalness: 0.2
     });
 
 
 const columnConeMaterial =
     new THREE.MeshStandardMaterial({
-        color:
-            0xff8f00,
-
-        emissive:
-            0x331900,
-
-        emissiveIntensity:
-            0.5,
-
-        roughness:
-            0.55,
-
-        metalness:
-            0.1
+        color: 0xff8f00,
+        emissive: 0x331900,
+        emissiveIntensity: 0.5,
+        roughness: 0.55,
+        metalness: 0.1
     });
 
 
@@ -249,23 +190,6 @@ export function initDynamicObjects(
     }
 
 
-    if (
-        !options
-    ) {
-
-        console.error(
-            '❌ Faltan opciones del escenario.'
-        );
-
-        return;
-
-    }
-
-
-    // ========================================================
-    // GRUPO
-    // ========================================================
-
     objectsGroup =
         new THREE.Group();
 
@@ -291,9 +215,27 @@ export function initDynamicObjects(
         0;
 
 
-    // ========================================================
-    // LÍMITES
-    // ========================================================
+    const reservedPositions =
+        options.reservedPositions ||
+        [];
+
+
+    // Las posiciones de los núcleos cuentan
+    // como zonas ocupadas.
+    reservedPositions.forEach(
+        (position) => {
+
+            usedPositions.push({
+                x:
+                    position.x,
+
+                z:
+                    position.z
+            });
+
+        }
+    );
+
 
     const bounds = {
         minX:
@@ -315,21 +257,23 @@ export function initDynamicObjects(
 
 
     const spawn =
-        options.spawn || {
+        options.spawn ||
+        {
             x: 0,
             z: 0
         };
 
 
     // ========================================================
-    // BUSCAR SUELO
+    // PUNTOS TRANSITABLES
     // ========================================================
 
     const candidates =
         collectWalkablePositions(
             bounds,
             spawn,
-            getGroundHeight
+            getGroundHeight,
+            reservedPositions
         );
 
 
@@ -340,7 +284,7 @@ export function initDynamicObjects(
 
 
     // ========================================================
-    // OBJETOS DEL SUELO
+    // OBJETOS DEL PISO
     // ========================================================
 
     const selected =
@@ -395,18 +339,19 @@ export function initDynamicObjects(
 
 
     // ========================================================
-    // GRUPOS SOBRE PLATAFORMAS
+    // OBJETOS SOBRE PLATAFORMAS
     // ========================================================
 
     createObjectsOnColumns(
         options.columnPlatforms ||
         [],
-        spawn
+        spawn,
+        reservedPositions
     );
 
 
     // ========================================================
-    // TORRE DERRIBABLE
+    // TORRE
     // ========================================================
 
     createTowerFromCandidates(
@@ -425,13 +370,38 @@ export function initDynamicObjects(
 
 
 // ============================================================
+// CERCA DE ZONA RESERVADA
+// ============================================================
+
+function isNearReservedPosition(
+    x,
+    z,
+    reservedPositions,
+    distance = RESERVED_CLEARANCE
+) {
+
+    return reservedPositions.some(
+        (position) =>
+
+            Math.hypot(
+                x - position.x,
+                z - position.z
+            ) <
+            distance
+    );
+
+}
+
+
+// ============================================================
 // BUSCAR PUNTOS TRANSITABLES
 // ============================================================
 
 function collectWalkablePositions(
     bounds,
     spawn,
-    getGroundHeight
+    getGroundHeight,
+    reservedPositions
 ) {
 
     const result =
@@ -448,8 +418,7 @@ function collectWalkablePositions(
             THREE.MathUtils.lerp(
                 bounds.minZ,
                 bounds.maxZ,
-                row /
-                GRID_ROWS
+                row / GRID_ROWS
             );
 
 
@@ -463,23 +432,33 @@ function collectWalkablePositions(
                 THREE.MathUtils.lerp(
                     bounds.minX,
                     bounds.maxX,
-                    column /
-                    GRID_COLUMNS
+                    column / GRID_COLUMNS
                 );
 
 
             const spawnDistance =
                 Math.hypot(
-                    x -
-                        spawn.x,
-                    z -
-                        spawn.z
+                    x - spawn.x,
+                    z - spawn.z
                 );
 
 
             if (
                 spawnDistance <
                 SPAWN_SAFE_DISTANCE
+            ) {
+
+                continue;
+
+            }
+
+
+            if (
+                isNearReservedPosition(
+                    x,
+                    z,
+                    reservedPositions
+                )
             ) {
 
                 continue;
@@ -516,7 +495,7 @@ function collectWalkablePositions(
 
 
 // ============================================================
-// VALIDAR PUNTO
+// VALIDAR PISO
 // ============================================================
 
 function validateWalkablePoint(
@@ -544,22 +523,10 @@ function validateWalkablePoint(
 
 
     const samples = [
-        [
-            CHECK_RADIUS,
-            0
-        ],
-        [
-            -CHECK_RADIUS,
-            0
-        ],
-        [
-            0,
-            CHECK_RADIUS
-        ],
-        [
-            0,
-            -CHECK_RADIUS
-        ]
+        [CHECK_RADIUS, 0],
+        [-CHECK_RADIUS, 0],
+        [0, CHECK_RADIUS],
+        [0, -CHECK_RADIUS]
     ];
 
 
@@ -567,16 +534,13 @@ function validateWalkablePoint(
         const [
             offsetX,
             offsetZ
-        ]
-        of samples
+        ] of samples
     ) {
 
         const y =
             getGroundHeight(
-                x +
-                    offsetX,
-                z +
-                    offsetZ
+                x + offsetX,
+                z + offsetZ
             );
 
 
@@ -617,7 +581,7 @@ function validateWalkablePoint(
 
 
 // ============================================================
-// DISTRIBUIR POSICIONES
+// DISTRIBUIR
 // ============================================================
 
 function selectDistributedPositions(
@@ -646,10 +610,6 @@ function selectDistributedPositions(
         ];
 
 
-    // ========================================================
-    // PRIMER PUNTO LEJOS DEL SPAWN
-    // ========================================================
-
     available.sort(
         (
             a,
@@ -658,19 +618,15 @@ function selectDistributedPositions(
 
             const distanceA =
                 Math.hypot(
-                    a.x -
-                        spawn.x,
-                    a.z -
-                        spawn.z
+                    a.x - spawn.x,
+                    a.z - spawn.z
                 );
 
 
             const distanceB =
                 Math.hypot(
-                    b.x -
-                        spawn.x,
-                    b.z -
-                        spawn.z
+                    b.x - spawn.x,
+                    b.z - spawn.z
                 );
 
 
@@ -687,10 +643,6 @@ function selectDistributedPositions(
         available.shift()
     );
 
-
-    // ========================================================
-    // SIGUIENTES
-    // ========================================================
 
     while (
         selected.length <
@@ -723,23 +675,21 @@ function selectDistributedPositions(
 
 
             for (
-                const chosen
-                of selected
+                const chosen of
+                selected
             ) {
-
-                const distance =
-                    Math.hypot(
-                        candidate.x -
-                            chosen.x,
-                        candidate.z -
-                            chosen.z
-                    );
-
 
                 nearest =
                     Math.min(
                         nearest,
-                        distance
+
+                        Math.hypot(
+                            candidate.x -
+                                chosen.x,
+
+                            candidate.z -
+                                chosen.z
+                        )
                     );
 
             }
@@ -759,6 +709,7 @@ function selectDistributedPositions(
                 Math.hypot(
                     candidate.x -
                         spawn.x,
+
                     candidate.z -
                         spawn.z
                 );
@@ -818,12 +769,13 @@ function selectDistributedPositions(
 
 
 // ============================================================
-// OBJETOS EN PLATAFORMAS
+// OBJETOS SOBRE COLUMNAS
 // ============================================================
 
 function createObjectsOnColumns(
     platforms,
-    spawn
+    spawn,
+    reservedPositions
 ) {
 
     if (
@@ -831,35 +783,39 @@ function createObjectsOnColumns(
         0
     ) {
 
-        console.warn(
-            '⚠️ No se detectaron plataformas.'
-        );
-
         return;
 
     }
 
 
-    // ========================================================
-    // FILTRAR
-    // ========================================================
-
     const available =
         platforms.filter(
             (platform) => {
 
-                const distance =
+                const spawnDistance =
                     Math.hypot(
-                        platform.x -
-                            spawn.x,
-                        platform.z -
-                            spawn.z
+                        platform.x - spawn.x,
+                        platform.z - spawn.z
                     );
 
 
                 if (
-                    distance <
+                    spawnDistance <
                     2.5
+                ) {
+
+                    return false;
+
+                }
+
+
+                if (
+                    isNearReservedPosition(
+                        platform.x,
+                        platform.z,
+                        reservedPositions,
+                        1.35
+                    )
                 ) {
 
                     return false;
@@ -885,10 +841,6 @@ function createObjectsOnColumns(
         );
 
 
-    // ========================================================
-    // PRIORIZAR PLATAFORMAS MEDIANAS
-    // ========================================================
-
     available.sort(
         (
             a,
@@ -901,18 +853,12 @@ function createObjectsOnColumns(
 
             const areaA =
                 a.area ??
-                (
-                    a.width *
-                    a.depth
-                );
+                a.width * a.depth;
 
 
             const areaB =
                 b.area ??
-                (
-                    b.width *
-                    b.depth
-                );
+                b.width * b.depth;
 
 
             return (
@@ -930,17 +876,13 @@ function createObjectsOnColumns(
     );
 
 
-    // ========================================================
-    // SELECCIÓN
-    // ========================================================
-
     const selected =
         [];
 
 
     for (
-        const platform
-        of available
+        const platform of
+        available
     ) {
 
         const tooClose =
@@ -950,6 +892,7 @@ function createObjectsOnColumns(
                     Math.hypot(
                         platform.x -
                             other.x,
+
                         platform.z -
                             other.z
                     ) <
@@ -982,10 +925,6 @@ function createObjectsOnColumns(
 
     }
 
-
-    // ========================================================
-    // CREAR GRUPOS
-    // ========================================================
 
     selected.forEach(
         (
@@ -1020,23 +959,13 @@ function createObjectsOnColumns(
 
 
 // ============================================================
-// GRUPO DE OBJETOS GRANDES
+// GRUPO SOBRE PLATAFORMA
 // ============================================================
 
 function createColumnCluster(
     platform,
     groupIndex
 ) {
-
-    console.log(
-        `📦 Creando grupo grande ${groupIndex + 1}`,
-        platform
-    );
-
-
-    // ========================================================
-    // ÁREA SEGURA
-    // ========================================================
 
     const safeWidth =
         Math.max(
@@ -1054,10 +983,6 @@ function createColumnCluster(
         );
 
 
-    // ========================================================
-    // SEPARACIÓN MAYOR
-    // ========================================================
-
     const offsetX =
         Math.min(
             safeWidth *
@@ -1073,10 +998,6 @@ function createColumnCluster(
             0.58
         );
 
-
-    // ========================================================
-    // POSICIONES
-    // ========================================================
 
     const positions = [
         {
@@ -1129,10 +1050,6 @@ function createColumnCluster(
     ];
 
 
-    // ========================================================
-    // TIPOS
-    // ========================================================
-
     const layouts = [
         [
             'box',
@@ -1175,10 +1092,6 @@ function createColumnCluster(
         ];
 
 
-    // ========================================================
-    // CANTIDAD SEGÚN TAMAÑO
-    // ========================================================
-
     const area =
         platform.width *
         platform.depth;
@@ -1215,10 +1128,6 @@ function createColumnCluster(
     }
 
 
-    // ========================================================
-    // CREAR
-    // ========================================================
-
     for (
         let i = 0;
         i <
@@ -1235,16 +1144,11 @@ function createColumnCluster(
 
     }
 
-
-    console.log(
-        `✅ ${amount} objetos GRANDES sobre plataforma ${groupIndex + 1}`
-    );
-
 }
 
 
 // ============================================================
-// OBJETOS GRANDES SOBRE PLATAFORMAS
+// OBJETO DE PLATAFORMA
 // ============================================================
 
 function createPlatformObject(
@@ -1258,27 +1162,18 @@ function createPlatformObject(
         type
     ) {
 
-        // ====================================================
-        // CAJA
-        // ====================================================
-
         case 'box':
 
             createBox({
                 x,
                 z,
-
                 width:
                     0.65,
-
                 height:
                     0.65,
-
                 depth:
                     0.65,
-
                 groundY,
-
                 material:
                     columnBoxMaterial
             });
@@ -1286,21 +1181,14 @@ function createPlatformObject(
             break;
 
 
-        // ====================================================
-        // ESFERA
-        // ====================================================
-
         case 'sphere':
 
             createSphere({
                 x,
                 z,
-
                 radius:
                     0.38,
-
                 groundY,
-
                 material:
                     columnSphereMaterial
             });
@@ -1308,24 +1196,16 @@ function createPlatformObject(
             break;
 
 
-        // ====================================================
-        // BARRIL
-        // ====================================================
-
         case 'cylinder':
 
             createCylinder({
                 x,
                 z,
-
                 radius:
                     0.31,
-
                 height:
                     0.75,
-
                 groundY,
-
                 material:
                     columnCylinderMaterial
             });
@@ -1333,24 +1213,16 @@ function createPlatformObject(
             break;
 
 
-        // ====================================================
-        // CONO
-        // ====================================================
-
         case 'cone':
 
             createCone({
                 x,
                 z,
-
                 radius:
                     0.32,
-
                 height:
                     0.72,
-
                 groundY,
-
                 material:
                     columnConeMaterial
             });
@@ -1363,7 +1235,7 @@ function createPlatformObject(
 
 
 // ============================================================
-// OBJETOS GRANDES DEL PISO
+// OBJETO DEL PISO
 // ============================================================
 
 function createObjectByType(
@@ -1374,10 +1246,6 @@ function createObjectByType(
     switch (
         type
     ) {
-
-        // ====================================================
-        // CAJA
-        // ====================================================
 
         case 'box':
 
@@ -1403,10 +1271,6 @@ function createObjectByType(
 
             break;
 
-
-        // ====================================================
-        // ESFERA
-        // ====================================================
 
         case 'sphere':
 
@@ -1426,10 +1290,6 @@ function createObjectByType(
 
             break;
 
-
-        // ====================================================
-        // BARRIL
-        // ====================================================
 
         case 'cylinder':
 
@@ -1452,10 +1312,6 @@ function createObjectByType(
 
             break;
 
-
-        // ====================================================
-        // CONO
-        // ====================================================
 
         case 'cone':
 
@@ -1484,7 +1340,7 @@ function createObjectByType(
 
 
 // ============================================================
-// REGISTRAR OBJETO
+// REGISTRAR
 // ============================================================
 
 function registerDynamicObject(
@@ -1580,6 +1436,7 @@ function createBox({
     mesh.castShadow =
         true;
 
+
     mesh.receiveShadow =
         true;
 
@@ -1615,12 +1472,9 @@ function createBox({
         RAPIER
             .ColliderDesc
             .cuboid(
-                width /
-                    2,
-                height /
-                    2,
-                depth /
-                    2
+                width / 2,
+                height / 2,
+                depth / 2
             );
 
 
@@ -1691,6 +1545,7 @@ function createSphere({
 
     mesh.castShadow =
         true;
+
 
     mesh.receiveShadow =
         true;
@@ -1802,6 +1657,7 @@ function createCylinder({
     mesh.castShadow =
         true;
 
+
     mesh.receiveShadow =
         true;
 
@@ -1837,8 +1693,7 @@ function createCylinder({
         RAPIER
             .ColliderDesc
             .cylinder(
-                height /
-                    2,
+                height / 2,
                 radius
             );
 
@@ -1913,6 +1768,7 @@ function createCone({
     mesh.castShadow =
         true;
 
+
     mesh.receiveShadow =
         true;
 
@@ -1948,8 +1804,7 @@ function createCone({
         RAPIER
             .ColliderDesc
             .cone(
-                height /
-                    2,
+                height / 2,
                 radius
             );
 
@@ -1984,7 +1839,7 @@ function createCone({
 
 
 // ============================================================
-// TORRE DERRIBABLE
+// TORRE
 // ============================================================
 
 function createTowerFromCandidates(
@@ -2002,14 +1857,15 @@ function createTowerFromCandidates(
 
 
     for (
-        const candidate
-        of candidates
+        const candidate of
+        candidates
     ) {
 
         const spawnDistance =
             Math.hypot(
                 candidate.x -
                     spawn.x,
+
                 candidate.z -
                     spawn.z
             );
@@ -2033,7 +1889,7 @@ function createTowerFromCandidates(
 
         if (
             objectDistance <
-            3.0
+            3
         ) {
 
             continue;
@@ -2080,10 +1936,6 @@ function createTowerFromCandidates(
         !best
     ) {
 
-        console.warn(
-            '⚠️ No se encontró lugar para la torre.'
-        );
-
         return;
 
     }
@@ -2109,7 +1961,7 @@ function validateTowerArea(
 ) {
 
     const radius =
-        1.0;
+        1;
 
 
     const center =
@@ -2146,31 +1998,20 @@ function validateTowerArea(
         const [
             offsetX,
             offsetZ
-        ]
-        of samples
+        ] of samples
     ) {
 
         const y =
             getGroundHeight(
-                x +
-                    offsetX,
-                z +
-                    offsetZ
+                x + offsetX,
+                z + offsetZ
             );
 
 
         if (
             !Number.isFinite(
                 y
-            )
-        ) {
-
-            return false;
-
-        }
-
-
-        if (
+            ) ||
             Math.abs(
                 y -
                 center
@@ -2213,23 +2054,21 @@ function getNearestUsedDistance(
 
 
     for (
-        const position
-        of usedPositions
+        const position of
+        usedPositions
     ) {
-
-        const distance =
-            Math.hypot(
-                candidate.x -
-                    position.x,
-                candidate.z -
-                    position.z
-            );
-
 
         nearest =
             Math.min(
                 nearest,
-                distance
+
+                Math.hypot(
+                    candidate.x -
+                        position.x,
+
+                    candidate.z -
+                        position.z
+                )
             );
 
     }
@@ -2250,7 +2089,6 @@ function createTower(
     startZ
 ) {
 
-    // Bloques también un poco más grandes.
     const width =
         0.62;
 
@@ -2325,7 +2163,7 @@ function createTower(
 
 
 // ============================================================
-// BLOQUE DE TORRE
+// BLOQUE TORRE
 // ============================================================
 
 function createTowerBlock({
@@ -2357,6 +2195,7 @@ function createTowerBlock({
 
     mesh.castShadow =
         true;
+
 
     mesh.receiveShadow =
         true;
@@ -2393,12 +2232,9 @@ function createTowerBlock({
         RAPIER
             .ColliderDesc
             .cuboid(
-                width /
-                    2,
-                height /
-                    2,
-                depth /
-                    2
+                width / 2,
+                height / 2,
+                depth / 2
             );
 
 
@@ -2432,7 +2268,7 @@ function createTowerBlock({
 
 
 // ============================================================
-// ACTUALIZAR OBJETOS
+// ACTUALIZAR
 // ============================================================
 
 export function updateDynamicObjects() {
@@ -2472,7 +2308,7 @@ export function updateDynamicObjects() {
 
 
 // ============================================================
-// REINICIAR OBJETOS
+// REINICIAR
 // ============================================================
 
 export function resetDynamicObjects() {
@@ -2527,7 +2363,7 @@ export function resetDynamicObjects() {
 
 
 // ============================================================
-// OBTENER OBJETOS
+// OBTENER
 // ============================================================
 
 export function getDynamicObjects() {

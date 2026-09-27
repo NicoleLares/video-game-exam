@@ -3,48 +3,49 @@
 // ============================================================
 
 export const GAME_STATES = {
-    START: 'INICIO',
-    PLAYING: 'JUGANDO',
-    VICTORY: 'VICTORIA',
-    DEFEAT: 'DERROTA'
+    START:
+        'INICIO',
+
+    PLAYING:
+        'JUGANDO',
+
+    VICTORY:
+        'VICTORIA',
+
+    DEFEAT:
+        'DERROTA'
 };
 
 
 // ============================================================
-// VARIABLES GENERALES
+// CONFIGURACIÓN
 // ============================================================
 
-let currentState = GAME_STATES.START;
+const GAME_DURATION =
+    120;
 
-let score = 0;
+const TOTAL_OBJECTIVES =
+    8;
 
-let destroyedObjectives = 0;
-
-const totalObjectives = 8;
-
-
-// ============================================================
-// OBTENER ESTADO
-// ============================================================
-
-export function getGameState() {
-    return currentState;
-}
+const POINTS_PER_OBJECTIVE =
+    500;
 
 
 // ============================================================
-// CAMBIAR ESTADO
+// ESTADO
 // ============================================================
 
-export function setGameState(newState) {
+let gameState =
+    GAME_STATES.START;
 
-    currentState = newState;
+let score =
+    0;
 
-    console.log(
-        `🎮 Estado del juego: ${currentState}`
-    );
+let destroyedObjectives =
+    0;
 
-}
+let remainingTime =
+    GAME_DURATION;
 
 
 // ============================================================
@@ -53,62 +54,202 @@ export function setGameState(newState) {
 
 export function startGame() {
 
-    score = 0;
+    gameState =
+        GAME_STATES.PLAYING;
 
-    destroyedObjectives = 0;
 
-    setGameState(
-        GAME_STATES.PLAYING
+    score =
+        0;
+
+
+    destroyedObjectives =
+        0;
+
+
+    remainingTime =
+        GAME_DURATION;
+
+
+    console.log(
+        '🎮 Estado del juego:',
+        gameState
     );
 
 }
 
 
 // ============================================================
-// OBTENER PUNTUACIÓN
+// ACTUALIZAR
 // ============================================================
 
-export function getScore() {
-    return score;
+export function updateGame(
+    delta
+) {
+
+    if (
+        gameState !==
+        GAME_STATES.PLAYING
+    ) {
+
+        return;
+
+    }
+
+
+    remainingTime -=
+        delta;
+
+
+    if (
+        remainingTime <=
+        0
+    ) {
+
+        remainingTime =
+            0;
+
+
+        if (
+            destroyedObjectives <
+            TOTAL_OBJECTIVES
+        ) {
+
+            gameState =
+                GAME_STATES.DEFEAT;
+
+
+            console.log(
+                '❌ MISIÓN FALLIDA'
+            );
+
+
+            console.log(
+                `⚡ Núcleos destruidos: ${destroyedObjectives}/${TOTAL_OBJECTIVES}`
+            );
+
+        }
+
+    }
+
 }
 
 
 // ============================================================
-// OBTENER OBJETIVOS
+// REGISTRAR OBJETIVO
 // ============================================================
+
+export function registerObjectiveDestroyed() {
+
+    if (
+        gameState !==
+        GAME_STATES.PLAYING
+    ) {
+
+        return false;
+
+    }
+
+
+    if (
+        destroyedObjectives >=
+        TOTAL_OBJECTIVES
+    ) {
+
+        return false;
+
+    }
+
+
+    destroyedObjectives++;
+
+
+    score +=
+        POINTS_PER_OBJECTIVE;
+
+
+    console.log(
+        `⚡ Objetivos: ${destroyedObjectives}/${TOTAL_OBJECTIVES}`
+    );
+
+
+    console.log(
+        `⭐ Puntos: ${score}`
+    );
+
+
+    if (
+        destroyedObjectives >=
+        TOTAL_OBJECTIVES
+    ) {
+
+        destroyedObjectives =
+            TOTAL_OBJECTIVES;
+
+
+        gameState =
+            GAME_STATES.VICTORY;
+
+
+        console.log(
+            '🏆 MISIÓN COMPLETADA'
+        );
+
+
+        console.log(
+            `⏱️ Tiempo restante: ${remainingTime.toFixed(1)} segundos`
+        );
+
+    }
+
+
+    return true;
+
+}
+
+
+// ============================================================
+// GETTERS
+// ============================================================
+
+export function getGameState() {
+
+    return gameState;
+
+}
+
+
+export function setGameState(
+    newState
+) {
+
+    gameState =
+        newState;
+
+}
+
+
+export function getScore() {
+
+    return score;
+
+}
+
 
 export function getObjectives() {
 
     return {
-        destroyed: destroyedObjectives,
-        total: totalObjectives
+        destroyed:
+            destroyedObjectives,
+
+        total:
+            TOTAL_OBJECTIVES
     };
 
 }
 
 
-// ============================================================
-// ACTUALIZACIÓN
-// ============================================================
+export function getRemainingTime() {
 
-export function updateGame() {
-
-    if (
-        currentState !==
-        GAME_STATES.PLAYING
-    ) {
-        return;
-    }
-
-    /*
-        En versiones posteriores:
-
-        - cronómetro
-        - puntuación
-        - objetivos
-        - victoria
-        - derrota
-        - reinicio
-    */
+    return remainingTime;
 
 }
