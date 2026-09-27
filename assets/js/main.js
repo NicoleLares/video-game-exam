@@ -91,7 +91,7 @@ const ANIMATION_PATHS = {
 
 
 // ============================================================
-// CONFIGURACIÓN
+// CONFIGURACIÓN GENERAL
 // ============================================================
 
 const ENABLE_DYNAMIC_OBJECTS =
@@ -99,6 +99,11 @@ const ENABLE_DYNAMIC_OBJECTS =
 
 const ENVIRONMENT_TARGET_SIZE =
     45;
+
+
+// ============================================================
+// PERSONAJE
+// ============================================================
 
 const CHARACTER_HEIGHT =
     1.35;
@@ -127,7 +132,7 @@ const NORMAL_CAMERA_ZOOM =
     1;
 
 const AIM_CAMERA_ZOOM =
-    1.30;
+    1.48;
 
 const CAMERA_ZOOM_SPEED =
     10;
@@ -139,7 +144,33 @@ const AIM_TARGET_HEIGHT =
     1.08;
 
 const AIM_SHOULDER_OFFSET =
-    0.42;
+    0.82;
+
+
+// ============================================================
+// RETROCESO
+// ============================================================
+
+const RECOIL_PITCH =
+    0.012;
+
+const RECOIL_YAW =
+    0.006;
+
+const MAX_RECOIL_PITCH =
+    0.045;
+
+const MAX_RECOIL_YAW =
+    0.018;
+
+const RECOIL_RECOVERY =
+    13;
+
+const RECOIL_ZOOM =
+    0.065;
+
+const MAX_RECOIL_ZOOM =
+    0.16;
 
 
 // ============================================================
@@ -310,6 +341,10 @@ controls.maxDistance =
     11;
 
 
+// ============================================================
+// MOVIMIENTO VERTICAL
+// ============================================================
+
 controls.minPolarAngle =
     Math.PI *
     0.05;
@@ -321,7 +356,7 @@ controls.maxPolarAngle =
 
 
 // ============================================================
-// BOTONES DEL MOUSE
+// MOUSE
 // ============================================================
 
 controls.mouseButtons.LEFT =
@@ -347,7 +382,7 @@ controls.update();
 
 
 // ============================================================
-// EVITAR MENÚ DERECHO
+// EVITAR MENÚ DEL CLICK DERECHO
 // ============================================================
 
 renderer.domElement.addEventListener(
@@ -539,6 +574,34 @@ let activeActionName =
 
 
 // ============================================================
+// ESTADO DEL MOUSE
+// ============================================================
+
+let leftMouseDown =
+    false;
+
+
+let rightMouseDown =
+    false;
+
+
+// ============================================================
+// RETROCESO
+// ============================================================
+
+let recoilPitch =
+    0;
+
+
+let recoilYaw =
+    0;
+
+
+let recoilZoom =
+    0;
+
+
+// ============================================================
 // THROW
 // ============================================================
 
@@ -642,7 +705,7 @@ const horizontalPhysicsMovement = {
 
 
 // ============================================================
-// TERRENO
+// RAYCAST TERRENO
 // ============================================================
 
 const groundRaycaster =
@@ -743,7 +806,7 @@ function loadGLTF(
 
 
 // ============================================================
-// ESCENARIO
+// CARGAR ESCENARIO
 // ============================================================
 
 async function loadEnvironment() {
@@ -923,7 +986,7 @@ async function loadEnvironment() {
 
 
 // ============================================================
-// NORMALIZAR MAPA
+// NORMALIZAR ESCENARIO
 // ============================================================
 
 function normalizeEnvironment(
@@ -1204,7 +1267,7 @@ function getHorizontalSurfaces(
 
 
 // ============================================================
-// ALTURA PISO
+// ALTURA DEL PISO
 // ============================================================
 
 function getGroundHeight(
@@ -1297,7 +1360,7 @@ function getTopSurfaceHeight(
 
 
 // ============================================================
-// ESTIMAR PISO
+// ESTIMAR ALTURA DEL PISO
 // ============================================================
 
 function estimateFloorHeight() {
@@ -1331,7 +1394,7 @@ function estimateFloorHeight() {
                     environmentBounds.min.x,
                     environmentBounds.max.x,
                     column /
-                    columns
+                        columns
                 );
 
 
@@ -1340,7 +1403,7 @@ function estimateFloorHeight() {
                     environmentBounds.min.z,
                     environmentBounds.max.z,
                     row /
-                    rows
+                        rows
                 );
 
 
@@ -1398,7 +1461,7 @@ function estimateFloorHeight() {
         Math.min(
             index,
             heights.length -
-            1
+                1
         )
     ];
 
@@ -1406,7 +1469,7 @@ function estimateFloorHeight() {
 
 
 // ============================================================
-// DETECTAR PLATAFORMAS
+// DETECTAR PLATAFORMAS ELEVADAS
 // ============================================================
 
 function collectColumnPlatforms() {
@@ -1497,7 +1560,7 @@ function collectColumnPlatforms() {
                 minZ,
                 maxZ,
                 row /
-                rows
+                    rows
             );
 
 
@@ -1512,7 +1575,7 @@ function collectColumnPlatforms() {
                     minX,
                     maxX,
                     column /
-                    columns
+                        columns
                 );
 
 
@@ -1547,9 +1610,9 @@ function collectColumnPlatforms() {
 
             if (
                 elevation <
-                MIN_ELEVATION ||
+                    MIN_ELEVATION ||
                 elevation >
-                MAX_ELEVATION
+                    MAX_ELEVATION
             ) {
 
                 continue;
@@ -1622,7 +1685,6 @@ function collectColumnPlatforms() {
 
             elevatedPoints.set(
                 `${column},${row}`,
-
                 {
                     column,
                     row,
@@ -1676,10 +1738,9 @@ function collectColumnPlatforms() {
         }
 
 
-        const queue =
-            [
-                startPoint
-            ];
+        const queue = [
+            startPoint
+        ];
 
 
         const component =
@@ -1969,7 +2030,7 @@ function placeCharacterAtSpawn() {
 
 
 // ============================================================
-// BOUNDING PERSONAJE
+// BOUNDING BOX PERSONAJE
 // ============================================================
 
 function computeAnimatedCharacterBox() {
@@ -2685,7 +2746,7 @@ function resetAllAnimationActions() {
 
 
 // ============================================================
-// ANIMACIÓN
+// CAMBIAR ANIMACIÓN
 // ============================================================
 
 function fadeToAction(
@@ -2807,6 +2868,149 @@ function setAiming(
 
 
 // ============================================================
+// RETROCESO
+// ============================================================
+
+function triggerRecoil() {
+
+    recoilPitch =
+        Math.min(
+            MAX_RECOIL_PITCH,
+            recoilPitch +
+                RECOIL_PITCH
+        );
+
+
+    recoilYaw +=
+        THREE.MathUtils.randFloat(
+            -RECOIL_YAW,
+            RECOIL_YAW
+        );
+
+
+    recoilYaw =
+        THREE.MathUtils.clamp(
+            recoilYaw,
+            -MAX_RECOIL_YAW,
+            MAX_RECOIL_YAW
+        );
+
+
+    recoilZoom =
+        Math.min(
+            MAX_RECOIL_ZOOM,
+            recoilZoom +
+                RECOIL_ZOOM
+        );
+
+}
+
+
+// ============================================================
+// ACTUALIZAR RETROCESO
+// ============================================================
+
+function updateCameraRecoil(
+    delta
+) {
+
+    const recovery =
+        1 -
+        Math.exp(
+            -RECOIL_RECOVERY *
+            delta
+        );
+
+
+    recoilPitch =
+        THREE.MathUtils.lerp(
+            recoilPitch,
+            0,
+            recovery
+        );
+
+
+    recoilYaw =
+        THREE.MathUtils.lerp(
+            recoilYaw,
+            0,
+            recovery
+        );
+
+
+    recoilZoom =
+        THREE.MathUtils.lerp(
+            recoilZoom,
+            0,
+            recovery
+        );
+
+
+    if (
+        !isAiming
+    ) {
+
+        return;
+
+    }
+
+
+    camera.rotateX(
+        -recoilPitch
+    );
+
+
+    camera.rotateY(
+        recoilYaw
+    );
+
+}
+
+
+// ============================================================
+// INTENTAR DISPARAR
+// ============================================================
+
+function tryShoot() {
+
+    if (
+        getGameState() !==
+        GAME_STATES.PLAYING
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        isThrowing ||
+        !isAiming
+    ) {
+
+        return;
+
+    }
+
+
+    const fired =
+        shoot(
+            characterRoot
+        );
+
+
+    if (
+        fired
+    ) {
+
+        triggerRecoil();
+
+    }
+
+}
+
+
+// ============================================================
 // GRANADA
 // ============================================================
 
@@ -2840,6 +3044,14 @@ function playThrow() {
         return;
 
     }
+
+
+    leftMouseDown =
+        false;
+
+
+    rightMouseDown =
+        false;
 
 
     setAiming(
@@ -2987,6 +3199,10 @@ function updateCharacter(
     }
 
 
+    // ========================================================
+    // ANIMACIONES
+    // ========================================================
+
     if (
         mixer
     ) {
@@ -2998,6 +3214,10 @@ function updateCharacter(
     }
 
 
+    // ========================================================
+    // JUEGO DETENIDO
+    // ========================================================
+
     if (
         getGameState() !==
         GAME_STATES.PLAYING
@@ -3006,6 +3226,14 @@ function updateCharacter(
         setAiming(
             false
         );
+
+
+        leftMouseDown =
+            false;
+
+
+        rightMouseDown =
+            false;
 
 
         alignAnimatedCharacterToGround();
@@ -3022,7 +3250,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // THROW
+    // LANZANDO GRANADA
     // ========================================================
 
     if (
@@ -3036,7 +3264,7 @@ function updateCharacter(
         if (
             !grenadeReleased &&
             throwElapsed >=
-            GRENADE_RELEASE_TIME
+                GRENADE_RELEASE_TIME
         ) {
 
             launchGrenade(
@@ -3216,8 +3444,8 @@ function updateCharacter(
         hasMovement
             ?
             moveDirection.x *
-            speed *
-            delta
+                speed *
+                delta
             :
             0;
 
@@ -3226,14 +3454,14 @@ function updateCharacter(
         hasMovement
             ?
             moveDirection.z *
-            speed *
-            delta
+                speed *
+                delta
             :
             0;
 
 
     // ========================================================
-    // RAPIER
+    // FÍSICA
     // ========================================================
 
     const physicsPosition =
@@ -3287,6 +3515,10 @@ function updateCharacter(
     }
 
 
+    // ========================================================
+    // ANIMACIÓN
+    // ========================================================
+
     const nextAnimation =
         getMovementAnimation();
 
@@ -3315,7 +3547,7 @@ function updateCharacter(
 
 
 // ============================================================
-// SYNC RAPIER
+// SINCRONIZAR CON FÍSICA
 // ============================================================
 
 function syncCharacterFromPhysics(
@@ -3341,7 +3573,7 @@ function syncCharacterFromPhysics(
 
 
 // ============================================================
-// ROTACIÓN
+// ROTAR PERSONAJE
 // ============================================================
 
 function rotateCharacterTowards(
@@ -3406,6 +3638,18 @@ function rotateCharacterTowards(
 // ============================================================
 
 function resetThirdPersonCamera() {
+
+    recoilPitch =
+        0;
+
+
+    recoilYaw =
+        0;
+
+
+    recoilZoom =
+        0;
+
 
     camera.zoom =
         NORMAL_CAMERA_ZOOM;
@@ -3487,6 +3731,10 @@ function updateThirdPersonCamera(
     }
 
 
+    // ========================================================
+    // TARGET
+    // ========================================================
+
     desiredTarget.set(
         characterRoot.position.x,
 
@@ -3503,6 +3751,10 @@ function updateThirdPersonCamera(
     );
 
 
+    // ========================================================
+    // HOMBRO
+    // ========================================================
+
     if (
         isAiming
     ) {
@@ -3514,6 +3766,10 @@ function updateThirdPersonCamera(
 
     }
 
+
+    // ========================================================
+    // FOLLOW SUAVE
+    // ========================================================
 
     targetDifference
         .copy(
@@ -3527,7 +3783,7 @@ function updateThirdPersonCamera(
     const followAmount =
         1 -
         Math.exp(
-            -14 *
+            -15 *
             delta
         );
 
@@ -3547,12 +3803,26 @@ function updateThirdPersonCamera(
     );
 
 
-    const targetZoom =
+    // ========================================================
+    // ZOOM
+    // ========================================================
+
+    let targetZoom =
         isAiming
             ?
             AIM_CAMERA_ZOOM
             :
             NORMAL_CAMERA_ZOOM;
+
+
+    if (
+        isAiming
+    ) {
+
+        targetZoom -=
+            recoilZoom;
+
+    }
 
 
     const zoomAmount =
@@ -3590,6 +3860,10 @@ window.addEventListener(
                 .toLowerCase();
 
 
+        // ====================================================
+        // F = GRANADA
+        // ====================================================
+
         if (
             key === 'f' &&
             !event.repeat
@@ -3602,6 +3876,10 @@ window.addEventListener(
 
         }
 
+
+        // ====================================================
+        // MOVIMIENTO
+        // ====================================================
 
         if (
             key === 'w'
@@ -3724,9 +4002,8 @@ window.addEventListener(
 // MOUSE
 // ============================================================
 //
-// IMPORTANTE:
-// usamos mousedown / mouseup para poder detectar
-// clic izquierdo mientras el derecho está presionado.
+// DERECHO SOSTENIDO = APUNTAR
+// IZQUIERDO SOSTENIDO = DISPARAR
 //
 // ============================================================
 
@@ -3736,7 +4013,7 @@ renderer.domElement.addEventListener(
     (event) => {
 
         // ====================================================
-        // DERECHO = APUNTAR
+        // DERECHO
         // ====================================================
 
         if (
@@ -3747,17 +4024,13 @@ renderer.domElement.addEventListener(
             event.preventDefault();
 
 
+            rightMouseDown =
+                true;
+
+
             if (
                 getGameState() !==
-                GAME_STATES.PLAYING
-            ) {
-
-                return;
-
-            }
-
-
-            if (
+                    GAME_STATES.PLAYING ||
                 isThrowing
             ) {
 
@@ -3782,77 +4055,32 @@ renderer.domElement.addEventListener(
 
 
         // ====================================================
-        // IZQUIERDO = DISPARAR
+        // IZQUIERDO
         // ====================================================
 
         if (
-            event.button !==
+            event.button ===
             0
         ) {
 
-            return;
+            event.preventDefault();
+
+
+            leftMouseDown =
+                true;
+
+
+            // Primer disparo instantáneo.
+            tryShoot();
 
         }
-
-
-        event.preventDefault();
-
-
-        if (
-            getGameState() !==
-            GAME_STATES.PLAYING
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            isThrowing
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            !isAiming
-        ) {
-
-            console.log(
-                '🎯 Mantén clic derecho para apuntar.'
-            );
-
-
-            return;
-
-        }
-
-
-        console.log(
-            '🔫 DISPARANDO MIENTRAS APUNTA'
-        );
-
-
-        const fired =
-            shoot(
-                characterRoot
-            );
-
-
-        console.log(
-            '🔫 Resultado del disparo:',
-            fired
-        );
 
     }
 );
 
 
 // ============================================================
-// SOLTAR CLICK DERECHO
+// SOLTAR BOTONES
 // ============================================================
 
 window.addEventListener(
@@ -3860,10 +4088,37 @@ window.addEventListener(
 
     (event) => {
 
+        // ====================================================
+        // IZQUIERDO
+        // ====================================================
+
+        if (
+            event.button ===
+            0
+        ) {
+
+            leftMouseDown =
+                false;
+
+        }
+
+
+        // ====================================================
+        // DERECHO
+        // ====================================================
+
         if (
             event.button ===
             2
         ) {
+
+            rightMouseDown =
+                false;
+
+
+            leftMouseDown =
+                false;
+
 
             setAiming(
                 false
@@ -3881,7 +4136,7 @@ window.addEventListener(
 
 
 // ============================================================
-// BLUR
+// PÉRDIDA DE FOCO
 // ============================================================
 
 window.addEventListener(
@@ -3906,6 +4161,14 @@ window.addEventListener(
 
 
         keys.shift =
+            false;
+
+
+        leftMouseDown =
+            false;
+
+
+        rightMouseDown =
             false;
 
 
@@ -3967,7 +4230,7 @@ function updateVersionLabel() {
     ) {
 
         version.textContent =
-            'VERSION 1.0.1 · APUNTADO TPS';
+            'VERSION 1.0.3 · FEEDBACK DE COMBATE';
 
     }
 
@@ -3975,7 +4238,7 @@ function updateVersionLabel() {
 
 
 // ============================================================
-// LOADING
+// ESTADO DE CARGA
 // ============================================================
 
 function setLoadingState(
@@ -4012,13 +4275,13 @@ function setLoadingState(
 
 
 // ============================================================
-// INIT
+// INICIALIZAR
 // ============================================================
 
 async function init() {
 
     console.log(
-        '🎮 OPERATION IMPACT v1.0.1'
+        '🎮 OPERATION IMPACT v1.0.3'
     );
 
 
@@ -4035,19 +4298,39 @@ async function init() {
 
     try {
 
+        // ====================================================
+        // FÍSICA
+        // ====================================================
+
         await initPhysics();
 
+
+        // ====================================================
+        // MAPA
+        // ====================================================
 
         await loadEnvironment();
 
 
+        // ====================================================
+        // PERSONAJE
+        // ====================================================
+
         await loadCharacter();
 
+
+        // ====================================================
+        // GRANADAS
+        // ====================================================
 
         initGrenadeSystem(
             scene
         );
 
+
+        // ====================================================
+        // DISPAROS
+        // ====================================================
 
         initShootingSystem(
             scene,
@@ -4056,17 +4339,22 @@ async function init() {
         );
 
 
+        // ====================================================
+        // PLATAFORMAS
+        // ====================================================
+
         const columnPlatforms =
             collectColumnPlatforms();
 
 
+        // ====================================================
+        // NÚCLEOS
+        // ====================================================
+
         const objectivePositions =
             initObjectives(
-
                 scene,
-
                 getGroundHeight,
-
                 {
                     minX:
                         environmentBounds.min.x,
@@ -4090,20 +4378,20 @@ async function init() {
 
                     columnPlatforms
                 }
-
             );
 
+
+        // ====================================================
+        // OBJETOS DINÁMICOS
+        // ====================================================
 
         if (
             ENABLE_DYNAMIC_OBJECTS
         ) {
 
             initDynamicObjects(
-
                 scene,
-
                 getGroundHeight,
-
                 {
                     minX:
                         environmentBounds.min.x,
@@ -4130,31 +4418,82 @@ async function init() {
                     reservedPositions:
                         objectivePositions
                 }
-
             );
 
         }
 
 
+        // ====================================================
+        // BOTÓN INICIAR
+        // ====================================================
+
         setupStartButton(
             () => {
+
+                // =============================================
+                // JUEGO
+                // =============================================
 
                 startGame();
 
 
+                // =============================================
+                // GRANADAS
+                // =============================================
+
                 resetGrenades();
 
+
+                // =============================================
+                // DISPAROS
+                // =============================================
 
                 resetShooting();
 
 
+                // =============================================
+                // NÚCLEOS
+                // =============================================
+
                 resetObjectives();
+
+
+                // =============================================
+                // INPUT
+                // =============================================
+
+                leftMouseDown =
+                    false;
+
+
+                rightMouseDown =
+                    false;
 
 
                 setAiming(
                     false
                 );
 
+
+                // =============================================
+                // RETROCESO
+                // =============================================
+
+                recoilPitch =
+                    0;
+
+
+                recoilYaw =
+                    0;
+
+
+                recoilZoom =
+                    0;
+
+
+                // =============================================
+                // PERSONAJE
+                // =============================================
 
                 characterRoot.position.copy(
                     currentSpawn
@@ -4180,6 +4519,10 @@ async function init() {
                     0;
 
 
+                // =============================================
+                // ANIMACIONES
+                // =============================================
+
                 resetAllAnimationActions();
 
 
@@ -4203,6 +4546,10 @@ async function init() {
                 alignAnimatedCharacterToGround();
 
 
+                // =============================================
+                // OBJETOS
+                // =============================================
+
                 if (
                     ENABLE_DYNAMIC_OBJECTS
                 ) {
@@ -4212,8 +4559,16 @@ async function init() {
                 }
 
 
+                // =============================================
+                // CÁMARA
+                // =============================================
+
                 resetThirdPersonCamera();
 
+
+                // =============================================
+                // INFORMACIÓN
+                // =============================================
 
                 console.log(
                     '🚀 Misión iniciada'
@@ -4226,12 +4581,27 @@ async function init() {
 
 
                 console.log(
-                    '🔫 Clic izquierdo mientras apuntas = disparar'
+                    '🔫 Clic izquierdo sostenido = disparar'
                 );
 
 
                 console.log(
-                    '💣 F = granada'
+                    '✕ Hitmarker de impactos activado'
+                );
+
+
+                console.log(
+                    '❤️ Barra de vida de objetivos activada'
+                );
+
+
+                console.log(
+                    '💥 Retroceso activado'
+                );
+
+
+                console.log(
+                    '💣 F = lanzar granada'
                 );
 
             }
@@ -4244,7 +4614,7 @@ async function init() {
 
 
         console.log(
-            '✅ OPERATION IMPACT v1.0.1 LISTO'
+            '✅ OPERATION IMPACT v1.0.3 LISTO'
         );
 
     } catch (
@@ -4252,7 +4622,7 @@ async function init() {
     ) {
 
         console.error(
-            '❌ Error:',
+            '❌ Error de inicialización:',
             error
         );
 
@@ -4282,7 +4652,7 @@ async function init() {
 
 
 // ============================================================
-// LOOP
+// LOOP PRINCIPAL
 // ============================================================
 
 function animate() {
@@ -4299,15 +4669,27 @@ function animate() {
         );
 
 
+    // ========================================================
+    // PERSONAJE
+    // ========================================================
+
     updateCharacter(
         delta
     );
 
 
+    // ========================================================
+    // FÍSICA
+    // ========================================================
+
     updatePhysics(
         delta
     );
 
+
+    // ========================================================
+    // OBJETOS
+    // ========================================================
 
     if (
         ENABLE_DYNAMIC_OBJECTS
@@ -4318,15 +4700,45 @@ function animate() {
     }
 
 
+    // ========================================================
+    // GRANADAS
+    // ========================================================
+
     updateGrenades(
         delta
     );
 
 
+    // ========================================================
+    // DISPARO
+    // ========================================================
+
     updateShooting(
         delta
     );
 
+
+    // ========================================================
+    // FUEGO AUTOMÁTICO
+    // ========================================================
+
+    if (
+        leftMouseDown &&
+        rightMouseDown &&
+        isAiming &&
+        !isThrowing &&
+        getGameState() ===
+            GAME_STATES.PLAYING
+    ) {
+
+        tryShoot();
+
+    }
+
+
+    // ========================================================
+    // NÚCLEOS
+    // ========================================================
 
     updateObjectives3D(
         delta,
@@ -4335,16 +4747,41 @@ function animate() {
     );
 
 
+    // ========================================================
+    // ORBIT CONTROLS
+    // ========================================================
+
     controls.update();
 
+
+    // ========================================================
+    // RETROCESO
+    // ========================================================
+
+    updateCameraRecoil(
+        delta
+    );
+
+
+    // ========================================================
+    // JUEGO
+    // ========================================================
 
     updateGame(
         delta
     );
 
 
+    // ========================================================
+    // HUD
+    // ========================================================
+
     updateUI();
 
+
+    // ========================================================
+    // RENDER
+    // ========================================================
 
     renderer.render(
         scene,

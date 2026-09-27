@@ -987,3 +987,277 @@ body {
     }
 
 }
+/* =========================================================
+   OPERATION IMPACT v1.0.3
+   FEEDBACK DE COMBATE
+   ========================================================= */
+
+
+/* =========================================================
+   MIRA AL DISPARAR
+   ========================================================= */
+
+#crosshair.crosshair-fire,
+.crosshair.crosshair-fire {
+    width: 34px;
+    height: 34px;
+
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.95),
+        0 0 10px rgba(255, 255, 255, 0.75);
+}
+
+
+#crosshair.crosshair-fire::before,
+.crosshair.crosshair-fire::before {
+    width: 52px;
+}
+
+
+#crosshair.crosshair-fire::after,
+.crosshair.crosshair-fire::after {
+    height: 52px;
+}
+
+
+/* =========================================================
+   MIRA SOBRE OBJETIVO + DISPARO
+   ========================================================= */
+
+#crosshair.crosshair-target.crosshair-fire,
+.crosshair.crosshair-target.crosshair-fire {
+    border-color: #00ff88;
+
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.95),
+        0 0 10px #00ff88,
+        0 0 20px rgba(0, 255, 136, 0.55);
+}
+
+
+/* =========================================================
+   HITMARKER
+   ========================================================= */
+
+#hitmarker {
+    position: fixed;
+
+    top: 50%;
+    left: 50%;
+
+    transform:
+        translate(-50%, -50%)
+        scale(1.45);
+
+    z-index: 10001;
+
+    pointer-events: none;
+
+    color: #ffffff;
+
+    font-size: 25px;
+
+    font-weight: 900;
+
+    line-height: 1;
+
+    opacity: 0;
+
+    text-shadow:
+        0 0 2px #000000,
+        0 0 5px rgba(255, 255, 255, 0.85);
+
+    transition:
+        opacity 0.04s linear,
+        transform 0.08s ease,
+        color 0.08s ease;
+}
+
+
+#hitmarker.hitmarker-visible {
+    opacity: 1;
+
+    transform:
+        translate(-50%, -50%)
+        scale(1);
+}
+
+
+/* =========================================================
+   HITMARKER DE DESTRUCCIÓN
+   ========================================================= */
+
+#hitmarker.hitmarker-destroyed {
+    color: #ff5252;
+
+    font-size: 30px;
+
+    text-shadow:
+        0 0 2px #000000,
+        0 0 7px rgba(255, 82, 82, 0.95),
+        0 0 14px rgba(255, 82, 82, 0.55);
+}
+
+
+/* =========================================================
+   INFORMACIÓN DEL OBJETIVO
+   ========================================================= */
+
+#target-info {
+    position: fixed;
+
+    top:
+        calc(
+            50% - 82px
+        );
+
+    left: 50%;
+
+    transform:
+        translateX(-50%)
+        translateY(5px);
+
+    z-index: 9998;
+
+    width: 210px;
+
+    padding:
+        10px 12px;
+
+    pointer-events: none;
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(5, 11, 16, 0.88),
+            rgba(13, 22, 28, 0.82)
+        );
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.14);
+
+    border-radius: 6px;
+
+    box-shadow:
+        0 8px 22px
+        rgba(0, 0, 0, 0.32);
+
+    backdrop-filter:
+        blur(8px);
+
+    transition:
+        opacity 0.10s ease,
+        transform 0.10s ease,
+        visibility 0.10s;
+}
+
+
+/* =========================================================
+   MOSTRAR OBJETIVO
+   ========================================================= */
+
+#target-info.target-info-visible {
+    opacity: 1;
+
+    visibility: visible;
+
+    transform:
+        translateX(-50%)
+        translateY(0);
+}
+
+
+/* =========================================================
+   NOMBRE DEL OBJETIVO
+   ========================================================= */
+
+.target-name {
+    margin-bottom: 7px;
+
+    color: #e7edf1;
+
+    text-align: center;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 1.6px;
+}
+
+
+/* =========================================================
+   BARRA DE VIDA
+   ========================================================= */
+
+.target-health-bar {
+    width: 100%;
+
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 20px;
+
+    background:
+        rgba(255, 255, 255, 0.12);
+
+    box-shadow:
+        inset 0 0 3px
+        rgba(0, 0, 0, 0.8);
+}
+
+
+/* =========================================================
+   VIDA RESTANTE
+   ========================================================= */
+
+.target-health-fill {
+    width: 100%;
+
+    height: 100%;
+
+    border-radius: inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00c853,
+            #69f0ae
+        );
+
+    box-shadow:
+        0 0 7px
+        rgba(0, 255, 136, 0.55);
+
+    transition:
+        width 0.13s ease;
+}
+
+
+/* =========================================================
+   TEXTO DE VIDA
+   ========================================================= */
+
+.target-health-text {
+    margin-top: 5px;
+
+    color:
+        rgba(255, 255, 255, 0.68);
+
+    text-align: center;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    font-variant-numeric:
+        tabular-nums;
+}
