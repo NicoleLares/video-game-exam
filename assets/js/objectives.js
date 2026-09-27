@@ -14,18 +14,17 @@ const TOTAL_OBJECTIVES = 8;
 const DESIRED_PLATFORM_OBJECTIVES = 3;
 
 const MIN_OBJECTIVE_DISTANCE = 4.0;
-
 const RELAXED_OBJECTIVE_DISTANCE = 2.7;
 
 const SPAWN_SAFE_DISTANCE = 5.0;
 
 const FLOOR_CHECK_RADIUS = 0.50;
-
 const FLOOR_HEIGHT_TOLERANCE = 0.25;
 
 const CORE_FLOAT_HEIGHT = 0.72;
-
 const CORE_RADIUS = 0.34;
+
+const OBJECTIVE_HEALTH = 100;
 
 
 // ============================================================
@@ -35,7 +34,6 @@ const CORE_RADIUS = 0.34;
 let sceneRef = null;
 
 const objectives = [];
-
 const explosionEffects = [];
 
 const objectiveGroup =
@@ -43,11 +41,6 @@ const objectiveGroup =
 
 objectiveGroup.name =
     'EnergyObjectives';
-
-
-// ============================================================
-// VECTOR TEMPORAL
-// ============================================================
 
 const worldPosition =
     new THREE.Vector3();
@@ -66,7 +59,6 @@ const coreMaterial =
         metalness: 0.45
     });
 
-
 const innerMaterial =
     new THREE.MeshStandardMaterial({
         color: 0xffffff,
@@ -76,7 +68,6 @@ const innerMaterial =
         metalness: 0.1
     });
 
-
 const ringMaterial =
     new THREE.MeshStandardMaterial({
         color: 0x29b6f6,
@@ -85,7 +76,6 @@ const ringMaterial =
         roughness: 0.25,
         metalness: 0.75
     });
-
 
 const baseMaterial =
     new THREE.MeshStandardMaterial({
@@ -104,7 +94,6 @@ export function initObjectives(
     getGroundHeight,
     options
 ) {
-
     sceneRef = scene;
 
     objectives.length = 0;
@@ -113,17 +102,9 @@ export function initObjectives(
 
     objectiveGroup.clear();
 
-
-    if (
-        !objectiveGroup.parent
-    ) {
-
-        scene.add(
-            objectiveGroup
-        );
-
+    if (!objectiveGroup.parent) {
+        scene.add(objectiveGroup);
     }
-
 
     const spawn =
         options.spawn || {
@@ -131,29 +112,15 @@ export function initObjectives(
             z: 0
         };
 
-
     const platforms =
         options.columnPlatforms || [];
 
-
     const bounds = {
-        minX:
-            options.minX + 1,
-
-        maxX:
-            options.maxX - 1,
-
-        minZ:
-            options.minZ + 1,
-
-        maxZ:
-            options.maxZ - 1
+        minX: options.minX + 1,
+        maxX: options.maxX - 1,
+        minZ: options.minZ + 1,
+        maxZ: options.maxZ - 1
     };
-
-
-    // ========================================================
-    // ALGUNOS OBJETIVOS SOBRE PLATAFORMAS
-    // ========================================================
 
     const selectedPlatforms =
         selectPlatforms(
@@ -162,29 +129,20 @@ export function initObjectives(
             DESIRED_PLATFORM_OBJECTIVES
         );
 
-
     selectedPlatforms.forEach(
         (platform) => {
-
             createEnergyCore(
                 platform.x,
                 platform.y,
                 platform.z,
                 true
             );
-
         }
     );
-
-
-    // ========================================================
-    // EL RESTO SOBRE EL PISO
-    // ========================================================
 
     const remaining =
         TOTAL_OBJECTIVES -
         objectives.length;
-
 
     const floorPositions =
         findFloorPositions(
@@ -194,45 +152,27 @@ export function initObjectives(
             remaining
         );
 
-
     floorPositions.forEach(
         (position) => {
-
             createEnergyCore(
                 position.x,
                 position.y,
                 position.z,
                 false
             );
-
         }
     );
-
 
     console.log(
         `⚡ Núcleos creados: ${objectives.length}/${TOTAL_OBJECTIVES}`
     );
 
-
-    if (
-        objectives.length <
-        TOTAL_OBJECTIVES
-    ) {
-
-        console.warn(
-            `⚠️ Solo se pudieron colocar ${objectives.length} núcleos.`
-        );
-
-    }
-
-
     return getObjectivePositions();
-
 }
 
 
 // ============================================================
-// SELECCIONAR PLATAFORMAS
+// PLATAFORMAS
 // ============================================================
 
 function selectPlatforms(
@@ -240,103 +180,70 @@ function selectPlatforms(
     spawn,
     count
 ) {
-
     const available =
         platforms
             .filter(
-                (platform) => {
-
-                    const distance =
-                        Math.hypot(
-                            platform.x - spawn.x,
-                            platform.z - spawn.z
-                        );
-
-
-                    return (
-                        distance >
-                        SPAWN_SAFE_DISTANCE
-                    );
-
-                }
+                (platform) =>
+                    Math.hypot(
+                        platform.x -
+                            spawn.x,
+                        platform.z -
+                            spawn.z
+                    ) >
+                    SPAWN_SAFE_DISTANCE
             )
             .sort(
-                (
-                    a,
-                    b
-                ) => {
-
-                    const areaA =
-                        a.area ??
-                        a.width * a.depth;
-
-
-                    const areaB =
+                (a, b) =>
+                    (
                         b.area ??
-                        b.width * b.depth;
-
-
-                    return (
-                        areaB -
-                        areaA
-                    );
-
-                }
+                        b.width *
+                            b.depth
+                    ) -
+                    (
+                        a.area ??
+                        a.width *
+                            a.depth
+                    )
             );
-
 
     const selected = [];
 
-
     for (
-        const platform of available
+        const platform of
+        available
     ) {
-
         const tooClose =
             selected.some(
                 (other) =>
-
                     Math.hypot(
-                        platform.x - other.x,
-                        platform.z - other.z
+                        platform.x -
+                            other.x,
+                        platform.z -
+                            other.z
                     ) <
                     MIN_OBJECTIVE_DISTANCE
             );
 
-
-        if (
-            tooClose
-        ) {
-
+        if (tooClose) {
             continue;
-
         }
 
-
-        selected.push(
-            platform
-        );
-
+        selected.push(platform);
 
         if (
             selected.length >=
             count
         ) {
-
             break;
-
         }
-
     }
 
-
     return selected;
-
 }
 
 
 // ============================================================
-// VALIDAR PISO PARA UN NÚCLEO
+// VALIDAR SUELO
 // ============================================================
 
 function getValidObjectiveGround(
@@ -344,24 +251,15 @@ function getValidObjectiveGround(
     z,
     getGroundHeight
 ) {
-
     const center =
         getGroundHeight(
             x,
             z
         );
 
-
-    if (
-        !Number.isFinite(
-            center
-        )
-    ) {
-
+    if (!Number.isFinite(center)) {
         return null;
-
     }
-
 
     const samples = [
         [FLOOR_CHECK_RADIUS, 0],
@@ -370,31 +268,21 @@ function getValidObjectiveGround(
         [0, -FLOOR_CHECK_RADIUS]
     ];
 
-
     for (
         const [
             offsetX,
             offsetZ
         ] of samples
     ) {
-
         const y =
             getGroundHeight(
                 x + offsetX,
                 z + offsetZ
             );
 
-
-        if (
-            !Number.isFinite(
-                y
-            )
-        ) {
-
+        if (!Number.isFinite(y)) {
             return null;
-
         }
-
 
         if (
             Math.abs(
@@ -403,21 +291,16 @@ function getValidObjectiveGround(
             ) >
             FLOOR_HEIGHT_TOLERANCE
         ) {
-
             return null;
-
         }
-
     }
 
-
     return center;
-
 }
 
 
 // ============================================================
-// BUSCAR POSICIONES DEL PISO
+// POSICIONES DE PISO
 // ============================================================
 
 function findFloorPositions(
@@ -426,42 +309,31 @@ function findFloorPositions(
     getGroundHeight,
     count
 ) {
-
-    if (
-        count <= 0
-    ) {
-
+    if (count <= 0) {
         return [];
-
     }
-
 
     const candidates = [];
 
     const columns = 22;
-
     const rows = 30;
-
 
     for (
         let row = 0;
         row <= rows;
         row++
     ) {
-
         for (
             let column = 0;
             column <= columns;
             column++
         ) {
-
             const x =
                 THREE.MathUtils.lerp(
                     bounds.minX,
                     bounds.maxX,
                     column / columns
                 );
-
 
             const z =
                 THREE.MathUtils.lerp(
@@ -470,7 +342,6 @@ function findFloorPositions(
                     row / rows
                 );
 
-
             const y =
                 getValidObjectiveGround(
                     x,
@@ -478,17 +349,9 @@ function findFloorPositions(
                     getGroundHeight
                 );
 
-
-            if (
-                !Number.isFinite(
-                    y
-                )
-            ) {
-
+            if (!Number.isFinite(y)) {
                 continue;
-
             }
-
 
             const spawnDistance =
                 Math.hypot(
@@ -496,204 +359,137 @@ function findFloorPositions(
                     z - spawn.z
                 );
 
-
             if (
                 spawnDistance <
                 SPAWN_SAFE_DISTANCE
             ) {
-
                 continue;
-
             }
-
 
             const tooCloseToPlatformCore =
                 objectives.some(
-                    (objective) => {
-
-                        return (
-                            Math.hypot(
-                                x -
-                                    objective.group.position.x,
-
-                                z -
-                                    objective.group.position.z
-                            ) <
-                            MIN_OBJECTIVE_DISTANCE
-                        );
-
-                    }
+                    (objective) =>
+                        Math.hypot(
+                            x -
+                                objective
+                                    .group
+                                    .position
+                                    .x,
+                            z -
+                                objective
+                                    .group
+                                    .position
+                                    .z
+                        ) <
+                        MIN_OBJECTIVE_DISTANCE
                 );
-
 
             if (
                 tooCloseToPlatformCore
             ) {
-
                 continue;
-
             }
-
 
             candidates.push({
                 x,
                 y,
                 z
             });
-
         }
-
     }
 
-
-    // ========================================================
-    // PRIORIZAR PUNTOS LEJANOS AL SPAWN
-    // ========================================================
-
-    candidates.sort(
-        (
-            a,
-            b
-        ) => {
-
-            const distanceA =
-                Math.hypot(
-                    a.x - spawn.x,
-                    a.z - spawn.z
-                );
-
-
-            const distanceB =
-                Math.hypot(
-                    b.x - spawn.x,
-                    b.z - spawn.z
-                );
-
-
-            return (
-                distanceB -
-                distanceA
+    candidates.sort((a, b) => {
+        const distanceA =
+            Math.hypot(
+                a.x - spawn.x,
+                a.z - spawn.z
             );
 
-        }
-    );
+        const distanceB =
+            Math.hypot(
+                b.x - spawn.x,
+                b.z - spawn.z
+            );
 
+        return distanceB - distanceA;
+    });
 
     const selected = [];
 
-
-    // ========================================================
-    // PRIMER INTENTO: BIEN SEPARADOS
-    // ========================================================
-
     for (
-        const candidate of candidates
+        const candidate of
+        candidates
     ) {
-
         if (
             selected.length >=
             count
         ) {
-
             break;
-
         }
-
 
         const tooClose =
             selected.some(
                 (other) =>
-
                     Math.hypot(
-                        candidate.x - other.x,
-                        candidate.z - other.z
+                        candidate.x -
+                            other.x,
+                        candidate.z -
+                            other.z
                     ) <
                     MIN_OBJECTIVE_DISTANCE
             );
 
-
-        if (
-            tooClose
-        ) {
-
+        if (tooClose) {
             continue;
-
         }
 
-
-        selected.push(
-            candidate
-        );
-
+        selected.push(candidate);
     }
-
-
-    // ========================================================
-    // SEGUNDO INTENTO: RELAJAR DISTANCIA SI FALTAN
-    // ========================================================
 
     if (
         selected.length <
         count
     ) {
-
         for (
-            const candidate of candidates
+            const candidate of
+            candidates
         ) {
-
             if (
                 selected.length >=
                 count
             ) {
-
                 break;
-
             }
-
 
             if (
                 selected.includes(
                     candidate
                 )
             ) {
-
                 continue;
-
             }
-
 
             const tooClose =
                 selected.some(
                     (other) =>
-
                         Math.hypot(
-                            candidate.x - other.x,
-                            candidate.z - other.z
+                            candidate.x -
+                                other.x,
+                            candidate.z -
+                                other.z
                         ) <
                         RELAXED_OBJECTIVE_DISTANCE
                 );
 
-
-            if (
-                tooClose
-            ) {
-
+            if (tooClose) {
                 continue;
-
             }
 
-
-            selected.push(
-                candidate
-            );
-
+            selected.push(candidate);
         }
-
     }
 
-
     return selected;
-
 }
 
 
@@ -707,14 +503,11 @@ function createEnergyCore(
     z,
     elevated
 ) {
-
     const group =
         new THREE.Group();
 
-
     group.name =
         'EnergyCore';
-
 
     group.position.set(
         x,
@@ -722,168 +515,87 @@ function createEnergyCore(
         z
     );
 
-
-    // ========================================================
-    // BASE
-    // ========================================================
-
     const base =
         new THREE.Mesh(
-
             new THREE.CylinderGeometry(
                 0.46,
                 0.56,
                 0.20,
                 24
             ),
-
             baseMaterial.clone()
-
         );
 
+    base.position.y = 0.10;
+    base.castShadow = true;
+    base.receiveShadow = true;
 
-    base.position.y =
-        0.10;
-
-
-    base.castShadow =
-        true;
-
-
-    base.receiveShadow =
-        true;
-
-
-    group.add(
-        base
-    );
-
-
-    // ========================================================
-    // GRUPO FLOTANTE
-    // ========================================================
+    group.add(base);
 
     const corePivot =
         new THREE.Group();
 
-
     corePivot.position.y =
         CORE_FLOAT_HEIGHT;
 
-
-    group.add(
-        corePivot
-    );
-
-
-    // ========================================================
-    // NÚCLEO EXTERIOR
-    // ========================================================
+    group.add(corePivot);
 
     const outerCore =
         new THREE.Mesh(
-
             new THREE.IcosahedronGeometry(
                 CORE_RADIUS,
                 2
             ),
-
             coreMaterial.clone()
-
         );
 
+    outerCore.castShadow = true;
 
-    outerCore.castShadow =
-        true;
-
-
-    corePivot.add(
-        outerCore
-    );
-
-
-    // ========================================================
-    // CENTRO
-    // ========================================================
+    corePivot.add(outerCore);
 
     const innerCore =
         new THREE.Mesh(
-
             new THREE.SphereGeometry(
                 CORE_RADIUS * 0.52,
                 20,
                 16
             ),
-
             innerMaterial.clone()
-
         );
 
-
-    corePivot.add(
-        innerCore
-    );
-
-
-    // ========================================================
-    // ARO 1
-    // ========================================================
+    corePivot.add(innerCore);
 
     const ring1 =
         new THREE.Mesh(
-
             new THREE.TorusGeometry(
                 0.47,
                 0.035,
                 10,
                 32
             ),
-
             ringMaterial.clone()
-
         );
-
 
     ring1.rotation.x =
         Math.PI / 2;
 
-
-    corePivot.add(
-        ring1
-    );
-
-
-    // ========================================================
-    // ARO 2
-    // ========================================================
+    corePivot.add(ring1);
 
     const ring2 =
         new THREE.Mesh(
-
             new THREE.TorusGeometry(
                 0.41,
                 0.028,
                 10,
                 32
             ),
-
             ringMaterial.clone()
-
         );
-
 
     ring2.rotation.y =
         Math.PI / 2;
 
-
-    corePivot.add(
-        ring2
-    );
-
-
-    // ========================================================
-    // LUZ
-    // ========================================================
+    corePivot.add(ring2);
 
     const light =
         new THREE.PointLight(
@@ -893,18 +605,9 @@ function createEnergyCore(
             2
         );
 
+    corePivot.add(light);
 
-    corePivot.add(
-        light
-    );
-
-
-    objectiveGroup.add(
-        group
-    );
-
-
-    objectives.push({
+    const objective = {
         group,
         base,
         corePivot,
@@ -916,8 +619,13 @@ function createEnergyCore(
 
         elevated,
 
-        destroyed:
-            false,
+        destroyed: false,
+
+        health:
+            OBJECTIVE_HEALTH,
+
+        maxHealth:
+            OBJECTIVE_HEALTH,
 
         baseFloatY:
             CORE_FLOAT_HEIGHT,
@@ -926,8 +634,113 @@ function createEnergyCore(
             Math.random() *
             Math.PI *
             2
-    });
+    };
 
+    objectives.push(objective);
+
+    objectiveGroup.add(group);
+}
+
+
+// ============================================================
+// OBJETIVOS DISPARABLES
+// ============================================================
+
+export function getObjectiveTargets() {
+    const targets = [];
+
+    for (
+        const objective of
+        objectives
+    ) {
+        if (
+            objective.destroyed ||
+            !objective.group.visible
+        ) {
+            continue;
+        }
+
+        const meshes = [
+            objective.base,
+            objective.outerCore,
+            objective.innerCore,
+            objective.ring1,
+            objective.ring2
+        ];
+
+        meshes.forEach((mesh) => {
+            targets.push({
+                mesh,
+                objective
+            });
+        });
+    }
+
+    return targets;
+}
+
+
+// ============================================================
+// DAÑO POR DISPARO
+// ============================================================
+
+export function damageObjectiveByMesh(
+    mesh,
+    damage
+) {
+    const objective =
+        objectives.find(
+            (item) =>
+                item.base === mesh ||
+                item.outerCore === mesh ||
+                item.innerCore === mesh ||
+                item.ring1 === mesh ||
+                item.ring2 === mesh
+        );
+
+    if (
+        !objective ||
+        objective.destroyed
+    ) {
+        return {
+            hit: false,
+            destroyed: false,
+            health: 0
+        };
+    }
+
+    objective.health =
+        Math.max(
+            0,
+            objective.health -
+                damage
+        );
+
+    console.log(
+        `⚡ Vida núcleo: ${objective.health}/${objective.maxHealth}`
+    );
+
+    if (
+        objective.health <= 0
+    ) {
+        const destroyed =
+            destroyObjective(
+                objective
+            );
+
+        return {
+            hit: true,
+            destroyed,
+            health: 0
+        };
+    }
+
+    return {
+        hit: true,
+        destroyed: false,
+        health:
+            objective.health
+    };
 }
 
 
@@ -939,43 +752,27 @@ export function updateObjectives(
     delta,
     elapsedTime
 ) {
-
     for (
-        const objective of objectives
+        const objective of
+        objectives
     ) {
-
         if (
             objective.destroyed
         ) {
-
             continue;
-
         }
-
-
-        // ====================================================
-        // ROTACIÓN
-        // ====================================================
 
         objective.outerCore.rotation.y +=
             delta * 1.7;
 
-
         objective.outerCore.rotation.x +=
             delta * 0.6;
-
 
         objective.ring1.rotation.z +=
             delta * 1.9;
 
-
         objective.ring2.rotation.x -=
             delta * 1.5;
-
-
-        // ====================================================
-        // FLOTACIÓN
-        // ====================================================
 
         objective.corePivot.position.y =
             objective.baseFloatY +
@@ -985,11 +782,6 @@ export function updateObjectives(
             ) *
             0.09;
 
-
-        // ====================================================
-        // PULSO DE LUZ
-        // ====================================================
-
         objective.light.intensity =
             8 +
             Math.sin(
@@ -997,79 +789,61 @@ export function updateObjectives(
                 objective.phase
             ) *
             2;
-
     }
-
 
     updateExplosionEffects(
         delta
     );
-
 }
 
 
 // ============================================================
-// DAÑO POR EXPLOSIÓN
+// DAÑO DE GRANADA
 // ============================================================
 
 export function damageObjectives(
     explosionPosition,
     radius
 ) {
-
-    let destroyedNow =
-        0;
-
+    let destroyedNow = 0;
 
     for (
-        const objective of objectives
+        const objective of
+        objectives
     ) {
-
         if (
             objective.destroyed
         ) {
-
             continue;
-
         }
 
-
-        objective.corePivot.getWorldPosition(
-            worldPosition
-        );
-
+        objective.corePivot
+            .getWorldPosition(
+                worldPosition
+            );
 
         const distance =
             worldPosition.distanceTo(
                 explosionPosition
             );
 
-
         if (
             distance >
             radius
         ) {
-
             continue;
-
         }
-
 
         if (
             destroyObjective(
                 objective
             )
         ) {
-
             destroyedNow++;
-
         }
-
     }
 
-
     return destroyedNow;
-
 }
 
 
@@ -1080,102 +854,72 @@ export function damageObjectives(
 function destroyObjective(
     objective
 ) {
-
-    // game.js decide si todavía se puede contar.
     const accepted =
         registerObjectiveDestroyed();
 
-
-    if (
-        !accepted
-    ) {
-
+    if (!accepted) {
         return false;
-
     }
 
-
-    objective.corePivot.getWorldPosition(
-        worldPosition
-    );
-
+    objective.corePivot
+        .getWorldPosition(
+            worldPosition
+        );
 
     const explosionPosition =
         worldPosition.clone();
 
+    objective.destroyed = true;
+    objective.health = 0;
 
-    objective.destroyed =
-        true;
-
-
-    objective.group.visible =
-        false;
-
+    objective.group.visible = false;
 
     createCoreExplosion(
         explosionPosition
     );
 
-
     console.log(
-        '⚡ Núcleo destruido'
+        '⚡ NÚCLEO DESTRUIDO'
     );
 
-
     return true;
-
 }
 
 
 // ============================================================
-// EXPLOSIÓN DEL NÚCLEO
+// EXPLOSIÓN NÚCLEO
 // ============================================================
 
 function createCoreExplosion(
     position
 ) {
-
-    if (
-        !sceneRef
-    ) {
-
+    if (!sceneRef) {
         return;
-
     }
-
 
     const group =
         new THREE.Group();
-
 
     group.position.copy(
         position
     );
 
-
-    sceneRef.add(
-        group
-    );
-
+    sceneRef.add(group);
 
     const particles = [];
-
 
     for (
         let i = 0;
         i < 26;
         i++
     ) {
-
         const particle =
             new THREE.Mesh(
-
                 new THREE.SphereGeometry(
                     0.065,
                     6,
                     6
                 ),
-
                 new THREE.MeshBasicMaterial({
                     color:
                         i % 2 === 0
@@ -1184,15 +928,10 @@ function createCoreExplosion(
                             :
                             0xffffff,
 
-                    transparent:
-                        true,
-
-                    opacity:
-                        1
+                    transparent: true,
+                    opacity: 1
                 })
-
             );
-
 
         const direction =
             new THREE.Vector3(
@@ -1202,7 +941,6 @@ function createCoreExplosion(
             )
                 .normalize();
 
-
         particle.userData.velocity =
             direction.multiplyScalar(
                 THREE.MathUtils.randFloat(
@@ -1211,18 +949,10 @@ function createCoreExplosion(
                 )
             );
 
+        group.add(particle);
 
-        group.add(
-            particle
-        );
-
-
-        particles.push(
-            particle
-        );
-
+        particles.push(particle);
     }
-
 
     const light =
         new THREE.PointLight(
@@ -1232,22 +962,15 @@ function createCoreExplosion(
             2
         );
 
-
-    group.add(
-        light
-    );
-
+    group.add(light);
 
     explosionEffects.push({
         group,
         particles,
         light,
-        age:
-            0,
-        duration:
-            0.75
+        age: 0,
+        duration: 0.75
     });
-
 }
 
 
@@ -1258,22 +981,16 @@ function createCoreExplosion(
 function updateExplosionEffects(
     delta
 ) {
-
     for (
         let i =
-            explosionEffects.length -
-            1;
+            explosionEffects.length - 1;
         i >= 0;
         i--
     ) {
-
         const effect =
             explosionEffects[i];
 
-
-        effect.age +=
-            delta;
-
+        effect.age += delta;
 
         const progress =
             THREE.MathUtils.clamp(
@@ -1283,43 +1000,35 @@ function updateExplosionEffects(
                 1
             );
 
-
         for (
             const particle of
             effect.particles
         ) {
-
             const velocity =
                 particle.userData.velocity;
 
-
-            particle.position.addScaledVector(
-                velocity,
-                delta
-            );
-
+            particle.position
+                .addScaledVector(
+                    velocity,
+                    delta
+                );
 
             velocity.y -=
                 4 *
                 delta;
 
-
             particle.material.opacity =
                 1 -
                 progress;
-
 
             particle.scale.setScalar(
                 Math.max(
                     0.1,
                     1 -
-                    progress *
-                    0.7
+                    progress * 0.7
                 )
             );
-
         }
-
 
         effect.light.intensity =
             30 *
@@ -1328,94 +1037,73 @@ function updateExplosionEffects(
                 progress
             );
 
-
         if (
-            progress >=
-            1
+            progress >= 1
         ) {
-
             sceneRef.remove(
                 effect.group
             );
-
 
             disposeObject3D(
                 effect.group
             );
 
-
             explosionEffects.splice(
                 i,
                 1
             );
-
         }
-
     }
-
 }
 
 
 // ============================================================
-// OBTENER POSICIONES
+// POSICIONES
 // ============================================================
 
 export function getObjectivePositions() {
-
     const positions = [];
 
-
     for (
-        const objective of objectives
+        const objective of
+        objectives
     ) {
-
-        objective.corePivot.getWorldPosition(
-            worldPosition
-        );
-
+        objective.corePivot
+            .getWorldPosition(
+                worldPosition
+            );
 
         positions.push({
-            x:
-                worldPosition.x,
-
-            y:
-                worldPosition.y,
-
-            z:
-                worldPosition.z
+            x: worldPosition.x,
+            y: worldPosition.y,
+            z: worldPosition.z
         });
-
     }
 
-
     return positions;
-
 }
 
 
 // ============================================================
-// REINICIAR OBJETIVOS
+// RESET
 // ============================================================
 
 export function resetObjectives() {
-
     clearExplosionEffects();
-
 
     objectives.forEach(
         (objective) => {
-
             objective.destroyed =
                 false;
 
+            objective.health =
+                objective.maxHealth;
 
             objective.group.visible =
                 true;
 
-
             objective.corePivot.position.y =
                 objective.baseFloatY;
-
 
             objective.outerCore.rotation.set(
                 0,
@@ -1423,13 +1111,11 @@ export function resetObjectives() {
                 0
             );
 
-
             objective.ring1.rotation.set(
                 Math.PI / 2,
                 0,
                 0
             );
-
 
             objective.ring2.rotation.set(
                 0,
@@ -1437,64 +1123,47 @@ export function resetObjectives() {
                 0
             );
 
-
             objective.light.intensity =
                 8;
-
         }
     );
-
 
     console.log(
         '🔄 Núcleos reiniciados'
     );
-
 }
 
 
 // ============================================================
-// OBTENER OBJETIVOS 3D
+// GET
 // ============================================================
 
 export function getObjectives3D() {
-
     return objectives;
-
 }
 
 
 // ============================================================
-// LIMPIAR EXPLOSIONES
+// LIMPIAR EFECTOS
 // ============================================================
 
 function clearExplosionEffects() {
-
     for (
         const effect of
         explosionEffects
     ) {
-
-        if (
-            sceneRef
-        ) {
-
+        if (sceneRef) {
             sceneRef.remove(
                 effect.group
             );
-
         }
-
 
         disposeObject3D(
             effect.group
         );
-
     }
 
-
-    explosionEffects.length =
-        0;
-
+    explosionEffects.length = 0;
 }
 
 
@@ -1505,43 +1174,26 @@ function clearExplosionEffects() {
 function disposeObject3D(
     object
 ) {
-
     object.traverse(
         (child) => {
-
-            if (
-                child.geometry
-            ) {
-
+            if (child.geometry) {
                 child.geometry.dispose();
-
             }
 
-
-            if (
-                child.material
-            ) {
-
+            if (child.material) {
                 if (
                     Array.isArray(
                         child.material
                     )
                 ) {
-
                     child.material.forEach(
                         (material) =>
                             material.dispose()
                     );
-
                 } else {
-
                     child.material.dispose();
-
                 }
-
             }
-
         }
     );
-
 }

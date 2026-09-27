@@ -48,6 +48,14 @@ import {
 } from './objectives.js';
 
 import {
+    initShootingSystem,
+    shoot,
+    updateShooting,
+    resetShooting,
+    setAimingMode
+} from './shooting.js';
+
+import {
     setupStartButton,
     updateGameStatus,
     updateScore,
@@ -92,11 +100,6 @@ const ENABLE_DYNAMIC_OBJECTS =
 const ENVIRONMENT_TARGET_SIZE =
     45;
 
-
-// ============================================================
-// PERSONAJE
-// ============================================================
-
 const CHARACTER_HEIGHT =
     1.35;
 
@@ -106,11 +109,37 @@ const WALK_SPEED =
 const RUN_SPEED =
     5.5;
 
+const AIM_WALK_SPEED =
+    2.15;
+
 const ROTATION_SPEED =
     12;
 
 const MODEL_FORWARD_OFFSET =
     0;
+
+
+// ============================================================
+// CÁMARA TPS
+// ============================================================
+
+const NORMAL_CAMERA_ZOOM =
+    1;
+
+const AIM_CAMERA_ZOOM =
+    1.30;
+
+const CAMERA_ZOOM_SPEED =
+    10;
+
+const NORMAL_TARGET_HEIGHT =
+    0.90;
+
+const AIM_TARGET_HEIGHT =
+    1.08;
+
+const AIM_SHOULDER_OFFSET =
+    0.42;
 
 
 // ============================================================
@@ -215,7 +244,6 @@ renderer.shadowMap.enabled =
     true;
 
 
-// Three 0.186 recomienda PCFShadowMap.
 renderer.shadowMap.type =
     THREE.PCFShadowMap;
 
@@ -248,7 +276,7 @@ container.appendChild(
 
 
 // ============================================================
-// CONTROLES
+// ORBIT CONTROLS
 // ============================================================
 
 const controls =
@@ -275,21 +303,37 @@ controls.enableZoom =
 
 
 controls.minDistance =
-    3.5;
+    3.3;
 
 
 controls.maxDistance =
-    12;
+    11;
 
 
 controls.minPolarAngle =
     Math.PI *
-    0.12;
+    0.05;
 
 
 controls.maxPolarAngle =
     Math.PI *
-    0.48;
+    0.68;
+
+
+// ============================================================
+// BOTONES DEL MOUSE
+// ============================================================
+
+controls.mouseButtons.LEFT =
+    null;
+
+
+controls.mouseButtons.RIGHT =
+    THREE.MOUSE.ROTATE;
+
+
+controls.mouseButtons.MIDDLE =
+    THREE.MOUSE.DOLLY;
 
 
 controls.target.set(
@@ -300,6 +344,21 @@ controls.target.set(
 
 
 controls.update();
+
+
+// ============================================================
+// EVITAR MENÚ DERECHO
+// ============================================================
+
+renderer.domElement.addEventListener(
+    'contextmenu',
+
+    (event) => {
+
+        event.preventDefault();
+
+    }
+);
 
 
 // ============================================================
@@ -467,6 +526,10 @@ let isThrowing =
     false;
 
 
+let isAiming =
+    false;
+
+
 let activeAction =
     null;
 
@@ -488,7 +551,7 @@ let grenadeReleased =
 
 
 // ============================================================
-// SPAWN ACTUAL
+// SPAWN
 // ============================================================
 
 const currentSpawn =
@@ -560,6 +623,10 @@ const targetDifference =
     new THREE.Vector3();
 
 
+const aimRight =
+    new THREE.Vector3();
+
+
 const UP =
     new THREE.Vector3(
         0,
@@ -575,7 +642,7 @@ const horizontalPhysicsMovement = {
 
 
 // ============================================================
-// RAYCAST
+// TERRENO
 // ============================================================
 
 const groundRaycaster =
@@ -822,6 +889,12 @@ async function loadEnvironment() {
     );
 
 
+    console.log(
+        '🗺️ Límites:',
+        environmentBounds
+    );
+
+
     const physicsMeshes =
         collisionMeshes.length >
         0
@@ -965,7 +1038,7 @@ function normalizeEnvironment(
 
 
 // ============================================================
-// SUPERFICIES
+// SUPERFICIES HORIZONTALES
 // ============================================================
 
 function getHorizontalSurfaces(
@@ -1131,7 +1204,7 @@ function getHorizontalSurfaces(
 
 
 // ============================================================
-// PISO
+// ALTURA PISO
 // ============================================================
 
 function getGroundHeight(
@@ -1167,9 +1240,13 @@ function getGroundHeight(
         i++
     ) {
 
-        if (
+        const difference =
             surfaces[i].y -
-            ground.y >
+            ground.y;
+
+
+        if (
+            difference >
             COVER_HEIGHT_THRESHOLD
         ) {
 
@@ -1220,7 +1297,7 @@ function getTopSurfaceHeight(
 
 
 // ============================================================
-// PISO GENERAL
+// ESTIMAR PISO
 // ============================================================
 
 function estimateFloorHeight() {
@@ -1310,10 +1387,18 @@ function estimateFloorHeight() {
     );
 
 
-    return heights[
+    const index =
         Math.floor(
             heights.length *
             0.25
+        );
+
+
+    return heights[
+        Math.min(
+            index,
+            heights.length -
+            1
         )
     ];
 
@@ -1462,9 +1547,9 @@ function collectColumnPlatforms() {
 
             if (
                 elevation <
-                    MIN_ELEVATION ||
+                MIN_ELEVATION ||
                 elevation >
-                    MAX_ELEVATION
+                MAX_ELEVATION
             ) {
 
                 continue;
@@ -1497,8 +1582,10 @@ function collectColumnPlatforms() {
 
                 const nearbyY =
                     getTopSurfaceHeight(
-                        x + offsetX,
-                        z + offsetZ
+                        x +
+                            offsetX,
+                        z +
+                            offsetZ
                     );
 
 
@@ -1535,6 +1622,7 @@ function collectColumnPlatforms() {
 
             elevatedPoints.set(
                 `${column},${row}`,
+
                 {
                     column,
                     row,
@@ -1588,9 +1676,10 @@ function collectColumnPlatforms() {
         }
 
 
-        const queue = [
-            startPoint
-        ];
+        const queue =
+            [
+                startPoint
+            ];
 
 
         const component =
@@ -1623,14 +1712,18 @@ function collectColumnPlatforms() {
                 ] of neighbors
             ) {
 
+                const nextColumn =
+                    point.column +
+                    dx;
+
+
+                const nextRow =
+                    point.row +
+                    dz;
+
+
                 const nextKey =
-                    `${
-                        point.column +
-                        dx
-                    },${
-                        point.row +
-                        dz
-                    }`;
+                    `${nextColumn},${nextRow}`;
 
 
                 if (
@@ -1876,7 +1969,7 @@ function placeCharacterAtSpawn() {
 
 
 // ============================================================
-// BOUNDING BOX
+// BOUNDING PERSONAJE
 // ============================================================
 
 function computeAnimatedCharacterBox() {
@@ -1972,13 +2065,15 @@ function computeAnimatedCharacterBox() {
     }
 
 
-    return !animatedCharacterBox.isEmpty();
+    return (
+        !animatedCharacterBox.isEmpty()
+    );
 
 }
 
 
 // ============================================================
-// ALINEAR
+// ALINEAR PERSONAJE
 // ============================================================
 
 function alignAnimatedCharacterToGround() {
@@ -2297,10 +2392,15 @@ function normalizeCharacter(
 
 
 // ============================================================
-// ANIMACIONES
+// CARGAR ANIMACIONES
 // ============================================================
 
 async function loadAnimations() {
+
+    console.log(
+        '🎞️ Cargando animaciones...'
+    );
+
 
     const [
         idleGLTF,
@@ -2309,6 +2409,7 @@ async function loadAnimations() {
         throwGLTF
     ] =
         await Promise.all([
+
             loadGLTF(
                 ANIMATION_PATHS.idle
             ),
@@ -2324,6 +2425,7 @@ async function loadAnimations() {
             loadGLTF(
                 ANIMATION_PATHS.throw
             )
+
         ]);
 
 
@@ -2394,6 +2496,11 @@ async function loadAnimations() {
 
     actions.throw.clampWhenFinished =
         false;
+
+
+    console.log(
+        '✅ Animaciones cargadas'
+    );
 
 }
 
@@ -2578,7 +2685,7 @@ function resetAllAnimationActions() {
 
 
 // ============================================================
-// CAMBIAR ANIMACIÓN
+// ANIMACIÓN
 // ============================================================
 
 function fadeToAction(
@@ -2664,7 +2771,43 @@ function fadeToAction(
 
 
 // ============================================================
-// THROW
+// APUNTADO
+// ============================================================
+
+function setAiming(
+    active
+) {
+
+    const canAim =
+        active &&
+        getGameState() ===
+            GAME_STATES.PLAYING &&
+        !isThrowing;
+
+
+    isAiming =
+        canAim;
+
+
+    if (
+        isAiming
+    ) {
+
+        keys.shift =
+            false;
+
+    }
+
+
+    setAimingMode(
+        isAiming
+    );
+
+}
+
+
+// ============================================================
+// GRANADA
 // ============================================================
 
 function playThrow() {
@@ -2697,6 +2840,11 @@ function playThrow() {
         return;
 
     }
+
+
+    setAiming(
+        false
+    );
 
 
     isThrowing =
@@ -2736,12 +2884,12 @@ function playThrow() {
     throwAction.reset();
 
 
-    throwAction.setEffectiveWeight(
+    throwAction.setEffectiveTimeScale(
         1
     );
 
 
-    throwAction.setEffectiveTimeScale(
+    throwAction.setEffectiveWeight(
         1
     );
 
@@ -2804,6 +2952,15 @@ function getMovementAnimation() {
     }
 
 
+    if (
+        isAiming
+    ) {
+
+        return 'walking';
+
+    }
+
+
     return keys.shift
         ?
         'run'
@@ -2846,7 +3003,18 @@ function updateCharacter(
         GAME_STATES.PLAYING
     ) {
 
+        setAiming(
+            false
+        );
+
+
         alignAnimatedCharacterToGround();
+
+
+        updateThirdPersonCamera(
+            delta
+        );
+
 
         return;
 
@@ -2891,19 +3059,19 @@ function updateCharacter(
 
 
         syncCharacterFromPhysics(
-
             moveCharacter(
                 horizontalPhysicsMovement,
                 delta
             )
-
         );
 
 
         alignAnimatedCharacterToGround();
 
 
-        updateThirdPersonCamera();
+        updateThirdPersonCamera(
+            delta
+        );
 
 
         return;
@@ -2912,7 +3080,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // DIRECCIÓN DE CÁMARA
+    // DIRECCIÓN CÁMARA
     // ========================================================
 
     moveDirection.set(
@@ -2956,6 +3124,10 @@ function updateCharacter(
 
     }
 
+
+    // ========================================================
+    // WASD
+    // ========================================================
 
     if (
         keys.w
@@ -3015,12 +3187,29 @@ function updateCharacter(
     }
 
 
-    const speed =
+    // ========================================================
+    // VELOCIDAD
+    // ========================================================
+
+    let speed =
+        WALK_SPEED;
+
+
+    if (
+        isAiming
+    ) {
+
+        speed =
+            AIM_WALK_SPEED;
+
+    } else if (
         keys.shift
-            ?
-            RUN_SPEED
-            :
-            WALK_SPEED;
+    ) {
+
+        speed =
+            RUN_SPEED;
+
+    }
 
 
     horizontalPhysicsMovement.x =
@@ -3043,6 +3232,10 @@ function updateCharacter(
             0;
 
 
+    // ========================================================
+    // RAPIER
+    // ========================================================
+
     const physicsPosition =
         moveCharacter(
             horizontalPhysicsMovement,
@@ -3055,7 +3248,27 @@ function updateCharacter(
     );
 
 
+    // ========================================================
+    // ROTACIÓN
+    // ========================================================
+
     if (
+        isAiming
+    ) {
+
+        const aimAngle =
+            Math.atan2(
+                cameraForward.x,
+                cameraForward.z
+            );
+
+
+        rotateCharacterTowards(
+            aimAngle,
+            delta
+        );
+
+    } else if (
         hasMovement
     ) {
 
@@ -3094,13 +3307,15 @@ function updateCharacter(
     alignAnimatedCharacterToGround();
 
 
-    updateThirdPersonCamera();
+    updateThirdPersonCamera(
+        delta
+    );
 
 }
 
 
 // ============================================================
-// SINCRONIZAR
+// SYNC RAPIER
 // ============================================================
 
 function syncCharacterFromPhysics(
@@ -3187,15 +3402,22 @@ function rotateCharacterTowards(
 
 
 // ============================================================
-// CÁMARA
+// RESET CÁMARA
 // ============================================================
 
 function resetThirdPersonCamera() {
 
+    camera.zoom =
+        NORMAL_CAMERA_ZOOM;
+
+
+    camera.updateProjectionMatrix();
+
+
     desiredTarget.set(
         characterRoot.position.x,
         characterRoot.position.y +
-            0.9,
+            NORMAL_TARGET_HEIGHT,
         characterRoot.position.z
     );
 
@@ -3208,8 +3430,10 @@ function resetThirdPersonCamera() {
     camera.position.set(
         characterRoot.position.x +
             4.2,
+
         characterRoot.position.y +
             3,
+
         characterRoot.position.z +
             6.2
     );
@@ -3225,7 +3449,13 @@ function resetThirdPersonCamera() {
 }
 
 
-function updateThirdPersonCamera() {
+// ============================================================
+// CÁMARA TPS
+// ============================================================
+
+function updateThirdPersonCamera(
+    delta
+) {
 
     if (
         !characterLoaded
@@ -3236,12 +3466,53 @@ function updateThirdPersonCamera() {
     }
 
 
+    camera.getWorldDirection(
+        cameraForward
+    );
+
+
+    aimRight.crossVectors(
+        cameraForward,
+        UP
+    );
+
+
+    if (
+        aimRight.lengthSq() >
+        0
+    ) {
+
+        aimRight.normalize();
+
+    }
+
+
     desiredTarget.set(
         characterRoot.position.x,
+
         characterRoot.position.y +
-            0.9,
+            (
+                isAiming
+                    ?
+                    AIM_TARGET_HEIGHT
+                    :
+                    NORMAL_TARGET_HEIGHT
+            ),
+
         characterRoot.position.z
     );
+
+
+    if (
+        isAiming
+    ) {
+
+        desiredTarget.addScaledVector(
+            aimRight,
+            AIM_SHOULDER_OFFSET
+        );
+
+    }
 
 
     targetDifference
@@ -3253,14 +3524,54 @@ function updateThirdPersonCamera() {
         );
 
 
+    const followAmount =
+        1 -
+        Math.exp(
+            -14 *
+            delta
+        );
+
+
+    targetDifference.multiplyScalar(
+        followAmount
+    );
+
+
     camera.position.add(
         targetDifference
     );
 
 
-    controls.target.copy(
-        desiredTarget
+    controls.target.add(
+        targetDifference
     );
+
+
+    const targetZoom =
+        isAiming
+            ?
+            AIM_CAMERA_ZOOM
+            :
+            NORMAL_CAMERA_ZOOM;
+
+
+    const zoomAmount =
+        1 -
+        Math.exp(
+            -CAMERA_ZOOM_SPEED *
+            delta
+        );
+
+
+    camera.zoom =
+        THREE.MathUtils.lerp(
+            camera.zoom,
+            targetZoom,
+            zoomAmount
+        );
+
+
+    camera.updateProjectionMatrix();
 
 }
 
@@ -3280,12 +3591,12 @@ window.addEventListener(
 
 
         if (
-            key ===
-                'f' &&
+            key === 'f' &&
             !event.repeat
         ) {
 
             playThrow();
+
 
             return;
 
@@ -3293,8 +3604,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'w'
+            key === 'w'
         ) {
 
             keys.w =
@@ -3304,8 +3614,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'a'
+            key === 'a'
         ) {
 
             keys.a =
@@ -3315,8 +3624,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            's'
+            key === 's'
         ) {
 
             keys.s =
@@ -3326,8 +3634,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'd'
+            key === 'd'
         ) {
 
             keys.d =
@@ -3337,8 +3644,8 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'shift'
+            key === 'shift' &&
+            !isAiming
         ) {
 
             keys.shift =
@@ -3361,8 +3668,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'w'
+            key === 'w'
         ) {
 
             keys.w =
@@ -3372,8 +3678,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'a'
+            key === 'a'
         ) {
 
             keys.a =
@@ -3383,8 +3688,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            's'
+            key === 's'
         ) {
 
             keys.s =
@@ -3394,8 +3698,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'd'
+            key === 'd'
         ) {
 
             keys.d =
@@ -3405,8 +3708,7 @@ window.addEventListener(
 
 
         if (
-            key ===
-            'shift'
+            key === 'shift'
         ) {
 
             keys.shift =
@@ -3417,6 +3719,170 @@ window.addEventListener(
     }
 );
 
+
+// ============================================================
+// MOUSE
+// ============================================================
+//
+// IMPORTANTE:
+// usamos mousedown / mouseup para poder detectar
+// clic izquierdo mientras el derecho está presionado.
+//
+// ============================================================
+
+renderer.domElement.addEventListener(
+    'mousedown',
+
+    (event) => {
+
+        // ====================================================
+        // DERECHO = APUNTAR
+        // ====================================================
+
+        if (
+            event.button ===
+            2
+        ) {
+
+            event.preventDefault();
+
+
+            if (
+                getGameState() !==
+                GAME_STATES.PLAYING
+            ) {
+
+                return;
+
+            }
+
+
+            if (
+                isThrowing
+            ) {
+
+                return;
+
+            }
+
+
+            setAiming(
+                true
+            );
+
+
+            console.log(
+                '🎯 MODO APUNTADO ACTIVADO'
+            );
+
+
+            return;
+
+        }
+
+
+        // ====================================================
+        // IZQUIERDO = DISPARAR
+        // ====================================================
+
+        if (
+            event.button !==
+            0
+        ) {
+
+            return;
+
+        }
+
+
+        event.preventDefault();
+
+
+        if (
+            getGameState() !==
+            GAME_STATES.PLAYING
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            isThrowing
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            !isAiming
+        ) {
+
+            console.log(
+                '🎯 Mantén clic derecho para apuntar.'
+            );
+
+
+            return;
+
+        }
+
+
+        console.log(
+            '🔫 DISPARANDO MIENTRAS APUNTA'
+        );
+
+
+        const fired =
+            shoot(
+                characterRoot
+            );
+
+
+        console.log(
+            '🔫 Resultado del disparo:',
+            fired
+        );
+
+    }
+);
+
+
+// ============================================================
+// SOLTAR CLICK DERECHO
+// ============================================================
+
+window.addEventListener(
+    'mouseup',
+
+    (event) => {
+
+        if (
+            event.button ===
+            2
+        ) {
+
+            setAiming(
+                false
+            );
+
+
+            console.log(
+                '🎯 MODO APUNTADO DESACTIVADO'
+            );
+
+        }
+
+    }
+);
+
+
+// ============================================================
+// BLUR
+// ============================================================
 
 window.addEventListener(
     'blur',
@@ -3441,6 +3907,11 @@ window.addEventListener(
 
         keys.shift =
             false;
+
+
+        setAiming(
+            false
+        );
 
     }
 );
@@ -3496,7 +3967,7 @@ function updateVersionLabel() {
     ) {
 
         version.textContent =
-            'VERSION 0.7 · NÚCLEOS DE ENERGÍA';
+            'VERSION 1.0.1 · APUNTADO TPS';
 
     }
 
@@ -3547,7 +4018,7 @@ function setLoadingState(
 async function init() {
 
     console.log(
-        '🎮 OPERATION IMPACT v0.7'
+        '🎮 OPERATION IMPACT v1.0.1'
     );
 
 
@@ -3564,47 +4035,30 @@ async function init() {
 
     try {
 
-        // ====================================================
-        // RAPIER
-        // ====================================================
-
         await initPhysics();
 
-
-        // ====================================================
-        // MAPA
-        // ====================================================
 
         await loadEnvironment();
 
 
-        // ====================================================
-        // PERSONAJE
-        // ====================================================
-
         await loadCharacter();
 
-
-        // ====================================================
-        // GRANADAS
-        // ====================================================
 
         initGrenadeSystem(
             scene
         );
 
 
-        // ====================================================
-        // PLATAFORMAS
-        // ====================================================
+        initShootingSystem(
+            scene,
+            camera,
+            environmentMeshes
+        );
+
 
         const columnPlatforms =
             collectColumnPlatforms();
 
-
-        // ====================================================
-        // NÚCLEOS
-        // ====================================================
 
         const objectivePositions =
             initObjectives(
@@ -3640,10 +4094,6 @@ async function init() {
             );
 
 
-        // ====================================================
-        // OBJETOS FÍSICOS
-        // ====================================================
-
         if (
             ENABLE_DYNAMIC_OBJECTS
         ) {
@@ -3677,7 +4127,6 @@ async function init() {
 
                     columnPlatforms,
 
-                    // Evitar colocar figuras sobre núcleos.
                     reservedPositions:
                         objectivePositions
                 }
@@ -3687,37 +4136,25 @@ async function init() {
         }
 
 
-        // ====================================================
-        // BOTÓN INICIO
-        // ====================================================
-
         setupStartButton(
             () => {
-
-                // =============================================
-                // JUEGO
-                // =============================================
 
                 startGame();
 
 
-                // =============================================
-                // GRANADAS
-                // =============================================
-
                 resetGrenades();
 
 
-                // =============================================
-                // OBJETIVOS
-                // =============================================
+                resetShooting();
+
 
                 resetObjectives();
 
 
-                // =============================================
-                // PERSONAJE
-                // =============================================
+                setAiming(
+                    false
+                );
+
 
                 characterRoot.position.copy(
                     currentSpawn
@@ -3743,10 +4180,6 @@ async function init() {
                     0;
 
 
-                // =============================================
-                // ANIMACIONES
-                // =============================================
-
                 resetAllAnimationActions();
 
 
@@ -3770,10 +4203,6 @@ async function init() {
                 alignAnimatedCharacterToGround();
 
 
-                // =============================================
-                // OBJETOS FÍSICOS
-                // =============================================
-
                 if (
                     ENABLE_DYNAMIC_OBJECTS
                 ) {
@@ -3782,10 +4211,6 @@ async function init() {
 
                 }
 
-
-                // =============================================
-                // CÁMARA
-                // =============================================
 
                 resetThirdPersonCamera();
 
@@ -3796,7 +4221,17 @@ async function init() {
 
 
                 console.log(
-                    '🎯 Objetivo: destruir los 8 núcleos'
+                    '🎯 Clic derecho sostenido = apuntar'
+                );
+
+
+                console.log(
+                    '🔫 Clic izquierdo mientras apuntas = disparar'
+                );
+
+
+                console.log(
+                    '💣 F = granada'
                 );
 
             }
@@ -3809,7 +4244,7 @@ async function init() {
 
 
         console.log(
-            '✅ OPERATION IMPACT v0.7 LISTO'
+            '✅ OPERATION IMPACT v1.0.1 LISTO'
         );
 
     } catch (
@@ -3817,7 +4252,7 @@ async function init() {
     ) {
 
         console.error(
-            '❌ Error de inicialización:',
+            '❌ Error:',
             error
         );
 
@@ -3864,27 +4299,15 @@ function animate() {
         );
 
 
-    // ========================================================
-    // PERSONAJE
-    // ========================================================
-
     updateCharacter(
         delta
     );
 
 
-    // ========================================================
-    // FÍSICA
-    // ========================================================
-
     updatePhysics(
         delta
     );
 
-
-    // ========================================================
-    // OBJETOS
-    // ========================================================
 
     if (
         ENABLE_DYNAMIC_OBJECTS
@@ -3895,52 +4318,33 @@ function animate() {
     }
 
 
-    // ========================================================
-    // GRANADAS
-    // ========================================================
-
     updateGrenades(
         delta
     );
 
 
-    // ========================================================
-    // NÚCLEOS
-    // ========================================================
+    updateShooting(
+        delta
+    );
+
 
     updateObjectives3D(
         delta,
         performance.now() /
-        1000
+            1000
     );
 
 
-    // ========================================================
-    // CÁMARA
-    // ========================================================
-
     controls.update();
 
-
-    // ========================================================
-    // LÓGICA DEL JUEGO
-    // ========================================================
 
     updateGame(
         delta
     );
 
 
-    // ========================================================
-    // HUD
-    // ========================================================
-
     updateUI();
 
-
-    // ========================================================
-    // RENDER
-    // ========================================================
 
     renderer.render(
         scene,
@@ -3985,7 +4389,7 @@ window.addEventListener(
 
 
 // ============================================================
-// INICIO
+// INICIAR
 // ============================================================
 
 init();

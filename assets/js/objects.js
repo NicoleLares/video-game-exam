@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-
 import RAPIER from '@dimforge/rapier3d-compat';
 
 import {
@@ -11,156 +10,114 @@ import {
 // CONFIGURACIÓN
 // ============================================================
 
-const FLOOR_OBJECT_COUNT =
-    18;
+const FLOOR_OBJECT_COUNT = 18;
+
+const MAX_COLUMN_PLATFORMS = 6;
+const OBJECTS_PER_PLATFORM = 5;
+const COLUMN_MIN_DISTANCE = 1.5;
+
+const GRID_COLUMNS = 24;
+const GRID_ROWS = 34;
+
+const EDGE_MARGIN = 1.0;
+
+const SPAWN_SAFE_DISTANCE = 3.0;
+const MIN_OBJECT_DISTANCE = 2.1;
+
+const RESERVED_CLEARANCE = 1.55;
+
+const MAX_LOCAL_HEIGHT_DIFFERENCE = 0.28;
+const CHECK_RADIUS = 0.50;
 
 
 // ============================================================
-// PLATAFORMAS
+// VIDA
 // ============================================================
 
-const MAX_COLUMN_PLATFORMS =
-    6;
-
-const OBJECTS_PER_PLATFORM =
-    5;
-
-const COLUMN_MIN_DISTANCE =
-    1.5;
+const DEFAULT_OBJECT_HEALTH = 100;
 
 
 // ============================================================
-// DISTRIBUCIÓN
+// ESTADO
 // ============================================================
 
-const GRID_COLUMNS =
-    24;
+const dynamicObjects = [];
+const initialStates = [];
+const usedPositions = [];
 
-const GRID_ROWS =
-    34;
-
-const EDGE_MARGIN =
-    1.0;
-
-const SPAWN_SAFE_DISTANCE =
-    3.0;
-
-const MIN_OBJECT_DISTANCE =
-    2.1;
-
-const RESERVED_CLEARANCE =
-    1.55;
-
-const MAX_LOCAL_HEIGHT_DIFFERENCE =
-    0.28;
-
-const CHECK_RADIUS =
-    0.50;
-
-
-// ============================================================
-// OBJETOS
-// ============================================================
-
-const dynamicObjects =
-    [];
-
-const initialStates =
-    [];
-
-const usedPositions =
-    [];
-
-let objectsGroup =
-    null;
+let objectsGroup = null;
 
 
 // ============================================================
 // MATERIALES
 // ============================================================
 
-const boxMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0x795548,
-        roughness: 0.75,
-        metalness: 0.05
-    });
+const boxMaterial = new THREE.MeshStandardMaterial({
+    color: 0x795548,
+    roughness: 0.75,
+    metalness: 0.05
+});
 
+const sphereMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1565c0,
+    roughness: 0.45,
+    metalness: 0.2
+});
 
-const sphereMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0x1565c0,
-        roughness: 0.45,
-        metalness: 0.2
-    });
+const cylinderMaterial = new THREE.MeshStandardMaterial({
+    color: 0xb71c1c,
+    roughness: 0.55,
+    metalness: 0.35
+});
 
+const coneMaterial = new THREE.MeshStandardMaterial({
+    color: 0xef6c00,
+    roughness: 0.6,
+    metalness: 0.05
+});
 
-const cylinderMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0xb71c1c,
-        roughness: 0.55,
-        metalness: 0.35
-    });
-
-
-const coneMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0xef6c00,
-        roughness: 0.6,
-        metalness: 0.05
-    });
-
-
-const towerMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0x8d6e63,
-        roughness: 0.78,
-        metalness: 0.05
-    });
+const towerMaterial = new THREE.MeshStandardMaterial({
+    color: 0x8d6e63,
+    roughness: 0.78,
+    metalness: 0.05
+});
 
 
 // ============================================================
-// MATERIALES DE PLATAFORMAS
+// MATERIALES PLATAFORMAS
 // ============================================================
 
-const columnSphereMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0x00bcd4,
-        emissive: 0x003b44,
-        emissiveIntensity: 1.2,
-        roughness: 0.3,
-        metalness: 0.35
-    });
+const columnSphereMaterial = new THREE.MeshStandardMaterial({
+    color: 0x00bcd4,
+    emissive: 0x003b44,
+    emissiveIntensity: 1.2,
+    roughness: 0.3,
+    metalness: 0.35
+});
 
+const columnBoxMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffc107,
+    emissive: 0x442500,
+    emissiveIntensity: 0.9,
+    roughness: 0.4,
+    metalness: 0.25
+});
 
-const columnBoxMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0xffc107,
-        emissive: 0x442500,
-        emissiveIntensity: 0.9,
-        roughness: 0.4,
-        metalness: 0.25
-    });
+const columnCylinderMaterial = new THREE.MeshStandardMaterial({
+    color: 0xe53935,
+    emissive: 0x330000,
+    emissiveIntensity: 0.7,
+    roughness: 0.5,
+    metalness: 0.2
+});
 
-
-const columnCylinderMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0xe53935,
-        emissive: 0x330000,
-        emissiveIntensity: 0.7,
-        roughness: 0.5,
-        metalness: 0.2
-    });
-
-
-const columnConeMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0xff8f00,
-        emissive: 0x331900,
-        emissiveIntensity: 0.5,
-        roughness: 0.55,
-        metalness: 0.1
-    });
+const columnConeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff8f00,
+    emissive: 0x331900,
+    emissiveIntensity: 0.5,
+    roughness: 0.55,
+    metalness: 0.1
+});
 
 
 // ============================================================
@@ -172,101 +129,44 @@ export function initDynamicObjects(
     getGroundHeight,
     options
 ) {
+    const world = getPhysicsWorld();
 
-    const world =
-        getPhysicsWorld();
-
-
-    if (
-        !world
-    ) {
-
-        console.error(
-            '❌ Mundo Rapier no disponible.'
-        );
-
+    if (!world) {
+        console.error('❌ Mundo Rapier no disponible.');
         return;
-
     }
 
+    objectsGroup = new THREE.Group();
+    objectsGroup.name = 'DynamicObjects';
 
-    objectsGroup =
-        new THREE.Group();
+    scene.add(objectsGroup);
 
-
-    objectsGroup.name =
-        'DynamicObjects';
-
-
-    scene.add(
-        objectsGroup
-    );
-
-
-    dynamicObjects.length =
-        0;
-
-
-    initialStates.length =
-        0;
-
-
-    usedPositions.length =
-        0;
-
+    dynamicObjects.length = 0;
+    initialStates.length = 0;
+    usedPositions.length = 0;
 
     const reservedPositions =
-        options.reservedPositions ||
-        [];
+        options.reservedPositions || [];
 
-
-    // Las posiciones de los núcleos cuentan
-    // como zonas ocupadas.
-    reservedPositions.forEach(
-        (position) => {
-
-            usedPositions.push({
-                x:
-                    position.x,
-
-                z:
-                    position.z
-            });
-
-        }
-    );
-
+    reservedPositions.forEach((position) => {
+        usedPositions.push({
+            x: position.x,
+            z: position.z
+        });
+    });
 
     const bounds = {
-        minX:
-            options.minX +
-            EDGE_MARGIN,
-
-        maxX:
-            options.maxX -
-            EDGE_MARGIN,
-
-        minZ:
-            options.minZ +
-            EDGE_MARGIN,
-
-        maxZ:
-            options.maxZ -
-            EDGE_MARGIN
+        minX: options.minX + EDGE_MARGIN,
+        maxX: options.maxX - EDGE_MARGIN,
+        minZ: options.minZ + EDGE_MARGIN,
+        maxZ: options.maxZ - EDGE_MARGIN
     };
 
-
     const spawn =
-        options.spawn ||
-        {
+        options.spawn || {
             x: 0,
             z: 0
         };
-
-
-    // ========================================================
-    // PUNTOS TRANSITABLES
-    // ========================================================
 
     const candidates =
         collectWalkablePositions(
@@ -276,16 +176,10 @@ export function initDynamicObjects(
             reservedPositions
         );
 
-
     console.log(
         '🗺️ Puntos transitables:',
         candidates.length
     );
-
-
-    // ========================================================
-    // OBJETOS DEL PISO
-    // ========================================================
 
     const selected =
         selectDistributedPositions(
@@ -293,7 +187,6 @@ export function initDynamicObjects(
             spawn,
             FLOOR_OBJECT_COUNT
         );
-
 
     const objectTypes = [
         'box',
@@ -306,53 +199,29 @@ export function initDynamicObjects(
         'cylinder'
     ];
 
+    selected.forEach((position, index) => {
+        const type =
+            objectTypes[
+                index %
+                objectTypes.length
+            ];
 
-    selected.forEach(
-        (
-            position,
-            index
-        ) => {
+        createObjectByType(
+            type,
+            position
+        );
 
-            const type =
-                objectTypes[
-                    index %
-                    objectTypes.length
-                ];
-
-
-            createObjectByType(
-                type,
-                position
-            );
-
-
-            usedPositions.push({
-                x:
-                    position.x,
-
-                z:
-                    position.z
-            });
-
-        }
-    );
-
-
-    // ========================================================
-    // OBJETOS SOBRE PLATAFORMAS
-    // ========================================================
+        usedPositions.push({
+            x: position.x,
+            z: position.z
+        });
+    });
 
     createObjectsOnColumns(
-        options.columnPlatforms ||
-        [],
+        options.columnPlatforms || [],
         spawn,
         reservedPositions
     );
-
-
-    // ========================================================
-    // TORRE
-    // ========================================================
 
     createTowerFromCandidates(
         candidates,
@@ -360,17 +229,15 @@ export function initDynamicObjects(
         getGroundHeight
     );
 
-
     console.log(
         '✅ Total de objetos físicos:',
         dynamicObjects.length
     );
-
 }
 
 
 // ============================================================
-// CERCA DE ZONA RESERVADA
+// POSICIÓN RESERVADA
 // ============================================================
 
 function isNearReservedPosition(
@@ -379,22 +246,18 @@ function isNearReservedPosition(
     reservedPositions,
     distance = RESERVED_CLEARANCE
 ) {
-
     return reservedPositions.some(
         (position) =>
-
             Math.hypot(
                 x - position.x,
                 z - position.z
-            ) <
-            distance
+            ) < distance
     );
-
 }
 
 
 // ============================================================
-// BUSCAR PUNTOS TRANSITABLES
+// PUNTOS TRANSITABLES
 // ============================================================
 
 function collectWalkablePositions(
@@ -403,38 +266,29 @@ function collectWalkablePositions(
     getGroundHeight,
     reservedPositions
 ) {
-
-    const result =
-        [];
-
+    const result = [];
 
     for (
         let row = 0;
         row <= GRID_ROWS;
         row++
     ) {
-
-        const z =
-            THREE.MathUtils.lerp(
-                bounds.minZ,
-                bounds.maxZ,
-                row / GRID_ROWS
-            );
-
+        const z = THREE.MathUtils.lerp(
+            bounds.minZ,
+            bounds.maxZ,
+            row / GRID_ROWS
+        );
 
         for (
             let column = 0;
             column <= GRID_COLUMNS;
             column++
         ) {
-
-            const x =
-                THREE.MathUtils.lerp(
-                    bounds.minX,
-                    bounds.maxX,
-                    column / GRID_COLUMNS
-                );
-
+            const x = THREE.MathUtils.lerp(
+                bounds.minX,
+                bounds.maxX,
+                column / GRID_COLUMNS
+            );
 
             const spawnDistance =
                 Math.hypot(
@@ -442,16 +296,12 @@ function collectWalkablePositions(
                     z - spawn.z
                 );
 
-
             if (
                 spawnDistance <
                 SPAWN_SAFE_DISTANCE
             ) {
-
                 continue;
-
             }
-
 
             if (
                 isNearReservedPosition(
@@ -460,11 +310,8 @@ function collectWalkablePositions(
                     reservedPositions
                 )
             ) {
-
                 continue;
-
             }
-
 
             const position =
                 validateWalkablePoint(
@@ -473,24 +320,13 @@ function collectWalkablePositions(
                     getGroundHeight
                 );
 
-
-            if (
-                position
-            ) {
-
-                result.push(
-                    position
-                );
-
+            if (position) {
+                result.push(position);
             }
-
         }
-
     }
 
-
     return result;
-
 }
 
 
@@ -503,24 +339,15 @@ function validateWalkablePoint(
     z,
     getGroundHeight
 ) {
-
     const center =
         getGroundHeight(
             x,
             z
         );
 
-
-    if (
-        !Number.isFinite(
-            center
-        )
-    ) {
-
+    if (!Number.isFinite(center)) {
         return null;
-
     }
-
 
     const samples = [
         [CHECK_RADIUS, 0],
@@ -529,54 +356,37 @@ function validateWalkablePoint(
         [0, -CHECK_RADIUS]
     ];
 
-
     for (
         const [
             offsetX,
             offsetZ
         ] of samples
     ) {
-
         const y =
             getGroundHeight(
                 x + offsetX,
                 z + offsetZ
             );
 
-
-        if (
-            !Number.isFinite(
-                y
-            )
-        ) {
-
+        if (!Number.isFinite(y)) {
             return null;
-
         }
-
 
         if (
             Math.abs(
-                y -
-                center
+                y - center
             ) >
             MAX_LOCAL_HEIGHT_DIFFERENCE
         ) {
-
             return null;
-
         }
-
     }
-
 
     return {
         x,
-        y:
-            center,
+        y: center,
         z
     };
-
 }
 
 
@@ -589,164 +399,103 @@ function selectDistributedPositions(
     spawn,
     count
 ) {
-
     if (
-        candidates.length ===
-        0
+        candidates.length === 0
     ) {
-
         return [];
-
     }
 
+    const selected = [];
+    const available = [...candidates];
 
-    const selected =
-        [];
-
-
-    const available =
-        [
-            ...candidates
-        ];
-
-
-    available.sort(
-        (
-            a,
-            b
-        ) => {
-
-            const distanceA =
-                Math.hypot(
-                    a.x - spawn.x,
-                    a.z - spawn.z
-                );
-
-
-            const distanceB =
-                Math.hypot(
-                    b.x - spawn.x,
-                    b.z - spawn.z
-                );
-
-
-            return (
-                distanceB -
-                distanceA
+    available.sort((a, b) => {
+        const distanceA =
+            Math.hypot(
+                a.x - spawn.x,
+                a.z - spawn.z
             );
 
-        }
-    );
+        const distanceB =
+            Math.hypot(
+                b.x - spawn.x,
+                b.z - spawn.z
+            );
 
+        return distanceB - distanceA;
+    });
 
     selected.push(
         available.shift()
     );
 
-
     while (
-        selected.length <
-            count &&
-        available.length >
-            0
+        selected.length < count &&
+        available.length > 0
     ) {
-
-        let bestIndex =
-            -1;
-
-
-        let bestScore =
-            -Infinity;
-
+        let bestIndex = -1;
+        let bestScore = -Infinity;
 
         for (
             let i = 0;
-            i <
-            available.length;
+            i < available.length;
             i++
         ) {
-
             const candidate =
                 available[i];
 
-
             let nearest =
                 Infinity;
-
 
             for (
                 const chosen of
                 selected
             ) {
-
                 nearest =
                     Math.min(
                         nearest,
-
                         Math.hypot(
                             candidate.x -
                                 chosen.x,
-
                             candidate.z -
                                 chosen.z
                         )
                     );
-
             }
-
 
             if (
                 nearest <
                 MIN_OBJECT_DISTANCE
             ) {
-
                 continue;
-
             }
-
 
             const spawnDistance =
                 Math.hypot(
                     candidate.x -
                         spawn.x,
-
                     candidate.z -
                         spawn.z
                 );
-
 
             const score =
                 nearest +
                 spawnDistance *
                 0.08;
 
-
             if (
                 score >
                 bestScore
             ) {
-
-                bestScore =
-                    score;
-
-
-                bestIndex =
-                    i;
-
+                bestScore = score;
+                bestIndex = i;
             }
-
         }
-
 
         if (
-            bestIndex ===
-            -1
+            bestIndex === -1
         ) {
-
             break;
-
         }
-
 
         selected.push(
             available[
@@ -754,22 +503,18 @@ function selectDistributedPositions(
             ]
         );
 
-
         available.splice(
             bestIndex,
             1
         );
-
     }
 
-
     return selected;
-
 }
 
 
 // ============================================================
-// OBJETOS SOBRE COLUMNAS
+// OBJETOS SOBRE PLATAFORMAS
 // ============================================================
 
 function createObjectsOnColumns(
@@ -777,37 +522,29 @@ function createObjectsOnColumns(
     spawn,
     reservedPositions
 ) {
-
     if (
-        platforms.length ===
-        0
+        platforms.length === 0
     ) {
-
         return;
-
     }
-
 
     const available =
         platforms.filter(
             (platform) => {
-
                 const spawnDistance =
                     Math.hypot(
-                        platform.x - spawn.x,
-                        platform.z - spawn.z
+                        platform.x -
+                            spawn.x,
+                        platform.z -
+                            spawn.z
                     );
-
 
                 if (
                     spawnDistance <
                     2.5
                 ) {
-
                     return false;
-
                 }
-
 
                 if (
                     isNearReservedPosition(
@@ -817,238 +554,150 @@ function createObjectsOnColumns(
                         1.35
                     )
                 ) {
-
                     return false;
-
                 }
-
 
                 if (
-                    platform.width <
-                        0.55 ||
-                    platform.depth <
-                        0.55
+                    platform.width < 0.55 ||
+                    platform.depth < 0.55
                 ) {
-
                     return false;
-
                 }
 
-
                 return true;
-
             }
         );
 
+    available.sort((a, b) => {
+        const targetArea = 1.5;
 
-    available.sort(
-        (
-            a,
-            b
-        ) => {
+        const areaA =
+            a.area ??
+            a.width * a.depth;
 
-            const targetArea =
-                1.5;
+        const areaB =
+            b.area ??
+            b.width * b.depth;
 
+        return (
+            Math.abs(
+                areaA -
+                targetArea
+            ) -
+            Math.abs(
+                areaB -
+                targetArea
+            )
+        );
+    });
 
-            const areaA =
-                a.area ??
-                a.width * a.depth;
-
-
-            const areaB =
-                b.area ??
-                b.width * b.depth;
-
-
-            return (
-                Math.abs(
-                    areaA -
-                    targetArea
-                ) -
-                Math.abs(
-                    areaB -
-                    targetArea
-                )
-            );
-
-        }
-    );
-
-
-    const selected =
-        [];
-
+    const selected = [];
 
     for (
         const platform of
         available
     ) {
-
         const tooClose =
             selected.some(
                 (other) =>
-
                     Math.hypot(
                         platform.x -
                             other.x,
-
                         platform.z -
                             other.z
                     ) <
                     COLUMN_MIN_DISTANCE
             );
 
-
-        if (
-            tooClose
-        ) {
-
+        if (tooClose) {
             continue;
-
         }
 
-
-        selected.push(
-            platform
-        );
-
+        selected.push(platform);
 
         if (
             selected.length >=
             MAX_COLUMN_PLATFORMS
         ) {
-
             break;
-
         }
-
     }
 
-
     selected.forEach(
-        (
-            platform,
-            index
-        ) => {
-
+        (platform, index) => {
             createColumnCluster(
                 platform,
                 index
             );
 
-
             usedPositions.push({
-                x:
-                    platform.x,
-
-                z:
-                    platform.z
+                x: platform.x,
+                z: platform.z
             });
-
         }
     );
-
 
     console.log(
         '🏛️ Plataformas utilizadas:',
         selected.length
     );
-
 }
 
 
 // ============================================================
-// GRUPO SOBRE PLATAFORMA
+// CLUSTER
 // ============================================================
 
 function createColumnCluster(
     platform,
     groupIndex
 ) {
-
     const safeWidth =
         Math.max(
             0.55,
-            platform.width *
-            0.68
+            platform.width * 0.68
         );
-
 
     const safeDepth =
         Math.max(
             0.55,
-            platform.depth *
-            0.68
+            platform.depth * 0.68
         );
-
 
     const offsetX =
         Math.min(
-            safeWidth *
-            0.42,
+            safeWidth * 0.42,
             0.58
         );
-
 
     const offsetZ =
         Math.min(
-            safeDepth *
-            0.42,
+            safeDepth * 0.42,
             0.58
         );
 
-
     const positions = [
         {
-            x:
-                platform.x -
-                offsetX,
-
-            z:
-                platform.z -
-                offsetZ
+            x: platform.x - offsetX,
+            z: platform.z - offsetZ
         },
-
         {
-            x:
-                platform.x +
-                offsetX,
-
-            z:
-                platform.z -
-                offsetZ
+            x: platform.x + offsetX,
+            z: platform.z - offsetZ
         },
-
         {
-            x:
-                platform.x,
-
-            z:
-                platform.z
+            x: platform.x,
+            z: platform.z
         },
-
         {
-            x:
-                platform.x -
-                offsetX,
-
-            z:
-                platform.z +
-                offsetZ
+            x: platform.x - offsetX,
+            z: platform.z + offsetZ
         },
-
         {
-            x:
-                platform.x +
-                offsetX,
-
-            z:
-                platform.z +
-                offsetZ
+            x: platform.x + offsetX,
+            z: platform.z + offsetZ
         }
     ];
-
 
     const layouts = [
         [
@@ -1058,7 +707,6 @@ function createColumnCluster(
             'cone',
             'box'
         ],
-
         [
             'sphere',
             'box',
@@ -1066,7 +714,6 @@ function createColumnCluster(
             'cylinder',
             'sphere'
         ],
-
         [
             'cylinder',
             'cone',
@@ -1074,7 +721,6 @@ function createColumnCluster(
             'sphere',
             'box'
         ],
-
         [
             'cone',
             'sphere',
@@ -1084,71 +730,44 @@ function createColumnCluster(
         ]
     ];
 
-
     const types =
         layouts[
             groupIndex %
             layouts.length
         ];
 
-
     const area =
         platform.width *
         platform.depth;
 
-
     let amount =
         OBJECTS_PER_PLATFORM;
 
-
-    if (
-        area <
-        0.85
-    ) {
-
-        amount =
-            2;
-
-    } else if (
-        area <
-        1.20
-    ) {
-
-        amount =
-            3;
-
-    } else if (
-        area <
-        1.55
-    ) {
-
-        amount =
-            4;
-
+    if (area < 0.85) {
+        amount = 2;
+    } else if (area < 1.20) {
+        amount = 3;
+    } else if (area < 1.55) {
+        amount = 4;
     }
-
 
     for (
         let i = 0;
-        i <
-        amount;
+        i < amount;
         i++
     ) {
-
         createPlatformObject(
             types[i],
             positions[i].x,
             platform.y,
             positions[i].z
         );
-
     }
-
 }
 
 
 // ============================================================
-// OBJETO DE PLATAFORMA
+// OBJETO PLATAFORMA
 // ============================================================
 
 function createPlatformObject(
@@ -1157,240 +776,275 @@ function createPlatformObject(
     groundY,
     z
 ) {
-
-    switch (
-        type
-    ) {
-
+    switch (type) {
         case 'box':
-
             createBox({
                 x,
                 z,
-                width:
-                    0.65,
-                height:
-                    0.65,
-                depth:
-                    0.65,
+                width: 0.65,
+                height: 0.65,
+                depth: 0.65,
                 groundY,
                 material:
                     columnBoxMaterial
             });
-
             break;
 
-
         case 'sphere':
-
             createSphere({
                 x,
                 z,
-                radius:
-                    0.38,
+                radius: 0.38,
                 groundY,
                 material:
                     columnSphereMaterial
             });
-
             break;
 
-
         case 'cylinder':
-
             createCylinder({
                 x,
                 z,
-                radius:
-                    0.31,
-                height:
-                    0.75,
+                radius: 0.31,
+                height: 0.75,
                 groundY,
                 material:
                     columnCylinderMaterial
             });
-
             break;
 
-
         case 'cone':
-
             createCone({
                 x,
                 z,
-                radius:
-                    0.32,
-                height:
-                    0.72,
+                radius: 0.32,
+                height: 0.72,
                 groundY,
                 material:
                     columnConeMaterial
             });
-
             break;
-
     }
-
 }
 
 
 // ============================================================
-// OBJETO DEL PISO
+// OBJETO PISO
 // ============================================================
 
 function createObjectByType(
     type,
     position
 ) {
-
-    switch (
-        type
-    ) {
-
+    switch (type) {
         case 'box':
-
             createBox({
-                x:
-                    position.x,
-
-                z:
-                    position.z,
-
-                width:
-                    0.85,
-
-                height:
-                    0.85,
-
-                depth:
-                    0.85,
-
-                groundY:
-                    position.y
+                x: position.x,
+                z: position.z,
+                width: 0.85,
+                height: 0.85,
+                depth: 0.85,
+                groundY: position.y
             });
-
             break;
-
 
         case 'sphere':
-
             createSphere({
-                x:
-                    position.x,
-
-                z:
-                    position.z,
-
-                radius:
-                    0.46,
-
-                groundY:
-                    position.y
+                x: position.x,
+                z: position.z,
+                radius: 0.46,
+                groundY: position.y
             });
-
             break;
-
 
         case 'cylinder':
-
             createCylinder({
-                x:
-                    position.x,
-
-                z:
-                    position.z,
-
-                radius:
-                    0.40,
-
-                height:
-                    1.05,
-
-                groundY:
-                    position.y
+                x: position.x,
+                z: position.z,
+                radius: 0.40,
+                height: 1.05,
+                groundY: position.y
             });
-
             break;
-
 
         case 'cone':
-
             createCone({
-                x:
-                    position.x,
-
-                z:
-                    position.z,
-
-                radius:
-                    0.42,
-
-                height:
-                    1.00,
-
-                groundY:
-                    position.y
+                x: position.x,
+                z: position.z,
+                radius: 0.42,
+                height: 1.00,
+                groundY: position.y
             });
-
             break;
-
     }
-
 }
 
 
 // ============================================================
-// REGISTRAR
+// REGISTRAR OBJETO
 // ============================================================
 
 function registerDynamicObject(
     mesh,
     body
 ) {
-
-    dynamicObjects.push({
+    const object = {
         mesh,
-        body
-    });
+        body,
 
+        health:
+            DEFAULT_OBJECT_HEALTH,
+
+        maxHealth:
+            DEFAULT_OBJECT_HEALTH,
+
+        destroyed:
+            false
+    };
+
+    dynamicObjects.push(object);
 
     const translation =
         body.translation();
 
-
     const rotation =
         body.rotation();
 
-
     initialStates.push({
-        body,
+        object,
 
         position: {
-            x:
-                translation.x,
-
-            y:
-                translation.y,
-
-            z:
-                translation.z
+            x: translation.x,
+            y: translation.y,
+            z: translation.z
         },
 
         rotation: {
-            x:
-                rotation.x,
-
-            y:
-                rotation.y,
-
-            z:
-                rotation.z,
-
-            w:
-                rotation.w
+            x: rotation.x,
+            y: rotation.y,
+            z: rotation.z,
+            w: rotation.w
         }
     });
+}
 
+
+// ============================================================
+// DAÑO
+// ============================================================
+
+export function damageDynamicObject(
+    target,
+    damage
+) {
+    let object = target;
+
+    if (
+        target &&
+        target.isObject3D
+    ) {
+        object =
+            dynamicObjects.find(
+                (item) =>
+                    item.mesh === target
+            );
+    }
+
+    if (
+        !object ||
+        object.destroyed
+    ) {
+        return {
+            hit: false,
+            destroyed: false,
+            health: 0
+        };
+    }
+
+    object.health =
+        Math.max(
+            0,
+            object.health -
+                damage
+        );
+
+    console.log(
+        `📦 Vida objeto: ${object.health}/${object.maxHealth}`
+    );
+
+    if (
+        object.health <= 0
+    ) {
+        destroyDynamicObject(
+            object
+        );
+
+        return {
+            hit: true,
+            destroyed: true,
+            health: 0
+        };
+    }
+
+    return {
+        hit: true,
+        destroyed: false,
+        health:
+            object.health
+    };
+}
+
+
+// ============================================================
+// DESTRUIR OBJETO
+// ============================================================
+
+function destroyDynamicObject(
+    object
+) {
+    if (
+        object.destroyed
+    ) {
+        return;
+    }
+
+    object.destroyed =
+        true;
+
+    object.mesh.visible =
+        false;
+
+    object.body.setLinvel(
+        {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        true
+    );
+
+    object.body.setAngvel(
+        {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        true
+    );
+
+    // Mandamos el cuerpo físico debajo del mapa.
+    object.body.setTranslation(
+        {
+            x: 0,
+            y: -100,
+            z: 0
+        },
+        true
+    );
+
+    console.log(
+        '💥 FIGURA DESTRUIDA'
+    );
 }
 
 
@@ -1407,39 +1061,26 @@ function createBox({
     groundY,
     material = boxMaterial
 }) {
-
     const world =
         getPhysicsWorld();
 
-
     const y =
         groundY +
-        height /
-        2 +
+        height / 2 +
         0.025;
-
 
     const mesh =
         new THREE.Mesh(
-
             new THREE.BoxGeometry(
                 width,
                 height,
                 depth
             ),
-
-            material
-
+            material.clone()
         );
 
-
-    mesh.castShadow =
-        true;
-
-
-    mesh.receiveShadow =
-        true;
-
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     mesh.position.set(
         x,
@@ -1447,15 +1088,10 @@ function createBox({
         z
     );
 
-
-    objectsGroup.add(
-        mesh
-    );
-
+    objectsGroup.add(mesh);
 
     const body =
         world.createRigidBody(
-
             RAPIER
                 .RigidBodyDesc
                 .dynamic()
@@ -1464,9 +1100,7 @@ function createBox({
                     y,
                     z
                 )
-
         );
-
 
     const collider =
         RAPIER
@@ -1477,33 +1111,19 @@ function createBox({
                 depth / 2
             );
 
-
-    collider.setDensity(
-        1.2
-    );
-
-
-    collider.setFriction(
-        0.8
-    );
-
-
-    collider.setRestitution(
-        0.05
-    );
-
+    collider.setDensity(1.2);
+    collider.setFriction(0.8);
+    collider.setRestitution(0.05);
 
     world.createCollider(
         collider,
         body
     );
 
-
     registerDynamicObject(
         mesh,
         body
     );
-
 }
 
 
@@ -1518,38 +1138,26 @@ function createSphere({
     groundY,
     material = sphereMaterial
 }) {
-
     const world =
         getPhysicsWorld();
-
 
     const y =
         groundY +
         radius +
         0.025;
 
-
     const mesh =
         new THREE.Mesh(
-
             new THREE.SphereGeometry(
                 radius,
                 24,
                 16
             ),
-
-            material
-
+            material.clone()
         );
 
-
-    mesh.castShadow =
-        true;
-
-
-    mesh.receiveShadow =
-        true;
-
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     mesh.position.set(
         x,
@@ -1557,15 +1165,10 @@ function createSphere({
         z
     );
 
-
-    objectsGroup.add(
-        mesh
-    );
-
+    objectsGroup.add(mesh);
 
     const body =
         world.createRigidBody(
-
             RAPIER
                 .RigidBodyDesc
                 .dynamic()
@@ -1574,9 +1177,7 @@ function createSphere({
                     y,
                     z
                 )
-
         );
-
 
     const collider =
         RAPIER
@@ -1585,33 +1186,19 @@ function createSphere({
                 radius
             );
 
-
-    collider.setDensity(
-        0.8
-    );
-
-
-    collider.setFriction(
-        0.45
-    );
-
-
-    collider.setRestitution(
-        0.50
-    );
-
+    collider.setDensity(0.8);
+    collider.setFriction(0.45);
+    collider.setRestitution(0.50);
 
     world.createCollider(
         collider,
         body
     );
 
-
     registerDynamicObject(
         mesh,
         body
     );
-
 }
 
 
@@ -1627,40 +1214,27 @@ function createCylinder({
     groundY,
     material = cylinderMaterial
 }) {
-
     const world =
         getPhysicsWorld();
 
-
     const y =
         groundY +
-        height /
-        2 +
+        height / 2 +
         0.025;
-
 
     const mesh =
         new THREE.Mesh(
-
             new THREE.CylinderGeometry(
                 radius,
                 radius,
                 height,
                 24
             ),
-
-            material
-
+            material.clone()
         );
 
-
-    mesh.castShadow =
-        true;
-
-
-    mesh.receiveShadow =
-        true;
-
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     mesh.position.set(
         x,
@@ -1668,15 +1242,10 @@ function createCylinder({
         z
     );
 
-
-    objectsGroup.add(
-        mesh
-    );
-
+    objectsGroup.add(mesh);
 
     const body =
         world.createRigidBody(
-
             RAPIER
                 .RigidBodyDesc
                 .dynamic()
@@ -1685,9 +1254,7 @@ function createCylinder({
                     y,
                     z
                 )
-
         );
-
 
     const collider =
         RAPIER
@@ -1697,33 +1264,19 @@ function createCylinder({
                 radius
             );
 
-
-    collider.setDensity(
-        1.4
-    );
-
-
-    collider.setFriction(
-        0.7
-    );
-
-
-    collider.setRestitution(
-        0.12
-    );
-
+    collider.setDensity(1.4);
+    collider.setFriction(0.7);
+    collider.setRestitution(0.12);
 
     world.createCollider(
         collider,
         body
     );
 
-
     registerDynamicObject(
         mesh,
         body
     );
-
 }
 
 
@@ -1739,39 +1292,26 @@ function createCone({
     groundY,
     material = coneMaterial
 }) {
-
     const world =
         getPhysicsWorld();
 
-
     const y =
         groundY +
-        height /
-        2 +
+        height / 2 +
         0.025;
-
 
     const mesh =
         new THREE.Mesh(
-
             new THREE.ConeGeometry(
                 radius,
                 height,
                 24
             ),
-
-            material
-
+            material.clone()
         );
 
-
-    mesh.castShadow =
-        true;
-
-
-    mesh.receiveShadow =
-        true;
-
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     mesh.position.set(
         x,
@@ -1779,15 +1319,10 @@ function createCone({
         z
     );
 
-
-    objectsGroup.add(
-        mesh
-    );
-
+    objectsGroup.add(mesh);
 
     const body =
         world.createRigidBody(
-
             RAPIER
                 .RigidBodyDesc
                 .dynamic()
@@ -1796,9 +1331,7 @@ function createCone({
                     y,
                     z
                 )
-
         );
-
 
     const collider =
         RAPIER
@@ -1808,33 +1341,19 @@ function createCone({
                 radius
             );
 
-
-    collider.setDensity(
-        0.8
-    );
-
-
-    collider.setFriction(
-        0.75
-    );
-
-
-    collider.setRestitution(
-        0.1
-    );
-
+    collider.setDensity(0.8);
+    collider.setFriction(0.75);
+    collider.setRestitution(0.1);
 
     world.createCollider(
         collider,
         body
     );
 
-
     registerDynamicObject(
         mesh,
         body
     );
-
 }
 
 
@@ -1847,55 +1366,39 @@ function createTowerFromCandidates(
     spawn,
     getGroundHeight
 ) {
-
-    let best =
-        null;
-
-
-    let bestScore =
-        -Infinity;
-
+    let best = null;
+    let bestScore = -Infinity;
 
     for (
         const candidate of
         candidates
     ) {
-
         const spawnDistance =
             Math.hypot(
                 candidate.x -
                     spawn.x,
-
                 candidate.z -
                     spawn.z
             );
-
 
         if (
             spawnDistance <
             5
         ) {
-
             continue;
-
         }
-
 
         const objectDistance =
             getNearestUsedDistance(
                 candidate
             );
 
-
         if (
             objectDistance <
             3
         ) {
-
             continue;
-
         }
-
 
         if (
             !validateTowerArea(
@@ -1904,49 +1407,31 @@ function createTowerFromCandidates(
                 getGroundHeight
             )
         ) {
-
             continue;
-
         }
-
 
         const score =
             spawnDistance +
             objectDistance;
 
-
         if (
             score >
             bestScore
         ) {
-
-            bestScore =
-                score;
-
-
-            best =
-                candidate;
-
+            bestScore = score;
+            best = candidate;
         }
-
     }
 
-
-    if (
-        !best
-    ) {
-
+    if (!best) {
         return;
-
     }
-
 
     createTower(
         best.x,
         best.y,
         best.z
     );
-
 }
 
 
@@ -1959,10 +1444,7 @@ function validateTowerArea(
     z,
     getGroundHeight
 ) {
-
-    const radius =
-        1;
-
+    const radius = 1;
 
     const center =
         getGroundHeight(
@@ -1970,17 +1452,9 @@ function validateTowerArea(
             z
         );
 
-
-    if (
-        !Number.isFinite(
-            center
-        )
-    ) {
-
+    if (!Number.isFinite(center)) {
         return false;
-
     }
-
 
     const samples = [
         [radius, 0],
@@ -1993,41 +1467,31 @@ function validateTowerArea(
         [-radius, -radius]
     ];
 
-
     for (
         const [
             offsetX,
             offsetZ
         ] of samples
     ) {
-
         const y =
             getGroundHeight(
                 x + offsetX,
                 z + offsetZ
             );
 
-
         if (
-            !Number.isFinite(
-                y
-            ) ||
+            !Number.isFinite(y) ||
             Math.abs(
                 y -
                 center
             ) >
             0.20
         ) {
-
             return false;
-
         }
-
     }
 
-
     return true;
-
 }
 
 
@@ -2038,44 +1502,31 @@ function validateTowerArea(
 function getNearestUsedDistance(
     candidate
 ) {
-
     if (
-        usedPositions.length ===
-        0
+        usedPositions.length === 0
     ) {
-
         return Infinity;
-
     }
 
-
-    let nearest =
-        Infinity;
-
+    let nearest = Infinity;
 
     for (
         const position of
         usedPositions
     ) {
-
         nearest =
             Math.min(
                 nearest,
-
                 Math.hypot(
                     candidate.x -
                         position.x,
-
                     candidate.z -
                         position.z
                 )
             );
-
     }
 
-
     return nearest;
-
 }
 
 
@@ -2088,39 +1539,24 @@ function createTower(
     groundY,
     startZ
 ) {
-
-    const width =
-        0.62;
-
-    const height =
-        0.44;
-
-    const depth =
-        0.58;
-
-    const rows =
-        4;
-
+    const width = 0.62;
+    const height = 0.44;
+    const depth = 0.58;
+    const rows = 4;
 
     for (
         let row = 0;
-        row <
-        rows;
+        row < rows;
         row++
     ) {
-
         const count =
-            rows -
-            row;
-
+            rows - row;
 
         for (
             let column = 0;
-            column <
-            count;
+            column < count;
             column++
         ) {
-
             const x =
                 startX +
                 (
@@ -2133,32 +1569,25 @@ function createTower(
                 ) *
                 0.68;
 
-
             const y =
                 groundY +
-                height /
-                2 +
+                height / 2 +
                 row *
                 (
                     height +
                     0.02
                 );
 
-
             createTowerBlock({
                 x,
                 y,
-                z:
-                    startZ,
+                z: startZ,
                 width,
                 height,
                 depth
             });
-
         }
-
     }
-
 }
 
 
@@ -2174,32 +1603,21 @@ function createTowerBlock({
     height,
     depth
 }) {
-
     const world =
         getPhysicsWorld();
 
-
     const mesh =
         new THREE.Mesh(
-
             new THREE.BoxGeometry(
                 width,
                 height,
                 depth
             ),
-
-            towerMaterial
-
+            towerMaterial.clone()
         );
 
-
-    mesh.castShadow =
-        true;
-
-
-    mesh.receiveShadow =
-        true;
-
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     mesh.position.set(
         x,
@@ -2207,15 +1625,10 @@ function createTowerBlock({
         z
     );
 
-
-    objectsGroup.add(
-        mesh
-    );
-
+    objectsGroup.add(mesh);
 
     const body =
         world.createRigidBody(
-
             RAPIER
                 .RigidBodyDesc
                 .dynamic()
@@ -2224,9 +1637,7 @@ function createTowerBlock({
                     y,
                     z
                 )
-
         );
-
 
     const collider =
         RAPIER
@@ -2237,33 +1648,19 @@ function createTowerBlock({
                 depth / 2
             );
 
-
-    collider.setDensity(
-        1.1
-    );
-
-
-    collider.setFriction(
-        0.85
-    );
-
-
-    collider.setRestitution(
-        0.02
-    );
-
+    collider.setDensity(1.1);
+    collider.setFriction(0.85);
+    collider.setRestitution(0.02);
 
     world.createCollider(
         collider,
         body
     );
 
-
     registerDynamicObject(
         mesh,
         body
     );
-
 }
 
 
@@ -2272,20 +1669,21 @@ function createTowerBlock({
 // ============================================================
 
 export function updateDynamicObjects() {
-
     dynamicObjects.forEach(
         ({
             mesh,
-            body
+            body,
+            destroyed
         }) => {
+            if (destroyed) {
+                return;
+            }
 
             const position =
                 body.translation();
 
-
             const rotation =
                 body.rotation();
-
 
             mesh.position.set(
                 position.x,
@@ -2293,17 +1691,14 @@ export function updateDynamicObjects() {
                 position.z
             );
 
-
             mesh.quaternion.set(
                 rotation.x,
                 rotation.y,
                 rotation.z,
                 rotation.w
             );
-
         }
     );
-
 }
 
 
@@ -2312,27 +1707,30 @@ export function updateDynamicObjects() {
 // ============================================================
 
 export function resetDynamicObjects() {
-
     initialStates.forEach(
         ({
-            body,
+            object,
             position,
             rotation
         }) => {
+            object.destroyed = false;
 
-            body.setTranslation(
+            object.health =
+                object.maxHealth;
+
+            object.mesh.visible = true;
+
+            object.body.setTranslation(
                 position,
                 true
             );
 
-
-            body.setRotation(
+            object.body.setRotation(
                 rotation,
                 true
             );
 
-
-            body.setLinvel(
+            object.body.setLinvel(
                 {
                     x: 0,
                     y: 0,
@@ -2341,8 +1739,7 @@ export function resetDynamicObjects() {
                 true
             );
 
-
-            body.setAngvel(
+            object.body.setAngvel(
                 {
                     x: 0,
                     y: 0,
@@ -2350,24 +1747,22 @@ export function resetDynamicObjects() {
                 },
                 true
             );
-
         }
     );
-
 
     console.log(
         '🔄 Objetos reiniciados'
     );
-
 }
 
 
 // ============================================================
-// OBTENER
+// OBTENER OBJETOS ACTIVOS
 // ============================================================
 
 export function getDynamicObjects() {
-
-    return dynamicObjects;
-
+    return dynamicObjects.filter(
+        (object) =>
+            !object.destroyed
+    );
 }

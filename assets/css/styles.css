@@ -1,6 +1,12 @@
 /* =========================================================
+   OPERATION IMPACT
+   VERSION 1.0.1
+   ========================================================= */
+
+
+/* =========================================================
    RESET
-========================================================= */
+   ========================================================= */
 
 * {
     margin: 0;
@@ -16,300 +22,437 @@ body {
 }
 
 body {
-    background: #05080c;
-    color: #ffffff;
     font-family:
-        "Segoe UI",
         Arial,
         Helvetica,
         sans-serif;
+
+    background: #05090c;
+
+    color: #ffffff;
+
+    user-select: none;
 }
 
 
 /* =========================================================
-   ESCENA 3D
-========================================================= */
+   THREE.JS
+   ========================================================= */
 
 #game-container {
     position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    background:
-        radial-gradient(circle at center,
-            #18212b 0%,
-            #080c11 65%,
-            #020304 100%);
+
+    top: 0;
+    left: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    overflow: hidden;
+
+    background: #05090c;
 }
 
 #game-container canvas {
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
     display: block;
+
     width: 100%;
     height: 100%;
+
+    outline: none;
+
+    cursor: crosshair;
 }
 
 
 /* =========================================================
    HUD
-========================================================= */
+   ========================================================= */
 
 .hud {
     position: fixed;
-    top: 22px;
-    left: 22px;
 
-    width: 250px;
+    top: 24px;
+    left: 24px;
 
-    padding: 18px;
+    width: 275px;
 
-    z-index: 20;
+    padding: 22px 20px;
+
+    z-index: 30;
 
     background:
-        linear-gradient(145deg,
-            rgba(13, 18, 24, 0.92),
-            rgba(4, 7, 10, 0.86));
+        linear-gradient(
+            145deg,
+            rgba(7, 14, 20, 0.94),
+            rgba(13, 22, 29, 0.92)
+        );
 
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.13);
 
-    border-radius: 8px;
-
-    backdrop-filter: blur(10px);
+    border-radius: 10px;
 
     box-shadow:
-        0 15px 40px rgba(0, 0, 0, 0.45);
+        0 18px 40px
+        rgba(0, 0, 0, 0.45);
+
+    backdrop-filter:
+        blur(12px);
 
     pointer-events: none;
 }
 
+
 .hud-title {
     display: flex;
+
     align-items: center;
-    gap: 8px;
 
-    font-size: 13px;
-    font-weight: 700;
+    gap: 9px;
 
-    letter-spacing: 2px;
+    margin-bottom: 18px;
 
-    color: #ffffff;
+    font-size: 14px;
+
+    font-weight: 800;
+
+    letter-spacing: 3px;
+
+    color: #f3f7fa;
 }
 
-.status-dot {
-    display: inline-block;
 
-    width: 8px;
-    height: 8px;
+.status-dot {
+    width: 9px;
+    height: 9px;
+
+    flex: 0 0 9px;
 
     border-radius: 50%;
 
-    background: #62ff9a;
+    background: #43ff9a;
 
     box-shadow:
-        0 0 10px #62ff9a;
+        0 0 6px #43ff9a,
+        0 0 14px
+        rgba(67, 255, 154, 0.55);
+
+    animation:
+        statusPulse
+        1.7s
+        infinite;
 }
+
+
+@keyframes statusPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.55;
+        transform: scale(0.82);
+    }
+
+}
+
 
 .hud-divider {
     width: 100%;
     height: 1px;
 
-    margin: 14px 0;
+    margin:
+        0 0 15px;
 
     background:
-        linear-gradient(90deg,
+        linear-gradient(
+            to right,
             rgba(255, 255, 255, 0.25),
-            transparent);
+            rgba(255, 255, 255, 0.03)
+        );
 }
+
 
 .hud-item {
     display: flex;
-    justify-content: space-between;
+
     align-items: center;
 
-    margin: 9px 0;
+    justify-content:
+        space-between;
 
-    font-size: 12px;
+    min-height: 30px;
+
+    gap: 20px;
 }
 
-.hud-item span {
-    color: #8f9ba7;
+
+.hud-item span:first-child {
+    color: #8f9ba5;
+
+    font-size: 13px;
+
+    font-weight: 500;
 
     letter-spacing: 1px;
 }
 
-.hud-item strong {
+
+.hud-item span:last-child {
     color: #ffffff;
 
+    font-size: 13px;
+
+    font-weight: 800;
+
     letter-spacing: 1px;
+}
+
+
+#score,
+#timer {
+    font-variant-numeric:
+        tabular-nums;
 }
 
 
 /* =========================================================
    CONTROLES
-========================================================= */
+   ========================================================= */
 
 .controls-panel {
     position: fixed;
 
-    right: 22px;
-    bottom: 22px;
+    right: 24px;
+    bottom: 24px;
 
-    width: 220px;
+    width: 250px;
 
-    padding: 15px;
+    padding: 18px 16px;
 
-    z-index: 20;
+    z-index: 30;
 
     background:
-        rgba(7, 10, 14, 0.82);
+        linear-gradient(
+            145deg,
+            rgba(8, 14, 20, 0.94),
+            rgba(16, 22, 30, 0.92)
+        );
 
     border:
-        1px solid rgba(255, 255, 255, 0.1);
+        1px solid
+        rgba(255, 255, 255, 0.13);
 
-    border-radius: 8px;
+    border-radius: 10px;
 
-    backdrop-filter: blur(8px);
+    box-shadow:
+        0 18px 40px
+        rgba(0, 0, 0, 0.45);
+
+    backdrop-filter:
+        blur(12px);
 
     pointer-events: none;
 }
 
+
 .controls-title {
     margin-bottom: 12px;
 
+    color: #91a0ab;
+
     font-size: 11px;
-    font-weight: 700;
 
-    letter-spacing: 2px;
+    font-weight: 800;
 
-    color: #87939f;
+    letter-spacing: 2.5px;
 }
+
 
 .control-row {
     display: flex;
+
     align-items: center;
 
-    gap: 6px;
+    min-height: 36px;
 
-    margin: 8px 0;
+    gap: 7px;
 
-    font-size: 12px;
+    color: #c4ccd2;
 
-    color: #ccd4da;
+    font-size: 13px;
 }
+
 
 .key {
     display: inline-flex;
 
     align-items: center;
+
     justify-content: center;
 
-    min-width: 25px;
-    height: 25px;
+    min-width: 29px;
+
+    height: 29px;
 
     padding: 0 7px;
 
-    color: #ffffff;
-
-    font-size: 10px;
-    font-weight: 700;
-
-    background: #1e252d;
-
     border:
-        1px solid rgba(255, 255, 255, 0.18);
+        1px solid
+        rgba(255, 255, 255, 0.18);
 
-    border-radius: 4px;
+    border-radius: 5px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(44, 55, 65, 0.95),
+            rgba(25, 33, 41, 0.95)
+        );
 
     box-shadow:
-        inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+        inset 0 1px 0
+        rgba(255, 255, 255, 0.12),
+        0 3px 8px
+        rgba(0, 0, 0, 0.30);
+
+    color: #ffffff;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    line-height: 1;
 }
 
+
 .key-wide {
-    min-width: 55px;
+    min-width: 58px;
 }
+
 
 .mouse-icon {
     display: inline-flex;
 
     align-items: center;
+
     justify-content: center;
 
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
 
-    font-size: 15px;
+    color: #cad3d9;
+
+    font-size: 18px;
 }
 
 
 /* =========================================================
-   PANTALLAS DE JUEGO
-========================================================= */
+   PANTALLA INICIO
+   ========================================================= */
 
 .game-screen {
     position: fixed;
 
     inset: 0;
 
+    z-index: 100;
+
     display: flex;
 
     align-items: center;
+
     justify-content: center;
 
-    z-index: 100;
+    padding: 30px;
 
     background:
-        radial-gradient(circle at center,
-            rgba(11, 19, 26, 0.78),
-            rgba(1, 3, 5, 0.96));
+        radial-gradient(
+            circle at center,
+            rgba(33, 49, 59, 0.92) 0%,
+            rgba(11, 18, 23, 0.97) 55%,
+            rgba(3, 7, 10, 0.99) 100%
+        );
 
-    backdrop-filter: blur(4px);
+    backdrop-filter:
+        blur(4px);
 }
+
 
 .game-screen.hidden {
     display: none;
 }
 
+
 .screen-content {
-    width: min(620px, 90%);
+    width:
+        min(
+            620px,
+            95vw
+        );
 
     text-align: center;
 }
 
+
 .screen-tag {
     display: inline-block;
 
-    margin-bottom: 15px;
+    margin-bottom: 23px;
 
-    padding:
-        6px 12px;
+    padding: 9px 15px;
 
     border:
-        1px solid rgba(255, 255, 255, 0.2);
+        1px solid
+        rgba(255, 255, 255, 0.22);
 
-    border-radius: 4px;
+    border-radius: 5px;
 
-    color: #8d9ba8;
+    color: #9aa8b1;
 
     font-size: 11px;
 
-    letter-spacing: 4px;
+    font-weight: 600;
+
+    letter-spacing: 5px;
 }
 
+
 .screen-content h1 {
-    margin-bottom: 16px;
+    margin: 0;
 
     color: #ffffff;
 
     font-size:
-        clamp(46px,
-            8vw,
-            92px);
+        clamp(
+            58px,
+            7vw,
+            96px
+        );
 
-    font-weight: 800;
+    font-weight: 900;
 
-    letter-spacing: -3px;
+    line-height: 0.84;
 
-    line-height: 0.88;
+    letter-spacing: -4px;
+
+    text-transform: uppercase;
+
+    text-shadow:
+        0 14px 25px
+        rgba(0, 0, 0, 0.35);
 }
+
 
 .screen-content h1 span {
     display: block;
@@ -317,220 +460,530 @@ body {
     color: transparent;
 
     -webkit-text-stroke:
-        1px rgba(255, 255, 255, 0.75);
+        2px
+        rgba(255, 255, 255, 0.58);
+
+    text-shadow: none;
 }
+
 
 .game-description {
-    max-width: 500px;
+    max-width: 540px;
 
     margin:
-        25px auto;
+        27px auto 28px;
 
-    color: #aeb8c0;
+    color: #a6b0b7;
 
-    font-size: 15px;
+    font-size: 16px;
 
-    line-height: 1.7;
+    line-height: 1.75;
 }
 
+
 .mission-box {
-    max-width: 460px;
+    position: relative;
+
+    max-width: 505px;
 
     margin:
-        25px auto;
+        0 auto 35px;
 
-    padding: 16px 20px;
+    padding: 19px 22px;
 
     text-align: left;
 
     background:
-        rgba(255, 255, 255, 0.04);
-
-    border-left:
-        3px solid #ffffff;
+        linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.08),
+            rgba(255, 255, 255, 0.035)
+        );
 
     border-radius:
-        0 6px 6px 0;
+        0 7px 7px 0;
 }
+
+
+.mission-box::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 3px;
+    height: 100%;
+
+    background: #ffffff;
+}
+
 
 .mission-box span {
     display: block;
 
-    margin-bottom: 5px;
+    margin-bottom: 9px;
 
-    color: #838f99;
+    color: #8f9ca5;
 
     font-size: 10px;
 
-    letter-spacing: 2px;
+    font-weight: 700;
+
+    letter-spacing: 2.2px;
 }
+
 
 .mission-box p {
     margin: 0;
 
-    color: #e4e9ed;
+    color: #e5eaed;
 
     font-size: 13px;
+
+    line-height: 1.5;
 }
 
 
 /* =========================================================
    BOTÓN
-========================================================= */
+   ========================================================= */
 
 .btn-start {
-    position: relative;
+    min-width: 242px;
 
-    min-width: 220px;
+    height: 52px;
 
-    margin-top: 8px;
+    padding: 0 28px;
 
-    padding:
-        14px 28px;
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.85);
 
-    color: #05080b;
+    border-radius: 6px;
 
-    background: #ffffff;
+    outline: none;
 
-    border: none;
+    background: #f8f8f8;
 
-    border-radius: 5px;
+    color: #090d10;
 
     font-size: 12px;
-    font-weight: 800;
 
-    letter-spacing: 2px;
+    font-weight: 900;
+
+    letter-spacing: 2.3px;
 
     cursor: pointer;
 
+    box-shadow:
+        0 12px 25px
+        rgba(0, 0, 0, 0.30);
+
     transition:
-        transform 0.2s ease,
-        background 0.2s ease;
+        transform
+        0.15s
+        ease,
+        box-shadow
+        0.15s
+        ease;
 }
+
 
 .btn-start:hover {
     transform:
         translateY(-2px);
 
-    background: #dce2e7;
+    box-shadow:
+        0 16px 30px
+        rgba(0, 0, 0, 0.38);
 }
 
-.btn-start:active {
-    transform:
-        translateY(0);
+
+.btn-start:disabled {
+    opacity: 0.65;
+
+    cursor: not-allowed;
+
+    transform: none;
 }
+
 
 .version {
-    margin-top: 24px;
+    margin-top: 27px;
 
-    color: #5d6872;
+    color: #65717a;
 
     font-size: 9px;
 
-    letter-spacing: 2px;
+    font-weight: 600;
+
+    letter-spacing: 3px;
 }
 
 
 /* =========================================================
-   CROSSHAIR
-========================================================= */
+   MIRA TPS
+   ========================================================= */
 
+#crosshair,
 .crosshair {
     position: fixed;
 
     top: 50%;
     left: 50%;
 
-    width: 22px;
-    height: 22px;
+    width: 8px;
+    height: 8px;
 
     transform:
-        translate(-50%,
-            -50%);
+        translate(
+            -50%,
+            -50%
+        );
 
-    z-index: 15;
+    z-index: 9999;
+
+    pointer-events: none;
+
+    opacity: 0.30;
+
+    visibility: visible;
+
+    border:
+        2px solid
+        rgba(255, 255, 255, 0.95);
+
+    border-radius: 50%;
+
+    background:
+        rgba(0, 0, 0, 0.14);
+
+    box-shadow:
+        0 0 0 1px
+        rgba(0, 0, 0, 0.95),
+        0 0 5px
+        rgba(255, 255, 255, 0.35);
+
+    transition:
+        width
+        0.12s
+        ease,
+        height
+        0.12s
+        ease,
+        opacity
+        0.12s
+        ease,
+        border-color
+        0.08s
+        ease,
+        box-shadow
+        0.08s
+        ease,
+        transform
+        0.08s
+        ease;
+}
+
+
+/* =========================================================
+   LÍNEAS
+   ========================================================= */
+
+#crosshair::before,
+#crosshair::after,
+.crosshair::before,
+.crosshair::after {
+    content: "";
+
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
 
     opacity: 0;
 
-    pointer-events: none;
+    transition:
+        opacity
+        0.12s
+        ease,
+        background
+        0.08s
+        ease;
 }
 
-.crosshair.visible {
-    opacity: 0.65;
+
+#crosshair::before,
+.crosshair::before {
+    width: 40px;
+    height: 2px;
+
+    transform:
+        translate(
+            -50%,
+            -50%
+        );
+
+    background:
+        linear-gradient(
+            to right,
+
+            #ffffff 0%,
+            #ffffff 28%,
+
+            transparent 28%,
+            transparent 43%,
+
+            #ffffff 43%,
+            #ffffff 57%,
+
+            transparent 57%,
+            transparent 72%,
+
+            #ffffff 72%,
+            #ffffff 100%
+        );
 }
 
-.crosshair span {
-    position: absolute;
 
-    background: #ffffff;
+#crosshair::after,
+.crosshair::after {
+    width: 2px;
+    height: 40px;
 
-    border-radius: 1px;
+    transform:
+        translate(
+            -50%,
+            -50%
+        );
+
+    background:
+        linear-gradient(
+            to bottom,
+
+            #ffffff 0%,
+            #ffffff 28%,
+
+            transparent 28%,
+            transparent 43%,
+
+            #ffffff 43%,
+            #ffffff 57%,
+
+            transparent 57%,
+            transparent 72%,
+
+            #ffffff 72%,
+            #ffffff 100%
+        );
 }
 
-.crosshair span:first-child {
-    top: 10px;
-    left: 2px;
 
-    width: 18px;
-    height: 1px;
+/* =========================================================
+   APUNTANDO
+   ========================================================= */
+
+#crosshair.crosshair-aiming,
+.crosshair.crosshair-aiming {
+    width: 24px;
+    height: 24px;
+
+    opacity: 1;
+
+    border-color:
+        rgba(255, 255, 255, 0.95);
+
+    box-shadow:
+        0 0 0 1px
+        rgba(0, 0, 0, 0.95),
+        0 0 7px
+        rgba(255, 255, 255, 0.50);
 }
 
-.crosshair span:last-child {
-    top: 2px;
-    left: 10px;
 
-    width: 1px;
-    height: 18px;
+#crosshair.crosshair-aiming::before,
+#crosshair.crosshair-aiming::after,
+.crosshair.crosshair-aiming::before,
+.crosshair.crosshair-aiming::after {
+    opacity: 1;
+}
+
+
+/* =========================================================
+   BLANCO DETECTADO
+   ========================================================= */
+
+#crosshair.crosshair-target,
+.crosshair.crosshair-target {
+    width: 20px;
+    height: 20px;
+
+    opacity: 1;
+
+    border-color:
+        #00ff88;
+
+    box-shadow:
+        0 0 0 1px
+        rgba(0, 0, 0, 0.95),
+        0 0 8px
+        #00ff88,
+        0 0 18px
+        rgba(0, 255, 136, 0.55);
+}
+
+
+#crosshair.crosshair-target::before,
+.crosshair.crosshair-target::before {
+    opacity: 1;
+
+    background:
+        linear-gradient(
+            to right,
+
+            #00ff88 0%,
+            #00ff88 28%,
+
+            transparent 28%,
+            transparent 43%,
+
+            #00ff88 43%,
+            #00ff88 57%,
+
+            transparent 57%,
+            transparent 72%,
+
+            #00ff88 72%,
+            #00ff88 100%
+        );
+}
+
+
+#crosshair.crosshair-target::after,
+.crosshair.crosshair-target::after {
+    opacity: 1;
+
+    background:
+        linear-gradient(
+            to bottom,
+
+            #00ff88 0%,
+            #00ff88 28%,
+
+            transparent 28%,
+            transparent 43%,
+
+            #00ff88 43%,
+            #00ff88 57%,
+
+            transparent 57%,
+            transparent 72%,
+
+            #00ff88 72%,
+            #00ff88 100%
+        );
+}
+
+
+.crosshair-visible {
+    visibility:
+        visible !important;
 }
 
 
 /* =========================================================
    RESPONSIVE
-========================================================= */
+   ========================================================= */
 
-@media (max-width: 768px) {
+@media (
+    max-width: 900px
+) {
 
     .hud {
-        top: 10px;
-        left: 10px;
+        top: 16px;
+        left: 16px;
 
-        width: 195px;
+        width: 230px;
 
-        padding: 12px;
+        padding: 17px;
     }
 
-    .hud-title {
-        font-size: 10px;
-    }
-
-    .hud-item {
-        font-size: 10px;
-    }
 
     .controls-panel {
-        right: 10px;
-        bottom: 10px;
+        right: 16px;
+        bottom: 16px;
 
-        width: 180px;
-
-        padding: 10px;
-    }
-
-    .control-row {
-        font-size: 10px;
-    }
-
-    .screen-content h1 {
-        letter-spacing: -1px;
+        width: 220px;
     }
 
 }
 
 
-/* =========================================================
-   OCULTAR
-========================================================= */
+@media (
+    max-width: 600px
+) {
 
-.hidden {
-    display: none !important;
+    .hud {
+        top: 10px;
+        left: 10px;
+
+        width: 200px;
+
+        padding: 14px;
+    }
+
+
+    .hud-title {
+        font-size: 11px;
+    }
+
+
+    .hud-item span:first-child,
+    .hud-item span:last-child {
+        font-size: 11px;
+    }
+
+
+    .controls-panel {
+        right: 10px;
+        bottom: 10px;
+
+        width: 205px;
+
+        padding: 13px;
+    }
+
+
+    .control-row {
+        font-size: 11px;
+    }
+
+
+    .key {
+        min-width: 25px;
+
+        height: 25px;
+
+        font-size: 9px;
+    }
+
+
+    .screen-content h1 {
+        font-size: 50px;
+    }
+
+
+    .game-description {
+        font-size: 13px;
+    }
+
+
+    #crosshair.crosshair-aiming,
+    .crosshair.crosshair-aiming {
+        width: 21px;
+        height: 21px;
+    }
+
 }
