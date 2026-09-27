@@ -12,128 +12,178 @@ import {
 
 
 // ============================================================
-// CONFIGURACIÓN
+// OPERATION IMPACT
+// SHOOTING.JS
+// VERSION 1.0.6
 // ============================================================
 
-const MAX_DISTANCE = 70;
 
-const BULLET_DAMAGE = 40;
+// ============================================================
+// CONFIGURACIÓN DEL DISPARO
+// ============================================================
 
-const SHOOT_FORCE = 8;
+const MAX_DISTANCE =
+    70;
 
-const UP_FORCE = 0.8;
+const BULLET_DAMAGE =
+    40;
 
-const FIRE_COOLDOWN = 0.16;
+const SHOOT_FORCE =
+    8;
+
+const UP_FORCE =
+    0.8;
+
+const FIRE_COOLDOWN =
+    0.16;
 
 
 // ============================================================
 // MUNICIÓN
 // ============================================================
 
-const MAGAZINE_SIZE = 30;
+const MAGAZINE_SIZE =
+    30;
 
-const STARTING_RESERVE_AMMO = 90;
+const STARTING_RESERVE_AMMO =
+    90;
 
-const RELOAD_TIME = 1.5;
+const RELOAD_TIME =
+    1.5;
 
-const WEAPON_NAME = 'AR-15';
-
-
-// ============================================================
-// PROYECTIL
-// ============================================================
-
-const PROJECTILE_SPEED = 55;
-
-const PROJECTILE_LENGTH = 0.34;
-
-const PROJECTILE_RADIUS = 0.025;
+const WEAPON_NAME =
+    'AR-15';
 
 
 // ============================================================
-// EFECTOS
+// PROYECTIL VISUAL
 // ============================================================
 
-const IMPACT_DURATION = 0.28;
+const PROJECTILE_SPEED =
+    55;
 
-const DESTRUCTION_DURATION = 0.55;
+const PROJECTILE_LENGTH =
+    0.34;
 
-const MUZZLE_FLASH_DURATION = 0.08;
+const PROJECTILE_RADIUS =
+    0.025;
 
-const CROSSHAIR_FIRE_DURATION = 0.10;
 
-const HITMARKER_DURATION = 0.15;
+// ============================================================
+// DURACIÓN DE EFECTOS
+// ============================================================
+
+const IMPACT_DURATION =
+    0.32;
+
+const DESTRUCTION_DURATION =
+    0.70;
+
+const MUZZLE_FLASH_DURATION =
+    0.08;
+
+const IMPACT_LIGHT_DURATION =
+    0.12;
+
+const SHOCKWAVE_DURATION =
+    0.28;
+
+const CROSSHAIR_FIRE_DURATION =
+    0.10;
+
+const HITMARKER_DURATION =
+    0.15;
 
 
 // ============================================================
 // REFERENCIAS
 // ============================================================
 
-let sceneRef = null;
+let sceneRef =
+    null;
 
-let cameraRef = null;
+let cameraRef =
+    null;
 
-let environmentMeshesRef = [];
+let environmentMeshesRef =
+    [];
 
 
 // ============================================================
 // ESTADO DEL ARMA
 // ============================================================
 
-let cooldown = 0;
+let cooldown =
+    0;
 
-let aiming = false;
+let aiming =
+    false;
 
-let magazineAmmo = MAGAZINE_SIZE;
+let magazineAmmo =
+    MAGAZINE_SIZE;
 
-let reserveAmmo = STARTING_RESERVE_AMMO;
+let reserveAmmo =
+    STARTING_RESERVE_AMMO;
 
-let reloading = false;
+let reloading =
+    false;
 
-let reloadTimer = 0;
+let reloadTimer =
+    0;
 
 
 // ============================================================
 // HUD
 // ============================================================
 
-let crosshairElement = null;
+let crosshairElement =
+    null;
 
-let hitmarkerElement = null;
+let hitmarkerElement =
+    null;
 
-let targetInfoElement = null;
+let targetInfoElement =
+    null;
 
-let targetNameElement = null;
+let targetNameElement =
+    null;
 
-let targetHealthFillElement = null;
+let targetHealthFillElement =
+    null;
 
-let targetHealthTextElement = null;
+let targetHealthTextElement =
+    null;
 
-let weaponHudElement = null;
+let weaponHudElement =
+    null;
 
-let magazineElement = null;
+let magazineElement =
+    null;
 
-let reserveElement = null;
+let reserveElement =
+    null;
 
-let reloadElement = null;
+let reloadElement =
+    null;
 
 
 // ============================================================
-// TEMPORIZADORES
+// TEMPORIZADORES DE HUD
 // ============================================================
 
-let crosshairFireTimer = 0;
+let crosshairFireTimer =
+    0;
 
-let hitmarkerTimer = 0;
+let hitmarkerTimer =
+    0;
 
 
 // ============================================================
-// RAYCAST
+// RAYCASTER
 // ============================================================
 
 const raycaster =
     new THREE.Raycaster();
-
 
 const screenCenter =
     new THREE.Vector2(
@@ -143,32 +193,38 @@ const screenCenter =
 
 
 // ============================================================
-// VECTORES
+// VECTORES REUTILIZABLES
 // ============================================================
 
 const muzzlePosition =
     new THREE.Vector3();
 
-
 const cameraDirection =
     new THREE.Vector3();
 
-
 const impactDirection =
     new THREE.Vector3();
+
+const worldNormal =
+    new THREE.Vector3();
+
+const normalMatrix =
+    new THREE.Matrix3();
 
 
 // ============================================================
 // EFECTOS ACTIVOS
 // ============================================================
 
-const projectiles = [];
+const projectiles =
+    [];
 
-const effects = [];
+const effects =
+    [];
 
 
 // ============================================================
-// INICIALIZAR
+// INICIALIZAR SISTEMA
 // ============================================================
 
 export function initShootingSystem(
@@ -180,10 +236,8 @@ export function initShootingSystem(
     sceneRef =
         scene;
 
-
     cameraRef =
         camera;
-
 
     environmentMeshesRef =
         environmentMeshes;
@@ -202,25 +256,20 @@ export function initShootingSystem(
         crosshairElement.style.top =
             '50%';
 
-
         crosshairElement.style.left =
             '50%';
-
 
         crosshairElement.classList.add(
             'crosshair-visible'
         );
 
-
         crosshairElement.classList.remove(
             'crosshair-aiming'
         );
 
-
         crosshairElement.classList.remove(
             'crosshair-target'
         );
-
 
         crosshairElement.classList.remove(
             'crosshair-fire'
@@ -231,19 +280,18 @@ export function initShootingSystem(
 
     createCombatHUD();
 
-
     updateAmmoHUD();
 
 
     console.log(
-        '🔫 Sistema de disparo v1.0.4 listo'
+        '🔫 Sistema de disparo v1.0.6 listo'
     );
 
 }
 
 
 // ============================================================
-// CREAR HUD
+// CREAR HUD DE COMBATE
 // ============================================================
 
 function createCombatHUD() {
@@ -267,14 +315,11 @@ function createCombatHUD() {
                 'div'
             );
 
-
         hitmarkerElement.id =
             'hitmarker';
 
-
         hitmarkerElement.textContent =
             '✕';
-
 
         document.body.appendChild(
             hitmarkerElement
@@ -284,7 +329,7 @@ function createCombatHUD() {
 
 
     // ========================================================
-    // VIDA DEL OBJETIVO
+    // INFORMACIÓN DEL BLANCO
     // ========================================================
 
     targetInfoElement =
@@ -302,7 +347,6 @@ function createCombatHUD() {
                 'div'
             );
 
-
         targetInfoElement.id =
             'target-info';
 
@@ -312,10 +356,8 @@ function createCombatHUD() {
                 'div'
             );
 
-
         targetNameElement.className =
             'target-name';
-
 
         targetInfoElement.appendChild(
             targetNameElement
@@ -327,7 +369,6 @@ function createCombatHUD() {
                 'div'
             );
 
-
         healthBar.className =
             'target-health-bar';
 
@@ -337,7 +378,6 @@ function createCombatHUD() {
                 'div'
             );
 
-
         targetHealthFillElement.className =
             'target-health-fill';
 
@@ -345,7 +385,6 @@ function createCombatHUD() {
         healthBar.appendChild(
             targetHealthFillElement
         );
-
 
         targetInfoElement.appendChild(
             healthBar
@@ -356,7 +395,6 @@ function createCombatHUD() {
             document.createElement(
                 'div'
             );
-
 
         targetHealthTextElement.className =
             'target-health-text';
@@ -378,12 +416,10 @@ function createCombatHUD() {
                 '.target-name'
             );
 
-
         targetHealthFillElement =
             targetInfoElement.querySelector(
                 '.target-health-fill'
             );
-
 
         targetHealthTextElement =
             targetInfoElement.querySelector(
@@ -412,10 +448,8 @@ function createCombatHUD() {
                 'div'
             );
 
-
         weaponHudElement.id =
             'weapon-hud';
-
 
         weaponHudElement.innerHTML = `
             <div class="weapon-name">
@@ -454,12 +488,10 @@ function createCombatHUD() {
             'weapon-magazine'
         );
 
-
     reserveElement =
         document.getElementById(
             'weapon-reserve'
         );
-
 
     reloadElement =
         document.getElementById(
@@ -469,14 +501,13 @@ function createCombatHUD() {
 
     hideTargetInfo();
 
-
     hideHitmarker();
 
 }
 
 
 // ============================================================
-// APUNTADO
+// MODO APUNTADO
 // ============================================================
 
 export function setAimingMode(
@@ -505,7 +536,6 @@ export function setAimingMode(
                 'crosshair-target'
             );
 
-
             crosshairElement.classList.remove(
                 'crosshair-fire'
             );
@@ -529,7 +559,7 @@ export function setAimingMode(
 
 
 // ============================================================
-// ESTADO APUNTADO
+// CONSULTAR APUNTADO
 // ============================================================
 
 export function isAimingMode() {
@@ -540,7 +570,7 @@ export function isAimingMode() {
 
 
 // ============================================================
-// MUNICIÓN
+// OBTENER MUNICIÓN
 // ============================================================
 
 export function getAmmoState() {
@@ -567,7 +597,7 @@ export function getAmmoState() {
 
 
 // ============================================================
-// PUEDE DISPARAR
+// COMPROBAR SI PUEDE DISPARAR
 // ============================================================
 
 export function canShoot() {
@@ -608,7 +638,6 @@ export function startReload() {
             '🔋 Cargador completo'
         );
 
-
         return false;
 
     }
@@ -623,7 +652,6 @@ export function startReload() {
             '❌ Sin munición de reserva'
         );
 
-
         return false;
 
     }
@@ -631,7 +659,6 @@ export function startReload() {
 
     reloading =
         true;
-
 
     reloadTimer =
         RELOAD_TIME;
@@ -658,7 +685,7 @@ export function startReload() {
 
 
 // ============================================================
-// TERMINAR RECARGA
+// FINALIZAR RECARGA
 // ============================================================
 
 function finishReload() {
@@ -678,14 +705,12 @@ function finishReload() {
     magazineAmmo +=
         ammoToLoad;
 
-
     reserveAmmo -=
         ammoToLoad;
 
 
     reloading =
         false;
-
 
     reloadTimer =
         0;
@@ -702,7 +727,7 @@ function finishReload() {
 
 
 // ============================================================
-// ACTUALIZAR HUD MUNICIÓN
+// ACTUALIZAR HUD DE MUNICIÓN
 // ============================================================
 
 function updateAmmoHUD() {
@@ -784,10 +809,14 @@ function updateAmmoHUD() {
 
 
 // ============================================================
-// BLANCOS
+// OBTENER BLANCOS
 // ============================================================
 
 function getShootableTargets() {
+
+    // ========================================================
+    // FIGURAS
+    // ========================================================
 
     const dynamicTargets =
         getDynamicObjects()
@@ -812,6 +841,10 @@ function getShootableTargets() {
                 })
             );
 
+
+    // ========================================================
+    // NÚCLEOS
+    // ========================================================
 
     const objectiveTargets =
         getObjectiveTargets()
@@ -866,6 +899,10 @@ function calculateAim() {
         );
 
 
+    // ========================================================
+    // INTERSECCIONES CON OBJETIVOS
+    // ========================================================
+
     const targetHits =
         targetMeshes.length > 0
             ?
@@ -876,6 +913,10 @@ function calculateAim() {
             :
             [];
 
+
+    // ========================================================
+    // ESCENARIO
+    // ========================================================
 
     const validEnvironmentMeshes =
         environmentMeshesRef.filter(
@@ -912,13 +953,17 @@ function calculateAim() {
             null;
 
 
+    // ========================================================
+    // OBJETIVO DELANTE DEL ESCENARIO
+    // ========================================================
+
     if (
         targetHit &&
         (
             !environmentHit ||
             targetHit.distance <=
-            environmentHit.distance +
-            0.03
+                environmentHit.distance +
+                0.03
         )
     ) {
 
@@ -948,6 +993,10 @@ function calculateAim() {
     }
 
 
+    // ========================================================
+    // ESCENARIO
+    // ========================================================
+
     if (
         environmentHit
     ) {
@@ -971,14 +1020,9 @@ function calculateAim() {
     }
 
 
-    const farPoint =
-        raycaster.ray.origin
-            .clone()
-            .addScaledVector(
-                raycaster.ray.direction,
-                MAX_DISTANCE
-            );
-
+    // ========================================================
+    // DISPARO AL AIRE
+    // ========================================================
 
     return {
 
@@ -992,7 +1036,12 @@ function calculateAim() {
             null,
 
         point:
-            farPoint
+            raycaster.ray.origin
+                .clone()
+                .addScaledVector(
+                    raycaster.ray.direction,
+                    MAX_DISTANCE
+                )
 
     };
 
@@ -1000,7 +1049,50 @@ function calculateAim() {
 
 
 // ============================================================
-// HUD APUNTADO
+// CALCULAR NORMAL DE IMPACTO
+// ============================================================
+
+function getImpactNormal(
+    hit
+) {
+
+    if (
+        !hit ||
+        !hit.face
+    ) {
+
+        return raycaster.ray.direction
+            .clone()
+            .multiplyScalar(
+                -1
+            )
+            .normalize();
+
+    }
+
+
+    normalMatrix.getNormalMatrix(
+        hit.object.matrixWorld
+    );
+
+
+    worldNormal
+        .copy(
+            hit.face.normal
+        )
+        .applyMatrix3(
+            normalMatrix
+        )
+        .normalize();
+
+
+    return worldNormal.clone();
+
+}
+
+
+// ============================================================
+// ACTUALIZAR HUD DEL BLANCO
 // ============================================================
 
 function updateAimingHUD() {
@@ -1023,9 +1115,7 @@ function updateAimingHUD() {
             'crosshair-target'
         );
 
-
         hideTargetInfo();
-
 
         return;
 
@@ -1038,7 +1128,7 @@ function updateAimingHUD() {
 
     const hasTarget =
         aim.type ===
-        'target' &&
+            'target' &&
         aim.target;
 
 
@@ -1068,7 +1158,7 @@ function updateAimingHUD() {
 
 
 // ============================================================
-// INFORMACIÓN OBJETIVO
+// MOSTRAR INFORMACIÓN DEL BLANCO
 // ============================================================
 
 function showTargetInfo(
@@ -1087,14 +1177,16 @@ function showTargetInfo(
     let name =
         'OBJETIVO';
 
-
     let health =
         0;
-
 
     let maxHealth =
         100;
 
+
+    // ========================================================
+    // FIGURA
+    // ========================================================
 
     if (
         target.type ===
@@ -1104,16 +1196,18 @@ function showTargetInfo(
         name =
             'OBJETO DE ENTRENAMIENTO';
 
-
         health =
             target.object.health;
-
 
         maxHealth =
             target.object.maxHealth;
 
     }
 
+
+    // ========================================================
+    // NÚCLEO
+    // ========================================================
 
     if (
         target.type ===
@@ -1123,10 +1217,8 @@ function showTargetInfo(
         name =
             'NÚCLEO DE ENERGÍA';
 
-
         health =
             target.objective.health;
-
 
         maxHealth =
             target.objective.maxHealth;
@@ -1143,13 +1235,20 @@ function showTargetInfo(
 
     const percentage =
         THREE.MathUtils.clamp(
+
             (
                 health /
-                maxHealth
+                Math.max(
+                    maxHealth,
+                    1
+                )
             ) *
             100,
+
             0,
+
             100
+
         );
 
 
@@ -1191,7 +1290,7 @@ function showTargetInfo(
 
 
 // ============================================================
-// OCULTAR INFO
+// OCULTAR INFORMACIÓN
 // ============================================================
 
 function hideTargetInfo() {
@@ -1206,7 +1305,7 @@ function hideTargetInfo() {
 
 
 // ============================================================
-// MIRA AL DISPARAR
+// EFECTO DE CROSSHAIR AL DISPARAR
 // ============================================================
 
 function triggerCrosshairFire() {
@@ -1236,7 +1335,8 @@ function triggerCrosshairFire() {
 // ============================================================
 
 function showHitmarker(
-    destroyed = false
+    destroyed =
+        false
 ) {
 
     if (
@@ -1314,7 +1414,7 @@ export function shoot(
 
 
     // ========================================================
-    // SIN BALAS
+    // SIN MUNICIÓN
     // ========================================================
 
     if (
@@ -1335,6 +1435,10 @@ export function shoot(
     }
 
 
+    // ========================================================
+    // COOLDOWN / APUNTADO
+    // ========================================================
+
     if (
         !canShoot()
     ) {
@@ -1348,8 +1452,7 @@ export function shoot(
     // CONSUMIR BALA
     // ========================================================
 
-    magazineAmmo -=
-        1;
+    magazineAmmo--;
 
 
     updateAmmoHUD();
@@ -1362,18 +1465,13 @@ export function shoot(
     triggerCrosshairFire();
 
 
+    // ========================================================
+    // CALCULAR DISPARO
+    // ========================================================
+
     const aim =
         calculateAim();
 
-
-    console.log(
-        `🔫 DISPARO · ${magazineAmmo}/${reserveAmmo}`
-    );
-
-
-    // ========================================================
-    // DIRECCIÓN
-    // ========================================================
 
     cameraRef.getWorldDirection(
         cameraDirection
@@ -1384,7 +1482,7 @@ export function shoot(
 
 
     // ========================================================
-    // ORIGEN VISUAL
+    // POSICIÓN DE SALIDA
     // ========================================================
 
     muzzlePosition.copy(
@@ -1402,10 +1500,18 @@ export function shoot(
     );
 
 
+    // ========================================================
+    // MUZZLE FLASH
+    // ========================================================
+
     createMuzzleFlash(
         muzzlePosition
     );
 
+
+    // ========================================================
+    // PROYECTIL VISUAL
+    // ========================================================
 
     createProjectile(
         muzzlePosition,
@@ -1414,16 +1520,16 @@ export function shoot(
 
 
     // ========================================================
-    // BLANCO
+    // IMPACTO EN OBJETIVO
     // ========================================================
 
     if (
         aim.type ===
-        'target' &&
+            'target' &&
         aim.target
     ) {
 
-        const impactResult =
+        const result =
             handleTargetImpact(
                 aim.target,
                 aim.hit
@@ -1431,7 +1537,7 @@ export function shoot(
 
 
         showHitmarker(
-            impactResult.destroyed
+            result.destroyed
         );
 
 
@@ -1441,7 +1547,7 @@ export function shoot(
 
 
     // ========================================================
-    // ESCENARIO
+    // IMPACTO EN PARED / PISO / ESCENARIO
     // ========================================================
 
     if (
@@ -1449,13 +1555,36 @@ export function shoot(
         'environment'
     ) {
 
-        createImpactEffect(
+        const normal =
+            getImpactNormal(
+                aim.hit
+            );
+
+
+        // CHISPAS
+        createImpactBurst(
             aim.point,
-            0xffffff
+            normal,
+            0xffd27a,
+            false
         );
 
 
-        return true;
+        // FLASH DE LUZ
+        createImpactLight(
+            aim.point,
+            0xffc46b,
+            2.8
+        );
+
+
+        // ONDA VISUAL
+        createShockwave(
+            aim.point,
+            normal,
+            0xffd27a,
+            0.35
+        );
 
     }
 
@@ -1466,7 +1595,7 @@ export function shoot(
 
 
 // ============================================================
-// IMPACTO
+// IMPACTO EN BLANCO
 // ============================================================
 
 function handleTargetImpact(
@@ -1474,8 +1603,14 @@ function handleTargetImpact(
     hit
 ) {
 
+    const normal =
+        getImpactNormal(
+            hit
+        );
+
+
     // ========================================================
-    // OBJETO DINÁMICO
+    // FIGURA DINÁMICA
     // ========================================================
 
     if (
@@ -1490,16 +1625,25 @@ function handleTargetImpact(
             );
 
 
+        // ====================================================
+        // DESTRUIDO
+        // ====================================================
+
         if (
             result.destroyed
         ) {
 
             createDestructionEffect(
                 hit.point,
+                normal,
                 0xff9f1c
             );
 
         } else {
+
+            // =================================================
+            // IMPULSO FÍSICO
+            // =================================================
 
             impactDirection.copy(
                 raycaster.ray.direction
@@ -1514,6 +1658,7 @@ function handleTargetImpact(
 
 
             target.object.body.applyImpulse(
+
                 {
 
                     x:
@@ -1522,7 +1667,7 @@ function handleTargetImpact(
 
                     y:
                         impactDirection.y *
-                        SHOOT_FORCE +
+                            SHOOT_FORCE +
                         UP_FORCE,
 
                     z:
@@ -1530,12 +1675,19 @@ function handleTargetImpact(
                         SHOOT_FORCE
 
                 },
+
                 true
+
             );
 
 
+            // =================================================
+            // TORQUE
+            // =================================================
+
             target.object.body
                 .applyTorqueImpulse(
+
                     {
 
                         x:
@@ -1557,13 +1709,44 @@ function handleTargetImpact(
                             )
 
                     },
+
                     true
+
                 );
 
 
-            createImpactEffect(
+            // =================================================
+            // CHISPAS
+            // =================================================
+
+            createImpactBurst(
                 hit.point,
-                0xffb300
+                normal,
+                0xffb300,
+                false
+            );
+
+
+            // =================================================
+            // LUZ
+            // =================================================
+
+            createImpactLight(
+                hit.point,
+                0xffb300,
+                3.4
+            );
+
+
+            // =================================================
+            // ONDA VISUAL
+            // =================================================
+
+            createShockwave(
+                hit.point,
+                normal,
+                0xffc107,
+                0.42
             );
 
         }
@@ -1580,7 +1763,7 @@ function handleTargetImpact(
 
 
     // ========================================================
-    // NÚCLEO
+    // NÚCLEO DE ENERGÍA
     // ========================================================
 
     if (
@@ -1592,16 +1775,66 @@ function handleTargetImpact(
             damageObjectiveByMesh(
                 hit.object,
                 BULLET_DAMAGE
+            ) || {};
+
+
+        // ====================================================
+        // SOPORTE PARA OBJECTIVES.JS
+        // ====================================================
+
+        const destroyed =
+            result.destroyed === true ||
+            target.objective.destroyed === true;
+
+
+        // ====================================================
+        // DESTRUCCIÓN
+        // ====================================================
+
+        if (
+            destroyed
+        ) {
+
+            createDestructionEffect(
+                hit.point,
+                normal,
+                0x00eaff
+            );
+
+        } else {
+
+            // =================================================
+            // PARTÍCULAS CYAN
+            // =================================================
+
+            createImpactBurst(
+                hit.point,
+                normal,
+                0x00eaff,
+                false
             );
 
 
-        if (
-            !result.destroyed
-        ) {
+            // =================================================
+            // LUZ CYAN
+            // =================================================
 
-            createImpactEffect(
+            createImpactLight(
                 hit.point,
-                0x00eaff
+                0x00eaff,
+                4
+            );
+
+
+            // =================================================
+            // ONDA CYAN
+            // =================================================
+
+            createShockwave(
+                hit.point,
+                normal,
+                0x00eaff,
+                0.48
             );
 
         }
@@ -1609,8 +1842,7 @@ function handleTargetImpact(
 
         return {
 
-            destroyed:
-                result.destroyed
+            destroyed
 
         };
 
@@ -1628,7 +1860,7 @@ function handleTargetImpact(
 
 
 // ============================================================
-// PROYECTIL
+// CREAR PROYECTIL VISUAL
 // ============================================================
 
 function createProjectile(
@@ -1670,6 +1902,10 @@ function createProjectile(
     direction.normalize();
 
 
+    // ========================================================
+    // GEOMETRÍA
+    // ========================================================
+
     const geometry =
         new THREE.CylinderGeometry(
             PROJECTILE_RADIUS,
@@ -1678,6 +1914,10 @@ function createProjectile(
             6
         );
 
+
+    // ========================================================
+    // MATERIAL
+    // ========================================================
 
     const material =
         new THREE.MeshBasicMaterial({
@@ -1712,14 +1952,21 @@ function createProjectile(
     );
 
 
+    // ========================================================
+    // ORIENTAR HACIA EL OBJETIVO
+    // ========================================================
+
     projectile.quaternion
         .setFromUnitVectors(
+
             new THREE.Vector3(
                 0,
                 1,
                 0
             ),
+
             direction
+
         );
 
 
@@ -1781,6 +2028,10 @@ function updateProjectiles(
             movement;
 
 
+        // ====================================================
+        // LLEGÓ AL DESTINO
+        // ====================================================
+
         if (
             projectile.travelled >=
             projectile.maxTravel
@@ -1839,6 +2090,10 @@ function createMuzzleFlash(
     );
 
 
+    // ========================================================
+    // FLASH
+    // ========================================================
+
     const flash =
         new THREE.Mesh(
 
@@ -1874,6 +2129,10 @@ function createMuzzleFlash(
         flash
     );
 
+
+    // ========================================================
+    // LUZ
+    // ========================================================
 
     const light =
         new THREE.PointLight(
@@ -1913,13 +2172,25 @@ function createMuzzleFlash(
 
 
 // ============================================================
-// IMPACTO
+// PARTÍCULAS DE IMPACTO
 // ============================================================
 
-function createImpactEffect(
+function createImpactBurst(
     position,
-    color
+    normal,
+    color,
+    strong =
+        false
 ) {
+
+    if (
+        !sceneRef
+    ) {
+
+        return;
+
+    }
+
 
     const group =
         new THREE.Group();
@@ -1939,59 +2210,140 @@ function createImpactEffect(
         [];
 
 
+    const count =
+        strong
+            ?
+            28
+            :
+            14;
+
+
+    // ========================================================
+    // GENERAR PARTÍCULAS
+    // ========================================================
+
     for (
         let i = 0;
-        i < 10;
+        i < count;
         i++
     ) {
 
+        const size =
+            THREE.MathUtils.randFloat(
+                0.018,
+                strong
+                    ?
+                    0.075
+                    :
+                    0.050
+            );
+
+
+        const geometry =
+            new THREE.SphereGeometry(
+                size,
+                5,
+                5
+            );
+
+
+        const material =
+            new THREE.MeshBasicMaterial({
+
+                color,
+
+                transparent:
+                    true,
+
+                opacity:
+                    1,
+
+                blending:
+                    THREE.AdditiveBlending,
+
+                depthWrite:
+                    false
+
+            });
+
+
         const particle =
             new THREE.Mesh(
+                geometry,
+                material
+            );
 
-                new THREE.SphereGeometry(
-                    0.025,
-                    5,
-                    5
-                ),
 
-                new THREE.MeshBasicMaterial({
+        // ====================================================
+        // VELOCIDAD
+        // ====================================================
 
-                    color,
+        const velocity =
+            normal
+                .clone()
+                .multiplyScalar(
+                    THREE.MathUtils.randFloat(
+                        0.8,
+                        strong
+                            ?
+                            4.5
+                            :
+                            2.8
+                    )
+                );
 
-                    transparent:
-                        true,
 
-                    opacity:
-                        1
+        velocity.x +=
+            THREE.MathUtils.randFloatSpread(
+                strong
+                    ?
+                    3.5
+                    :
+                    2
+            );
 
-                })
 
+        velocity.y +=
+            THREE.MathUtils.randFloat(
+                0.1,
+                strong
+                    ?
+                    2.8
+                    :
+                    1.6
+            );
+
+
+        velocity.z +=
+            THREE.MathUtils.randFloatSpread(
+                strong
+                    ?
+                    3.5
+                    :
+                    2
             );
 
 
         particle.userData.velocity =
+            velocity;
+
+
+        particle.userData.spin =
             new THREE.Vector3(
 
-                Math.random() *
-                2 -
-                1,
+                THREE.MathUtils.randFloatSpread(
+                    10
+                ),
 
-                Math.random() *
-                1.4 +
-                0.1,
+                THREE.MathUtils.randFloatSpread(
+                    10
+                ),
 
-                Math.random() *
-                2 -
-                1
+                THREE.MathUtils.randFloatSpread(
+                    10
+                )
 
-            )
-                .normalize()
-                .multiplyScalar(
-                    THREE.MathUtils.randFloat(
-                        1,
-                        2.8
-                    )
-                );
+            );
 
 
         group.add(
@@ -2020,7 +2372,11 @@ function createImpactEffect(
             0,
 
         duration:
-            IMPACT_DURATION
+            strong
+                ?
+                DESTRUCTION_DURATION
+                :
+                IMPACT_DURATION
 
     });
 
@@ -2028,121 +2384,67 @@ function createImpactEffect(
 
 
 // ============================================================
-// DESTRUCCIÓN
+// LUZ DE IMPACTO
 // ============================================================
 
-function createDestructionEffect(
+function createImpactLight(
     position,
-    color
+    color,
+    intensity =
+        3
 ) {
 
-    const group =
-        new THREE.Group();
+    if (
+        !sceneRef
+    ) {
+
+        return;
+
+    }
 
 
-    group.position.copy(
+    const light =
+        new THREE.PointLight(
+
+            color,
+
+            intensity,
+
+            4,
+
+            2
+
+        );
+
+
+    light.position.copy(
         position
     );
 
 
     sceneRef.add(
-        group
+        light
     );
-
-
-    const particles =
-        [];
-
-
-    for (
-        let i = 0;
-        i < 22;
-        i++
-    ) {
-
-        const size =
-            THREE.MathUtils.randFloat(
-                0.035,
-                0.095
-            );
-
-
-        const fragment =
-            new THREE.Mesh(
-
-                new THREE.BoxGeometry(
-                    size,
-                    size,
-                    size
-                ),
-
-                new THREE.MeshBasicMaterial({
-
-                    color,
-
-                    transparent:
-                        true,
-
-                    opacity:
-                        1
-
-                })
-
-            );
-
-
-        fragment.userData.velocity =
-            new THREE.Vector3(
-
-                Math.random() *
-                2 -
-                1,
-
-                Math.random() *
-                1.6 +
-                0.3,
-
-                Math.random() *
-                2 -
-                1
-
-            )
-                .normalize()
-                .multiplyScalar(
-                    THREE.MathUtils.randFloat(
-                        2,
-                        4.5
-                    )
-                );
-
-
-        group.add(
-            fragment
-        );
-
-
-        particles.push(
-            fragment
-        );
-
-    }
 
 
     effects.push({
 
         type:
-            'destruction',
+            'light',
 
         object:
-            group,
+            light,
 
-        particles,
+        light,
+
+        originalIntensity:
+            intensity,
 
         age:
             0,
 
         duration:
-            DESTRUCTION_DURATION
+            IMPACT_LIGHT_DURATION
 
     });
 
@@ -2150,7 +2452,177 @@ function createDestructionEffect(
 
 
 // ============================================================
-// ACTUALIZAR EFECTOS
+// ONDA VISUAL
+// ============================================================
+
+function createShockwave(
+    position,
+    normal,
+    color,
+    size =
+        0.4
+) {
+
+    if (
+        !sceneRef
+    ) {
+
+        return;
+
+    }
+
+
+    const geometry =
+        new THREE.RingGeometry(
+            size *
+            0.35,
+            size,
+            28
+        );
+
+
+    const material =
+        new THREE.MeshBasicMaterial({
+
+            color,
+
+            transparent:
+                true,
+
+            opacity:
+                0.75,
+
+            side:
+                THREE.DoubleSide,
+
+            blending:
+                THREE.AdditiveBlending,
+
+            depthWrite:
+                false
+
+        });
+
+
+    const ring =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+
+    // ========================================================
+    // POSICIÓN
+    // ========================================================
+
+    ring.position
+        .copy(
+            position
+        )
+        .addScaledVector(
+            normal,
+            0.018
+        );
+
+
+    // ========================================================
+    // ORIENTAR A LA SUPERFICIE
+    // ========================================================
+
+    ring.quaternion
+        .setFromUnitVectors(
+
+            new THREE.Vector3(
+                0,
+                0,
+                1
+            ),
+
+            normal
+
+        );
+
+
+    ring.scale.setScalar(
+        0.25
+    );
+
+
+    sceneRef.add(
+        ring
+    );
+
+
+    effects.push({
+
+        type:
+            'shockwave',
+
+        object:
+            ring,
+
+        ring,
+
+        age:
+            0,
+
+        duration:
+            SHOCKWAVE_DURATION
+
+    });
+
+}
+
+
+// ============================================================
+// EFECTO DE DESTRUCCIÓN
+// ============================================================
+
+function createDestructionEffect(
+    position,
+    normal,
+    color
+) {
+
+    // ========================================================
+    // MUCHAS PARTÍCULAS
+    // ========================================================
+
+    createImpactBurst(
+        position,
+        normal,
+        color,
+        true
+    );
+
+
+    // ========================================================
+    // FLASH FUERTE
+    // ========================================================
+
+    createImpactLight(
+        position,
+        color,
+        7
+    );
+
+
+    // ========================================================
+    // ONDA MÁS GRANDE
+    // ========================================================
+
+    createShockwave(
+        position,
+        normal,
+        color,
+        0.85
+    );
+
+}
+
+
+// ============================================================
+// ACTUALIZAR TODOS LOS EFECTOS
 // ============================================================
 
 function updateEffects(
@@ -2175,24 +2647,31 @@ function updateEffects(
 
         const progress =
             THREE.MathUtils.clamp(
+
                 effect.age /
                 effect.duration,
+
                 0,
+
                 1
+
             );
 
+
+        // ====================================================
+        // MUZZLE FLASH
+        // ====================================================
 
         if (
             effect.type ===
             'muzzle'
         ) {
 
-            effect.flash.scale
-                .setScalar(
-                    1 +
-                    progress *
-                    2
-                );
+            effect.flash.scale.setScalar(
+                1 +
+                progress *
+                2.2
+            );
 
 
             effect.flash.material.opacity =
@@ -2210,11 +2689,13 @@ function updateEffects(
         }
 
 
+        // ====================================================
+        // PARTÍCULAS
+        // ====================================================
+
         if (
             effect.type ===
-            'impact' ||
-            effect.type ===
-            'destruction'
+            'impact'
         ) {
 
             for (
@@ -2222,41 +2703,131 @@ function updateEffects(
                 effect.particles
             ) {
 
+                // =============================================
+                // MOVIMIENTO
+                // =============================================
+
                 particle.position
                     .addScaledVector(
-                        particle
-                            .userData
-                            .velocity,
+                        particle.userData.velocity,
                         delta
                     );
 
 
-                particle
-                    .userData
-                    .velocity
-                    .y -=
-                    3.8 *
+                // =============================================
+                // GRAVEDAD
+                // =============================================
+
+                particle.userData.velocity.y -=
+                    5.5 *
                     delta;
 
 
+                // =============================================
+                // ROTACIÓN
+                // =============================================
+
                 particle.rotation.x +=
-                    delta *
-                    7;
+                    particle.userData.spin.x *
+                    delta;
+
+
+                particle.rotation.y +=
+                    particle.userData.spin.y *
+                    delta;
 
 
                 particle.rotation.z +=
-                    delta *
-                    5;
+                    particle.userData.spin.z *
+                    delta;
 
+
+                // =============================================
+                // DESVANECER
+                // =============================================
 
                 particle.material.opacity =
                     1 -
                     progress;
 
+
+                // =============================================
+                // ENCOGER
+                // =============================================
+
+                particle.scale.setScalar(
+
+                    Math.max(
+
+                        0.05,
+
+                        1 -
+                        progress *
+                        0.75
+
+                    )
+
+                );
+
             }
 
         }
 
+
+        // ====================================================
+        // LUZ
+        // ====================================================
+
+        if (
+            effect.type ===
+            'light'
+        ) {
+
+            effect.light.intensity =
+                effect.originalIntensity *
+                (
+                    1 -
+                    progress
+                );
+
+        }
+
+
+        // ====================================================
+        // ONDA VISUAL
+        // ====================================================
+
+        if (
+            effect.type ===
+            'shockwave'
+        ) {
+
+            const scale =
+                THREE.MathUtils.lerp(
+                    0.25,
+                    2.4,
+                    progress
+                );
+
+
+            effect.ring.scale.setScalar(
+                scale
+            );
+
+
+            effect.ring.material.opacity =
+                (
+                    1 -
+                    progress
+                ) *
+                0.75;
+
+        }
+
+
+        // ====================================================
+        // ELIMINAR EFECTO
+        // ====================================================
 
         if (
             progress >=
@@ -2286,12 +2857,16 @@ function updateEffects(
 
 
 // ============================================================
-// UI
+// ACTUALIZAR UI DE COMBATE
 // ============================================================
 
 function updateCombatUI(
     delta
 ) {
+
+    // ========================================================
+    // CROSSHAIR
+    // ========================================================
 
     if (
         crosshairFireTimer >
@@ -2322,6 +2897,10 @@ function updateCombatUI(
     }
 
 
+    // ========================================================
+    // HITMARKER
+    // ========================================================
+
     if (
         hitmarkerTimer >
         0
@@ -2350,7 +2929,7 @@ function updateCombatUI(
 
 
 // ============================================================
-// UPDATE RECARGA
+// ACTUALIZAR RECARGA
 // ============================================================
 
 function updateReload(
@@ -2388,12 +2967,16 @@ function updateReload(
 
 
 // ============================================================
-// UPDATE
+// UPDATE PRINCIPAL
 // ============================================================
 
 export function updateShooting(
     delta
 ) {
+
+    // ========================================================
+    // COOLDOWN
+    // ========================================================
 
     if (
         cooldown >
@@ -2410,23 +2993,43 @@ export function updateShooting(
     }
 
 
+    // ========================================================
+    // RECARGA
+    // ========================================================
+
     updateReload(
         delta
     );
 
 
+    // ========================================================
+    // HUD DE APUNTADO
+    // ========================================================
+
     updateAimingHUD();
 
+
+    // ========================================================
+    // PROYECTILES
+    // ========================================================
 
     updateProjectiles(
         delta
     );
 
 
+    // ========================================================
+    // EFECTOS
+    // ========================================================
+
     updateEffects(
         delta
     );
 
+
+    // ========================================================
+    // UI
+    // ========================================================
 
     updateCombatUI(
         delta
@@ -2436,7 +3039,7 @@ export function updateShooting(
 
 
 // ============================================================
-// RESET
+// RESET COMPLETO
 // ============================================================
 
 export function resetShooting() {
@@ -2453,6 +3056,10 @@ export function resetShooting() {
         0;
 
 
+    // ========================================================
+    // MUNICIÓN
+    // ========================================================
+
     magazineAmmo =
         MAGAZINE_SIZE;
 
@@ -2461,6 +3068,10 @@ export function resetShooting() {
         STARTING_RESERVE_AMMO;
 
 
+    // ========================================================
+    // RECARGA
+    // ========================================================
+
     reloading =
         false;
 
@@ -2468,6 +3079,10 @@ export function resetShooting() {
     reloadTimer =
         0;
 
+
+    // ========================================================
+    // APUNTADO
+    // ========================================================
 
     setAimingMode(
         false
@@ -2486,6 +3101,10 @@ export function resetShooting() {
             'crosshair-fire'
         );
 
+
+    // ========================================================
+    // ELIMINAR PROYECTILES
+    // ========================================================
 
     for (
         const projectile of
@@ -2508,6 +3127,10 @@ export function resetShooting() {
         0;
 
 
+    // ========================================================
+    // ELIMINAR EFECTOS
+    // ========================================================
+
     for (
         const effect of
         effects
@@ -2529,13 +3152,17 @@ export function resetShooting() {
         0;
 
 
+    // ========================================================
+    // RESTAURAR HUD
+    // ========================================================
+
     updateAmmoHUD();
 
 }
 
 
 // ============================================================
-// DISPOSE
+// LIBERAR GEOMETRÍAS Y MATERIALES
 // ============================================================
 
 function disposeObject(
@@ -2551,8 +3178,13 @@ function disposeObject(
     }
 
 
-    object.traverse(
+    object.traverse?.(
+
         (child) => {
+
+            // =================================================
+            // GEOMETRÍA
+            // =================================================
 
             if (
                 child.geometry
@@ -2562,6 +3194,10 @@ function disposeObject(
 
             }
 
+
+            // =================================================
+            // MATERIAL
+            // =================================================
 
             if (
                 child.material
@@ -2574,8 +3210,11 @@ function disposeObject(
                 ) {
 
                     child.material.forEach(
-                        (material) =>
-                            material.dispose()
+                        (material) => {
+
+                            material.dispose();
+
+                        }
                     );
 
                 } else {
@@ -2587,6 +3226,7 @@ function disposeObject(
             }
 
         }
+
     );
 
 }
