@@ -27,6 +27,20 @@ import {
 } from './physics.js';
 
 import {
+    initDynamicObjects,
+    updateDynamicObjects,
+    resetDynamicObjects
+} from './objects.js';
+
+import {
+    initGrenadeSystem,
+    canThrowGrenade,
+    launchGrenade,
+    updateGrenades,
+    resetGrenades
+} from './grenades.js';
+
+import {
     setupStartButton,
     updateGameStatus,
     updateScore,
@@ -40,13 +54,12 @@ import {
 // ============================================================
 
 const ENVIRONMENT_PATH =
-    './assets/models/environment/scene.gltf';
+    './assets/models/environment/warfacemap.glb';
 
 const CHARACTER_PATH =
     './assets/models/character/Swat.glb';
 
 const ANIMATION_PATHS = {
-
     idle:
         './assets/models/character/Idle.glb',
 
@@ -58,12 +71,22 @@ const ANIMATION_PATHS = {
 
     throw:
         './assets/models/character/throw.glb'
-
 };
 
 
 // ============================================================
-// CONFIGURACIÓN DEL PERSONAJE
+// CONFIGURACIÓN GENERAL
+// ============================================================
+
+const ENABLE_DYNAMIC_OBJECTS =
+    true;
+
+const ENVIRONMENT_TARGET_SIZE =
+    45;
+
+
+// ============================================================
+// PERSONAJE
 // ============================================================
 
 const CHARACTER_HEIGHT =
@@ -78,43 +101,46 @@ const RUN_SPEED =
 const ROTATION_SPEED =
     12;
 
-
-// ============================================================
-// ORIENTACIÓN
-// ============================================================
-
 const MODEL_FORWARD_OFFSET =
     0;
 
 
 // ============================================================
-// RAYCASTER INICIAL
+// SPAWN FIJO
 // ============================================================
 //
-// Ahora Rapier controla el suelo durante el juego.
+// Estas son las coordenadas que obtuvimos
+// directamente dentro del escenario.
 //
-// Este Raycaster SOLO lo usaremos para conocer
-// la altura inicial donde aparece el personaje.
-//
+// ============================================================
+
+const FIXED_SPAWN = {
+    x: -18.605,
+    y: 0.603,
+    z: -0.321
+};
+
+
+// ============================================================
+// GRANADA
+// ============================================================
+
+// Momento de la animación Throw donde
+// la granada sale de la mano.
+
+const GRENADE_RELEASE_TIME =
+    0.33;
+
+
+// ============================================================
+// TERRENO
 // ============================================================
 
 const GROUND_RAY_HEIGHT =
-    40;
+    70;
 
-const GROUND_OFFSET =
-    0.02;
-
-
-// ============================================================
-// SPAWN
-// ============================================================
-
-const PLAYER_SPAWN =
-    new THREE.Vector3(
-        0,
-        0,
-        10
-    );
+const COVER_HEIGHT_THRESHOLD =
+    0.90;
 
 
 // ============================================================
@@ -126,14 +152,14 @@ const scene =
 
 scene.background =
     new THREE.Color(
-        0x87a5b5
+        0x879eaa
     );
 
 scene.fog =
     new THREE.Fog(
-        0x87a5b5,
-        45,
-        110
+        0x879eaa,
+        55,
+        135
     );
 
 
@@ -143,22 +169,17 @@ scene.fog =
 
 const camera =
     new THREE.PerspectiveCamera(
-
         60,
-
         window.innerWidth /
         window.innerHeight,
-
         0.1,
-
         500
-
     );
 
 camera.position.set(
-    2.4,
-    2.1,
-    3.4
+    4.2,
+    3.0,
+    6.2
 );
 
 
@@ -168,10 +189,7 @@ camera.position.set(
 
 const renderer =
     new THREE.WebGLRenderer({
-
-        antialias:
-            true
-
+        antialias: true
     });
 
 renderer.setSize(
@@ -180,12 +198,10 @@ renderer.setSize(
 );
 
 renderer.setPixelRatio(
-
     Math.min(
         window.devicePixelRatio,
         2
     )
-
 );
 
 renderer.shadowMap.enabled =
@@ -201,7 +217,7 @@ renderer.toneMapping =
     THREE.ACESFilmicToneMapping;
 
 renderer.toneMappingExposure =
-    1.1;
+    1.12;
 
 
 // ============================================================
@@ -241,22 +257,20 @@ controls.enableZoom =
     true;
 
 controls.minDistance =
-    2.2;
+    3.5;
 
 controls.maxDistance =
-    6;
+    12;
 
 controls.minPolarAngle =
-    Math.PI *
-    0.12;
+    Math.PI * 0.12;
 
 controls.maxPolarAngle =
-    Math.PI *
-    0.47;
+    Math.PI * 0.48;
 
 controls.target.set(
     0,
-    1.1,
+    1,
     0
 );
 
@@ -270,8 +284,8 @@ controls.update();
 const hemisphereLight =
     new THREE.HemisphereLight(
         0xdbeeff,
-        0x4b4b3d,
-        2.3
+        0x45433c,
+        2.4
     );
 
 scene.add(
@@ -279,14 +293,10 @@ scene.add(
 );
 
 
-// ============================================================
-// LUZ PRINCIPAL
-// ============================================================
-
 const directionalLight =
     new THREE.DirectionalLight(
-        0xfff1d4,
-        3.5
+        0xffefd5,
+        3.4
     );
 
 directionalLight.position.set(
@@ -305,22 +315,22 @@ directionalLight.shadow.mapSize.height =
     2048;
 
 directionalLight.shadow.camera.left =
-    -50;
+    -55;
 
 directionalLight.shadow.camera.right =
-    50;
+    55;
 
 directionalLight.shadow.camera.top =
-    50;
+    55;
 
 directionalLight.shadow.camera.bottom =
-    -50;
+    -55;
 
 directionalLight.shadow.camera.near =
     0.1;
 
 directionalLight.shadow.camera.far =
-    150;
+    170;
 
 directionalLight.shadow.bias =
     -0.0002;
@@ -330,19 +340,15 @@ scene.add(
 );
 
 
-// ============================================================
-// LUZ SECUNDARIA
-// ============================================================
-
 const fillLight =
     new THREE.DirectionalLight(
         0xaac7dd,
-        1
+        1.1
     );
 
 fillLight.position.set(
     -25,
-    15,
+    18,
     -20
 );
 
@@ -352,7 +358,7 @@ scene.add(
 
 
 // ============================================================
-// GLTF LOADER
+// LOADER
 // ============================================================
 
 const loader =
@@ -366,12 +372,13 @@ const loader =
 let environment =
     null;
 
-
-// ============================================================
-// MALLAS FÍSICAS
-// ============================================================
+const environmentBounds =
+    new THREE.Box3();
 
 const collisionMeshes =
+    [];
+
+const environmentMeshes =
     [];
 
 
@@ -417,52 +424,51 @@ let activeActionName =
 
 
 // ============================================================
+// THROW / GRANADA
+// ============================================================
+
+let throwElapsed =
+    0;
+
+let grenadeReleased =
+    false;
+
+
+// ============================================================
+// SPAWN ACTUAL
+// ============================================================
+
+const currentSpawn =
+    new THREE.Vector3();
+
+
+// ============================================================
 // ANIMACIONES
 // ============================================================
 
 const actions = {
-
-    idle:
-        null,
-
-    walking:
-        null,
-
-    run:
-        null,
-
-    throw:
-        null
-
+    idle: null,
+    walking: null,
+    run: null,
+    throw: null
 };
 
 
 // ============================================================
-// TECLADO
+// TECLAS
 // ============================================================
 
 const keys = {
-
-    w:
-        false,
-
-    a:
-        false,
-
-    s:
-        false,
-
-    d:
-        false,
-
-    shift:
-        false
-
+    w: false,
+    a: false,
+    s: false,
+    d: false,
+    shift: false
 };
 
 
 // ============================================================
-// VECTORES AUXILIARES
+// VECTORES
 // ============================================================
 
 const cameraForward =
@@ -480,22 +486,17 @@ const desiredTarget =
 const targetDifference =
     new THREE.Vector3();
 
-const horizontalPhysicsMovement = {
-
-    x:
-        0,
-
-    z:
-        0
-
-};
-
 const UP =
     new THREE.Vector3(
         0,
         1,
         0
     );
+
+const horizontalPhysicsMovement = {
+    x: 0,
+    z: 0
+};
 
 
 // ============================================================
@@ -523,7 +524,7 @@ const normalMatrix =
 
 
 // ============================================================
-// PERSONAJE ANIMADO
+// BOUNDING BOX PERSONAJE
 // ============================================================
 
 const animatedCharacterBox =
@@ -545,9 +546,7 @@ const clock =
 // CARGAR GLTF
 // ============================================================
 
-function loadGLTF(
-    path
-) {
+function loadGLTF(path) {
 
     return new Promise(
         (
@@ -561,9 +560,7 @@ function loadGLTF(
 
                 resolve,
 
-                (
-                    progress
-                ) => {
+                (progress) => {
 
                     if (
                         progress.total >
@@ -577,11 +574,8 @@ function loadGLTF(
                             ) *
                             100;
 
-
                         console.log(
-
                             `📦 ${path}: ${percent.toFixed(0)}%`
-
                         );
 
                     }
@@ -605,207 +599,192 @@ function loadGLTF(
 async function loadEnvironment() {
 
     console.log(
-        '🏙️ Cargando escenario...'
+        '🏙️ Cargando WarfaceMap...'
     );
 
 
-    try {
-
-        const gltf =
-            await loadGLTF(
-                ENVIRONMENT_PATH
-            );
-
-
-        environment =
-            gltf.scene;
-
-
-        scene.add(
-            environment
+    const gltf =
+        await loadGLTF(
+            ENVIRONMENT_PATH
         );
 
 
-        // ====================================================
-        // CONFIGURAR MALLAS
-        // ====================================================
+    environment =
+        gltf.scene;
 
-        environment.traverse(
 
-            (
+    scene.add(
+        environment
+    );
+
+
+    collisionMeshes.length =
+        0;
+
+    environmentMeshes.length =
+        0;
+
+
+    environment.traverse(
+        (child) => {
+
+            if (
+                !child.isMesh
+            ) {
+
+                return;
+
+            }
+
+
+            environmentMeshes.push(
                 child
-            ) => {
-
-                if (
-                    !child.isMesh
-                ) {
-
-                    return;
-
-                }
+            );
 
 
-                // =================================================
-                // SOMBRAS
-                // =================================================
+            child.castShadow =
+                true;
 
-                child.castShadow =
-                    true;
-
-                child.receiveShadow =
-                    true;
+            child.receiveShadow =
+                true;
 
 
-                // =================================================
-                // TEXTURAS
-                // =================================================
+            // =================================================
+            // MATERIALES
+            // =================================================
 
-                if (
-                    child.material
-                ) {
+            if (
+                child.material
+            ) {
 
-                    const materials =
-                        Array.isArray(
+                const materials =
+                    Array.isArray(
+                        child.material
+                    )
+                        ?
+                        child.material
+                        :
+                        [
                             child.material
-                        )
-                            ?
-                            child.material
-                            :
-                            [
-                                child.material
-                            ];
+                        ];
 
 
-                    materials.forEach(
+                materials.forEach(
+                    (material) => {
 
-                        (
-                            material
-                        ) => {
+                        if (
+                            material.map
+                        ) {
 
-                            if (
-                                material.map
-                            ) {
+                            material.map.colorSpace =
+                                THREE.SRGBColorSpace;
 
-                                material.map.colorSpace =
-                                    THREE.SRGBColorSpace;
-
-
-                                material.map.needsUpdate =
-                                    true;
-
-                            }
-
-
-                            material.needsUpdate =
+                            material.map.needsUpdate =
                                 true;
 
                         }
 
-                    );
 
-                }
+                        material.needsUpdate =
+                            true;
 
-
-                // =================================================
-                // COLLISION MESHES
-                // =================================================
-
-                const name =
-                    child.name
-                        .toLowerCase();
-
-
-                if (
-                    name.includes(
-                        'collision'
-                    )
-                ) {
-
-                    collisionMeshes.push(
-                        child
-                    );
-
-
-                    // No mostrar geometría de colisión.
-                    child.visible =
-                        false;
-
-
-                    console.log(
-                        '🧱 Collision mesh:',
-                        child.name
-                    );
-
-                }
+                    }
+                );
 
             }
 
-        );
+
+            // =================================================
+            // COLLIDERS DEDICADOS
+            // =================================================
+
+            const name =
+                (
+                    child.name ||
+                    ''
+                )
+                    .toLowerCase();
 
 
-        // ====================================================
-        // NORMALIZAR ESCENARIO
-        // ====================================================
+            if (
+                name.includes(
+                    'collision'
+                ) ||
+                name.includes(
+                    'collider'
+                )
+            ) {
 
-        normalizeEnvironment(
-            environment
-        );
-
-
-        // ====================================================
-        // ACTUALIZAR MATRICES
-        // ====================================================
-
-        environment.updateMatrixWorld(
-            true
-        );
+                collisionMeshes.push(
+                    child
+                );
 
 
-        // ====================================================
-        // CREAR COLLIDERS RAPIER
-        // ====================================================
+                child.visible =
+                    false;
 
-        const created =
-            createEnvironmentColliders(
-                collisionMeshes
-            );
-
-
-        if (
-            created ===
-            0
-        ) {
-
-            console.warn(
-                '⚠️ El escenario no proporcionó Collision meshes para Rapier.'
-            );
+            }
 
         }
+    );
 
 
-        console.log(
-            '✅ Escenario cargado'
+    // ========================================================
+    // NORMALIZAR
+    // ========================================================
+
+    normalizeEnvironment(
+        environment
+    );
+
+
+    environment.updateMatrixWorld(
+        true
+    );
+
+
+    // ========================================================
+    // LÍMITES
+    // ========================================================
+
+    environmentBounds.setFromObject(
+        environment
+    );
+
+
+    console.log(
+        '🗺️ Límites del mapa:',
+        environmentBounds
+    );
+
+
+    // ========================================================
+    // COLLIDERS RAPIER
+    // ========================================================
+
+    const physicsMeshes =
+        collisionMeshes.length >
+            0
+            ?
+            collisionMeshes
+            :
+            environmentMeshes;
+
+
+    const created =
+        createEnvironmentColliders(
+            physicsMeshes
         );
 
 
-        console.log(
-            '🧱 Collision meshes:',
-            collisionMeshes.length
-        );
-
-    } catch (
-    error
-    ) {
-
-        console.error(
-            '❌ Error cargando escenario:',
-            error
-        );
+    console.log(
+        `✅ Colliders creados: ${created}`
+    );
 
 
-        throw error;
-
-    }
+    console.log(
+        '✅ WarfaceMap cargado'
+    );
 
 }
 
@@ -817,6 +796,20 @@ async function loadEnvironment() {
 function normalizeEnvironment(
     model
 ) {
+
+    model.scale.set(
+        1,
+        1,
+        1
+    );
+
+
+    model.position.set(
+        0,
+        0,
+        0
+    );
+
 
     model.updateMatrixWorld(
         true
@@ -839,25 +832,11 @@ function normalizeEnvironment(
     );
 
 
-    console.log(
-        '📏 Tamaño original escenario:',
-        size
-    );
-
-
-    // ========================================================
-    // ESCALAR
-    // ========================================================
-
     const largestDimension =
         Math.max(
             size.x,
             size.z
         );
-
-
-    const targetSize =
-        45;
 
 
     if (
@@ -866,7 +845,7 @@ function normalizeEnvironment(
     ) {
 
         const scale =
-            targetSize /
+            ENVIRONMENT_TARGET_SIZE /
             largestDimension;
 
 
@@ -874,17 +853,11 @@ function normalizeEnvironment(
             scale
         );
 
-
-        console.log(
-            '🔍 Escala escenario:',
-            scale
-        );
-
     }
 
 
     // ========================================================
-    // CENTRAR
+    // CENTRAR EN X / Z
     // ========================================================
 
     model.updateMatrixWorld(
@@ -892,11 +865,9 @@ function normalizeEnvironment(
     );
 
 
-    box =
-        new THREE.Box3()
-            .setFromObject(
-                model
-            );
+    box.setFromObject(
+        model
+    );
 
 
     const center =
@@ -911,12 +882,13 @@ function normalizeEnvironment(
     model.position.x -=
         center.x;
 
+
     model.position.z -=
         center.z;
 
 
     // ========================================================
-    // BASE EN Y = 0
+    // BASE Y = 0
     // ========================================================
 
     model.updateMatrixWorld(
@@ -924,11 +896,9 @@ function normalizeEnvironment(
     );
 
 
-    box =
-        new THREE.Box3()
-            .setFromObject(
-                model
-            );
+    box.setFromObject(
+        model
+    );
 
 
     model.position.y -=
@@ -939,54 +909,23 @@ function normalizeEnvironment(
         true
     );
 
-
-    // ========================================================
-    // TAMAÑO FINAL
-    // ========================================================
-
-    const finalBox =
-        new THREE.Box3()
-            .setFromObject(
-                model
-            );
-
-
-    const finalSize =
-        new THREE.Vector3();
-
-
-    finalBox.getSize(
-        finalSize
-    );
-
-
-    console.log(
-        '📐 Tamaño final escenario:',
-        finalSize
-    );
-
 }
 
 
 // ============================================================
-// BUSCAR ALTURA INICIAL DEL SUELO
-// ============================================================
-//
-// Este sistema ya NO controla el movimiento.
-//
-// Solo se usa cuando:
-// - carga el personaje
-// - reiniciamos la partida
-//
+// SUPERFICIES HORIZONTALES
 // ============================================================
 
-function placeCharacterOnGround() {
+function getHorizontalSurfaces(
+    x,
+    z
+) {
 
     if (
         !environment
     ) {
 
-        return false;
+        return [];
 
     }
 
@@ -997,14 +936,9 @@ function placeCharacterOnGround() {
 
 
     groundRayOrigin.set(
-
-        characterRoot.position.x,
-
-        characterRoot.position.y +
+        x,
         GROUND_RAY_HEIGHT,
-
-        characterRoot.position.z
-
+        z
     );
 
 
@@ -1026,110 +960,991 @@ function placeCharacterOnGround() {
         );
 
 
-    if (
-        intersections.length ===
-        0
+    const surfaces =
+        [];
+
+
+    for (
+        const intersection
+        of intersections
     ) {
 
-        return false;
+        const object =
+            intersection.object;
 
-    }
 
-
-    const groundHit =
-        intersections.find(
-
+        const name =
             (
-                intersection
-            ) => {
-
-                const object =
-                    intersection.object;
-
-
-                const name =
-                    object.name
-                        .toLowerCase();
+                object.name ||
+                ''
+            )
+                .toLowerCase();
 
 
-                // =================================================
-                // IGNORAR MALLAS COLLISION
-                // =================================================
+        if (
+            name.includes(
+                'collision'
+            ) ||
+            name.includes(
+                'collider'
+            )
+        ) {
 
-                if (
-                    name.includes(
-                        'collision'
-                    )
-                ) {
+            continue;
 
-                    return false;
-
-                }
-
-
-                // =================================================
-                // IGNORAR PAREDES
-                // =================================================
-
-                if (
-                    intersection.face
-                ) {
-
-                    normalMatrix.getNormalMatrix(
-                        object.matrixWorld
-                    );
+        }
 
 
-                    groundNormal
-                        .copy(
-                            intersection.face.normal
-                        )
-                        .applyMatrix3(
-                            normalMatrix
-                        )
-                        .normalize();
+        // ====================================================
+        // NORMAL
+        // ====================================================
+
+        if (
+            intersection.face
+        ) {
+
+            normalMatrix.getNormalMatrix(
+                object.matrixWorld
+            );
 
 
-                    if (
-                        groundNormal.y <
-                        0.35
-                    ) {
-
-                        return false;
-
-                    }
-
-                }
+            groundNormal
+                .copy(
+                    intersection.face.normal
+                )
+                .applyMatrix3(
+                    normalMatrix
+                )
+                .normalize();
 
 
-                return true;
+            if (
+                groundNormal.y <
+                0.55
+            ) {
+
+                continue;
 
             }
 
-        );
+        }
 
 
-    if (
-        !groundHit
-    ) {
+        // ====================================================
+        // EVITAR SUPERFICIES DUPLICADAS
+        // ====================================================
 
-        return false;
+        const duplicate =
+            surfaces.some(
+                (surface) =>
+
+                    Math.abs(
+                        surface.y -
+                        intersection.point.y
+                    ) <
+                    0.04
+            );
+
+
+        if (
+            duplicate
+        ) {
+
+            continue;
+
+        }
+
+
+        surfaces.push({
+            x:
+                intersection.point.x,
+
+            y:
+                intersection.point.y,
+
+            z:
+                intersection.point.z,
+
+            object
+        });
 
     }
 
 
-    characterRoot.position.y =
-        groundHit.point.y +
-        GROUND_OFFSET;
+    surfaces.sort(
+        (
+            a,
+            b
+        ) =>
+            a.y -
+            b.y
+    );
 
 
-    return true;
+    return surfaces;
 
 }
 
 
 // ============================================================
-// CALCULAR CAJA DEL PERSONAJE
+// ALTURA DEL SUELO
+// ============================================================
+
+function getGroundHeight(
+    x,
+    z
+) {
+
+    const surfaces =
+        getHorizontalSurfaces(
+            x,
+            z
+        );
+
+
+    if (
+        surfaces.length ===
+        0
+    ) {
+
+        return null;
+
+    }
+
+
+    const ground =
+        surfaces[0];
+
+
+    // ========================================================
+    // EVITAR ZONAS CUBIERTAS
+    // ========================================================
+
+    for (
+        let i = 1;
+        i <
+        surfaces.length;
+        i++
+    ) {
+
+        const difference =
+            surfaces[i].y -
+            ground.y;
+
+
+        if (
+            difference >
+            COVER_HEIGHT_THRESHOLD
+        ) {
+
+            return null;
+
+        }
+
+    }
+
+
+    return ground.y;
+
+}
+
+
+// ============================================================
+// SUPERFICIE MÁS ALTA
+// ============================================================
+
+function getTopSurfaceHeight(
+    x,
+    z
+) {
+
+    const surfaces =
+        getHorizontalSurfaces(
+            x,
+            z
+        );
+
+
+    if (
+        surfaces.length ===
+        0
+    ) {
+
+        return null;
+
+    }
+
+
+    return surfaces[
+        surfaces.length -
+        1
+    ].y;
+
+}
+
+
+// ============================================================
+// ESTIMAR ALTURA GENERAL DEL PISO
+// ============================================================
+
+function estimateFloorHeight() {
+
+    const heights =
+        [];
+
+
+    const columns =
+        16;
+
+
+    const rows =
+        16;
+
+
+    for (
+        let row = 0;
+        row <= rows;
+        row++
+    ) {
+
+        for (
+            let column = 0;
+            column <= columns;
+            column++
+        ) {
+
+            const x =
+                THREE.MathUtils.lerp(
+                    environmentBounds.min.x,
+                    environmentBounds.max.x,
+                    column /
+                    columns
+                );
+
+
+            const z =
+                THREE.MathUtils.lerp(
+                    environmentBounds.min.z,
+                    environmentBounds.max.z,
+                    row /
+                    rows
+                );
+
+
+            const surfaces =
+                getHorizontalSurfaces(
+                    x,
+                    z
+                );
+
+
+            if (
+                surfaces.length ===
+                0
+            ) {
+
+                continue;
+
+            }
+
+
+            heights.push(
+                surfaces[0].y
+            );
+
+        }
+
+    }
+
+
+    if (
+        heights.length ===
+        0
+    ) {
+
+        return 0;
+
+    }
+
+
+    heights.sort(
+        (
+            a,
+            b
+        ) =>
+            a -
+            b
+    );
+
+
+    const index =
+        Math.floor(
+            heights.length *
+            0.25
+        );
+
+
+    return heights[
+        Math.min(
+            index,
+            heights.length -
+            1
+        )
+    ];
+
+}
+
+
+// ============================================================
+// DETECTAR PLATAFORMAS
+// ============================================================
+
+function collectColumnPlatforms() {
+
+    console.log(
+        '🔎 Buscando plataformas elevadas...'
+    );
+
+
+    const floorHeight =
+        estimateFloorHeight();
+
+
+    console.log(
+        '📏 Piso aproximado:',
+        floorHeight
+    );
+
+
+    const STEP =
+        0.32;
+
+
+    const MIN_ELEVATION =
+        0.45;
+
+
+    const MAX_ELEVATION =
+        4.2;
+
+
+    const FLAT_TOLERANCE =
+        0.16;
+
+
+    const minX =
+        environmentBounds.min.x +
+        0.3;
+
+
+    const maxX =
+        environmentBounds.max.x -
+        0.3;
+
+
+    const minZ =
+        environmentBounds.min.z +
+        0.3;
+
+
+    const maxZ =
+        environmentBounds.max.z -
+        0.3;
+
+
+    const columns =
+        Math.max(
+            1,
+            Math.ceil(
+                (
+                    maxX -
+                    minX
+                ) /
+                STEP
+            )
+        );
+
+
+    const rows =
+        Math.max(
+            1,
+            Math.ceil(
+                (
+                    maxZ -
+                    minZ
+                ) /
+                STEP
+            )
+        );
+
+
+    // ========================================================
+    // PUNTOS ELEVADOS
+    // ========================================================
+
+    const elevatedPoints =
+        new Map();
+
+
+    for (
+        let row = 0;
+        row <= rows;
+        row++
+    ) {
+
+        const z =
+            THREE.MathUtils.lerp(
+                minZ,
+                maxZ,
+                row /
+                rows
+            );
+
+
+        for (
+            let column = 0;
+            column <= columns;
+            column++
+        ) {
+
+            const x =
+                THREE.MathUtils.lerp(
+                    minX,
+                    maxX,
+                    column /
+                    columns
+                );
+
+
+            const surfaces =
+                getHorizontalSurfaces(
+                    x,
+                    z
+                );
+
+
+            if (
+                surfaces.length ===
+                0
+            ) {
+
+                continue;
+
+            }
+
+
+            const top =
+                surfaces[
+                surfaces.length -
+                1
+                ];
+
+
+            const elevation =
+                top.y -
+                floorHeight;
+
+
+            if (
+                elevation <
+                MIN_ELEVATION ||
+                elevation >
+                MAX_ELEVATION
+            ) {
+
+                continue;
+
+            }
+
+
+            // =================================================
+            // COMPROBAR PLANICIDAD
+            // =================================================
+
+            const probe =
+                0.16;
+
+
+            const samples = [
+                [
+                    probe,
+                    0
+                ],
+                [
+                    -probe,
+                    0
+                ],
+                [
+                    0,
+                    probe
+                ],
+                [
+                    0,
+                    -probe
+                ]
+            ];
+
+
+            let valid =
+                true;
+
+
+            for (
+                const [
+                    offsetX,
+                    offsetZ
+                ]
+                of samples
+            ) {
+
+                const nearbyY =
+                    getTopSurfaceHeight(
+                        x +
+                        offsetX,
+                        z +
+                        offsetZ
+                    );
+
+
+                if (
+                    !Number.isFinite(
+                        nearbyY
+                    ) ||
+                    Math.abs(
+                        nearbyY -
+                        top.y
+                    ) >
+                    FLAT_TOLERANCE
+                ) {
+
+                    valid =
+                        false;
+
+
+                    break;
+
+                }
+
+            }
+
+
+            if (
+                !valid
+            ) {
+
+                continue;
+
+            }
+
+
+            elevatedPoints.set(
+                `${column},${row}`,
+                {
+                    column,
+                    row,
+                    x,
+                    y:
+                        top.y,
+                    z
+                }
+            );
+
+        }
+
+    }
+
+
+    console.log(
+        '🔎 Puntos elevados:',
+        elevatedPoints.size
+    );
+
+
+    // ========================================================
+    // AGRUPAR PUNTOS
+    // ========================================================
+
+    const visited =
+        new Set();
+
+
+    const platforms =
+        [];
+
+
+    const neighbors = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1]
+    ];
+
+
+    for (
+        const [
+            key,
+            startPoint
+        ]
+        of elevatedPoints
+    ) {
+
+        if (
+            visited.has(
+                key
+            )
+        ) {
+
+            continue;
+
+        }
+
+
+        const queue = [
+            startPoint
+        ];
+
+
+        const component =
+            [];
+
+
+        visited.add(
+            key
+        );
+
+
+        while (
+            queue.length >
+            0
+        ) {
+
+            const point =
+                queue.shift();
+
+
+            component.push(
+                point
+            );
+
+
+            for (
+                const [
+                    dx,
+                    dz
+                ]
+                of neighbors
+            ) {
+
+                const nextColumn =
+                    point.column +
+                    dx;
+
+
+                const nextRow =
+                    point.row +
+                    dz;
+
+
+                const nextKey =
+                    `${nextColumn},${nextRow}`;
+
+
+                if (
+                    visited.has(
+                        nextKey
+                    )
+                ) {
+
+                    continue;
+
+                }
+
+
+                const neighbor =
+                    elevatedPoints.get(
+                        nextKey
+                    );
+
+
+                if (
+                    !neighbor
+                ) {
+
+                    continue;
+
+                }
+
+
+                if (
+                    Math.abs(
+                        neighbor.y -
+                        point.y
+                    ) >
+                    0.20
+                ) {
+
+                    continue;
+
+                }
+
+
+                visited.add(
+                    nextKey
+                );
+
+
+                queue.push(
+                    neighbor
+                );
+
+            }
+
+        }
+
+
+        if (
+            component.length <
+            3
+        ) {
+
+            continue;
+
+        }
+
+
+        // ====================================================
+        // CALCULAR ÁREA
+        // ====================================================
+
+        let componentMinX =
+            Infinity;
+
+
+        let componentMaxX =
+            -Infinity;
+
+
+        let componentMinZ =
+            Infinity;
+
+
+        let componentMaxZ =
+            -Infinity;
+
+
+        let averageY =
+            0;
+
+
+        component.forEach(
+            (point) => {
+
+                componentMinX =
+                    Math.min(
+                        componentMinX,
+                        point.x
+                    );
+
+
+                componentMaxX =
+                    Math.max(
+                        componentMaxX,
+                        point.x
+                    );
+
+
+                componentMinZ =
+                    Math.min(
+                        componentMinZ,
+                        point.z
+                    );
+
+
+                componentMaxZ =
+                    Math.max(
+                        componentMaxZ,
+                        point.z
+                    );
+
+
+                averageY +=
+                    point.y;
+
+            }
+        );
+
+
+        averageY /=
+            component.length;
+
+
+        const width =
+            componentMaxX -
+            componentMinX +
+            STEP;
+
+
+        const depth =
+            componentMaxZ -
+            componentMinZ +
+            STEP;
+
+
+        // ====================================================
+        // FILTROS
+        // ====================================================
+
+        if (
+            width >
+            4 ||
+            depth >
+            4
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            width <
+            0.50 ||
+            depth <
+            0.50
+        ) {
+
+            continue;
+
+        }
+
+
+        platforms.push({
+            x:
+                (
+                    componentMinX +
+                    componentMaxX
+                ) /
+                2,
+
+            y:
+                averageY,
+
+            z:
+                (
+                    componentMinZ +
+                    componentMaxZ
+                ) /
+                2,
+
+            width,
+
+            depth,
+
+            height:
+                averageY -
+                floorHeight,
+
+            area:
+                width *
+                depth
+        });
+
+    }
+
+
+    // ========================================================
+    // ORDENAR
+    // ========================================================
+
+    platforms.sort(
+        (
+            a,
+            b
+        ) =>
+            b.area -
+            a.area
+    );
+
+
+    console.log(
+        '🏛️ Plataformas detectadas:',
+        platforms.length
+    );
+
+
+    platforms.forEach(
+        (
+            platform,
+            index
+        ) => {
+
+            console.log(
+                `🏛️ Plataforma ${index + 1}:`,
+                platform
+            );
+
+        }
+    );
+
+
+    return platforms;
+
+}
+
+
+// ============================================================
+// SPAWN FIJO
+// ============================================================
+
+function placeCharacterAtSpawn() {
+
+    currentSpawn.set(
+        FIXED_SPAWN.x,
+        FIXED_SPAWN.y,
+        FIXED_SPAWN.z
+    );
+
+
+    characterRoot.position.copy(
+        currentSpawn
+    );
+
+
+    console.log(
+        '📍 SPAWN FIJO:',
+        {
+            x:
+                currentSpawn.x,
+
+            y:
+                currentSpawn.y,
+
+            z:
+                currentSpawn.z
+        }
+    );
+
+
+    return {
+        x:
+            currentSpawn.x,
+
+        y:
+            currentSpawn.y,
+
+        z:
+            currentSpawn.z
+    };
+
+}
+
+
+// ============================================================
+// BOUNDING BOX ANIMADO
 // ============================================================
 
 function computeAnimatedCharacterBox() {
@@ -1143,10 +1958,6 @@ function computeAnimatedCharacterBox() {
     }
 
 
-    // ========================================================
-    // QUITAR COMPENSACIÓN ANTERIOR
-    // ========================================================
-
     characterVisual.position.y =
         0;
 
@@ -1159,15 +1970,12 @@ function computeAnimatedCharacterBox() {
     animatedCharacterBox.makeEmpty();
 
 
-    let foundSkinnedMesh =
+    let found =
         false;
 
 
     characterModel.traverse(
-
-        (
-            child
-        ) => {
+        (child) => {
 
             if (
                 !child.isSkinnedMesh
@@ -1178,7 +1986,7 @@ function computeAnimatedCharacterBox() {
             }
 
 
-            foundSkinnedMesh =
+            found =
                 true;
 
 
@@ -1217,19 +2025,17 @@ function computeAnimatedCharacterBox() {
             );
 
         }
-
     );
 
 
     if (
-        !foundSkinnedMesh ||
+        !found ||
         animatedCharacterBox.isEmpty()
     ) {
 
-        animatedCharacterBox
-            .setFromObject(
-                characterModel
-            );
+        animatedCharacterBox.setFromObject(
+            characterModel
+        );
 
     }
 
@@ -1240,7 +2046,7 @@ function computeAnimatedCharacterBox() {
 
 
 // ============================================================
-// ALINEAR PERSONAJE VISUAL CON LA CÁPSULA
+// ALINEAR PERSONAJE
 // ============================================================
 
 function alignAnimatedCharacterToGround() {
@@ -1255,12 +2061,8 @@ function alignAnimatedCharacterToGround() {
     }
 
 
-    const validBox =
-        computeAnimatedCharacterBox();
-
-
     if (
-        !validBox
+        !computeAnimatedCharacterBox()
     ) {
 
         return;
@@ -1268,17 +2070,9 @@ function alignAnimatedCharacterToGround() {
     }
 
 
-    const groundY =
-        characterRoot.position.y;
-
-
-    const visualBottomY =
-        animatedCharacterBox.min.y;
-
-
     const correction =
-        groundY -
-        visualBottomY;
+        characterRoot.position.y -
+        animatedCharacterBox.min.y;
 
 
     characterVisual.position.y =
@@ -1303,226 +2097,187 @@ async function loadCharacter() {
     );
 
 
-    try {
-
-        const gltf =
-            await loadGLTF(
-                CHARACTER_PATH
-            );
-
-
-        characterModel =
-            gltf.scene;
-
-
-        characterVisual.add(
-            characterModel
+    const gltf =
+        await loadGLTF(
+            CHARACTER_PATH
         );
 
 
-        // ====================================================
-        // SOMBRAS
-        // ====================================================
+    characterModel =
+        gltf.scene;
 
-        characterModel.traverse(
 
-            (
-                child
-            ) => {
+    characterVisual.add(
+        characterModel
+    );
 
-                if (
-                    child.isMesh
-                ) {
 
-                    child.castShadow =
-                        true;
+    characterModel.traverse(
+        (child) => {
 
-                    child.receiveShadow =
-                        true;
+            if (
+                child.isMesh
+            ) {
 
-                }
+                child.castShadow =
+                    true;
+
+
+                child.receiveShadow =
+                    true;
 
             }
 
-        );
+        }
+    );
 
 
-        // ====================================================
-        // NORMALIZAR
-        // ====================================================
+    // ========================================================
+    // NORMALIZAR
+    // ========================================================
 
-        normalizeCharacter(
+    normalizeCharacter(
+        characterModel
+    );
+
+
+    // ========================================================
+    // SPAWN
+    // ========================================================
+
+    placeCharacterAtSpawn();
+
+
+    // ========================================================
+    // FÍSICA
+    // ========================================================
+
+    createCharacterPhysics(
+        characterRoot.position
+    );
+
+
+    characterPhysicsCreated =
+        true;
+
+
+    characterModel.rotation.y =
+        MODEL_FORWARD_OFFSET;
+
+
+    // ========================================================
+    // MIXER
+    // ========================================================
+
+    mixer =
+        new THREE.AnimationMixer(
             characterModel
         );
 
 
-        // ====================================================
-        // POSICIÓN INICIAL
-        // ====================================================
-
-        characterRoot.position.copy(
-            PLAYER_SPAWN
-        );
+    await loadAnimations();
 
 
-        // ====================================================
-        // DETECTAR CALLE
-        // ====================================================
+    // ========================================================
+    // EVENTO FIN DE ANIMACIÓN
+    // ========================================================
 
-        placeCharacterOnGround();
+    mixer.addEventListener(
+        'finished',
 
+        (event) => {
 
-        // ====================================================
-        // CREAR CÁPSULA RAPIER
-        // ====================================================
-
-        createCharacterPhysics(
-            characterRoot.position
-        );
-
-
-        characterPhysicsCreated =
-            true;
-
-
-        // ====================================================
-        // ORIENTACIÓN VISUAL
-        // ====================================================
-
-        characterModel.rotation.y =
-            MODEL_FORWARD_OFFSET;
-
-
-        // ====================================================
-        // MIXER
-        // ====================================================
-
-        mixer =
-            new THREE.AnimationMixer(
-                characterModel
-            );
-
-
-        // ====================================================
-        // ANIMACIONES
-        // ====================================================
-
-        await loadAnimations();
-
-
-        // ====================================================
-        // TERMINA THROW
-        // ====================================================
-
-        mixer.addEventListener(
-
-            'finished',
-
-            (
-                event
-            ) => {
-
-                if (
-                    event.action !==
-                    actions.throw
-                ) {
-
-                    return;
-
-                }
-
-
-                isThrowing =
-                    false;
-
-
-                actions.throw.stop();
-
-
-                actions.throw.enabled =
-                    false;
-
-
+            if (
+                event.action !==
                 actions.throw
-                    .setEffectiveWeight(
-                        0
-                    );
+            ) {
+
+                return;
+
+            }
 
 
-                activeAction =
-                    null;
+            // Si por alguna razón no se lanzó
+            // durante la animación, lanzarla aquí.
+            if (
+                !grenadeReleased
+            ) {
 
-
-                activeActionName =
-                    '';
-
-
-                fadeToAction(
-                    getMovementAnimation(),
-                    0.12
+                launchGrenade(
+                    characterRoot
                 );
 
+
+                grenadeReleased =
+                    true;
+
             }
 
-        );
+
+            isThrowing =
+                false;
 
 
-        // ====================================================
-        // IDLE
-        // ====================================================
-
-        resetAllAnimationActions();
+            throwElapsed =
+                0;
 
 
-        fadeToAction(
-            'idle',
-            0
-        );
+            actions.throw.stop();
 
 
-        characterLoaded =
-            true;
+            actions.throw.enabled =
+                false;
 
 
-        if (
-            mixer
-        ) {
-
-            mixer.update(
+            actions.throw.setEffectiveWeight(
                 0
             );
 
+
+            activeAction =
+                null;
+
+
+            activeActionName =
+                '';
+
+
+            fadeToAction(
+                getMovementAnimation(),
+                0.12
+            );
+
         }
+    );
 
 
-        alignAnimatedCharacterToGround();
+    resetAllAnimationActions();
 
 
-        resetThirdPersonCamera();
+    fadeToAction(
+        'idle',
+        0
+    );
 
 
-        console.log(
-            '✅ SWAT cargado'
-        );
+    characterLoaded =
+        true;
 
 
-        console.log(
-            '⚙️ Física del SWAT activa'
-        );
-
-    } catch (
-    error
-    ) {
-
-        console.error(
-            '❌ Error cargando personaje:',
-            error
-        );
+    mixer.update(
+        0
+    );
 
 
-        throw error;
+    alignAnimatedCharacterToGround();
 
-    }
+
+    resetThirdPersonCamera();
+
+
+    console.log(
+        '✅ SWAT cargado'
+    );
 
 }
 
@@ -1570,41 +2325,21 @@ function normalizeCharacter(
     );
 
 
-    console.log(
-        '🧍 Tamaño original SWAT:',
-        size
-    );
-
-
-    // ========================================================
-    // ESCALAR
-    // ========================================================
-
     if (
         size.y >
         0
     ) {
 
-        const scale =
-            CHARACTER_HEIGHT /
-            size.y;
-
-
         model.scale.setScalar(
-            scale
-        );
-
-
-        console.log(
-            '🧍 Escala SWAT:',
-            scale
+            CHARACTER_HEIGHT /
+            size.y
         );
 
     }
 
 
     // ========================================================
-    // CENTRAR
+    // CENTRAR X / Z
     // ========================================================
 
     model.updateMatrixWorld(
@@ -1612,11 +2347,9 @@ function normalizeCharacter(
     );
 
 
-    box =
-        new THREE.Box3()
-            .setFromObject(
-                model
-            );
+    box.setFromObject(
+        model
+    );
 
 
     const center =
@@ -1637,7 +2370,7 @@ function normalizeCharacter(
 
 
     // ========================================================
-    // PIES EN Y = 0
+    // PIES SOBRE Y = 0 LOCAL
     // ========================================================
 
     model.updateMatrixWorld(
@@ -1645,11 +2378,9 @@ function normalizeCharacter(
     );
 
 
-    box =
-        new THREE.Box3()
-            .setFromObject(
-                model
-            );
+    box.setFromObject(
+        model
+    );
 
 
     model.position.y -=
@@ -1658,28 +2389,6 @@ function normalizeCharacter(
 
     model.updateMatrixWorld(
         true
-    );
-
-
-    const finalBox =
-        new THREE.Box3()
-            .setFromObject(
-                model
-            );
-
-
-    const finalSize =
-        new THREE.Vector3();
-
-
-    finalBox.getSize(
-        finalSize
-    );
-
-
-    console.log(
-        '🧍 Tamaño final SWAT:',
-        finalSize
     );
 
 }
@@ -1723,97 +2432,49 @@ async function loadAnimations() {
         ]);
 
 
-    // ========================================================
-    // CLIPS
-    // ========================================================
-
-    const idleClip =
-        getAnimationClip(
-            idleGLTF,
-            'idle'
-        );
-
-
-    const walkingClip =
-        getAnimationClip(
-            walkingGLTF,
-            'walking'
-        );
-
-
-    const runClip =
-        getAnimationClip(
-            runGLTF,
-            'run'
-        );
-
-
-    const throwClip =
-        getAnimationClip(
-            throwGLTF,
-            'throw'
-        );
-
-
-    // ========================================================
-    // ROOT MOTION
-    // ========================================================
-
-    const idleInPlace =
-        makeClipInPlace(
-            idleClip
-        );
-
-
-    const walkingInPlace =
-        makeClipInPlace(
-            walkingClip
-        );
-
-
-    const runInPlace =
-        makeClipInPlace(
-            runClip
-        );
-
-
-    const throwInPlace =
-        makeClipInPlace(
-            throwClip
-        );
-
-
-    // ========================================================
-    // ACTIONS
-    // ========================================================
-
     actions.idle =
         mixer.clipAction(
-            idleInPlace
+            makeClipInPlace(
+                getAnimationClip(
+                    idleGLTF,
+                    'idle'
+                )
+            )
         );
 
 
     actions.walking =
         mixer.clipAction(
-            walkingInPlace
+            makeClipInPlace(
+                getAnimationClip(
+                    walkingGLTF,
+                    'walking'
+                )
+            )
         );
 
 
     actions.run =
         mixer.clipAction(
-            runInPlace
+            makeClipInPlace(
+                getAnimationClip(
+                    runGLTF,
+                    'run'
+                )
+            )
         );
 
 
     actions.throw =
         mixer.clipAction(
-            throwInPlace
+            makeClipInPlace(
+                getAnimationClip(
+                    throwGLTF,
+                    'throw'
+                )
+            )
         );
 
-
-    // ========================================================
-    // LOOPS
-    // ========================================================
 
     actions.idle.setLoop(
         THREE.LoopRepeat
@@ -1841,22 +2502,7 @@ async function loadAnimations() {
 
 
     console.log(
-        `🎞️ Idle: ${idleInPlace.duration.toFixed(2)}s`
-    );
-
-
-    console.log(
-        `🎞️ Walking: ${walkingInPlace.duration.toFixed(2)}s`
-    );
-
-
-    console.log(
-        `🎞️ Run: ${runInPlace.duration.toFixed(2)}s`
-    );
-
-
-    console.log(
-        `🎞️ Throw: ${throwInPlace.duration.toFixed(2)}s`
+        '✅ Animaciones cargadas'
     );
 
 }
@@ -1878,7 +2524,7 @@ function getAnimationClip(
     ) {
 
         throw new Error(
-            `${name}.glb no contiene animaciones.`
+            `${name}.glb no contiene animaciones`
         );
 
     }
@@ -1899,7 +2545,7 @@ function getAnimationClip(
 
 
 // ============================================================
-// ELIMINAR ROOT MOTION X/Z
+// QUITAR ROOT MOTION
 // ============================================================
 
 function makeClipInPlace(
@@ -1911,10 +2557,7 @@ function makeClipInPlace(
 
 
     clip.tracks.forEach(
-
-        (
-            track
-        ) => {
+        (track) => {
 
             const trackName =
                 track.name
@@ -1956,15 +2599,13 @@ function makeClipInPlace(
 
             for (
                 let i = 0;
-                i < values.length;
+                i <
+                values.length;
                 i += 3
             ) {
 
                 values[i] =
                     initialX;
-
-
-                // Y se conserva.
 
 
                 values[i + 2] =
@@ -1973,7 +2614,6 @@ function makeClipInPlace(
             }
 
         }
-
     );
 
 
@@ -1994,10 +2634,7 @@ function resetAllAnimationActions() {
     Object.values(
         actions
     ).forEach(
-
-        (
-            action
-        ) => {
+        (action) => {
 
             if (
                 !action
@@ -2025,7 +2662,6 @@ function resetAllAnimationActions() {
             );
 
         }
-
     );
 
 
@@ -2038,6 +2674,14 @@ function resetAllAnimationActions() {
 
 
     isThrowing =
+        false;
+
+
+    throwElapsed =
+        0;
+
+
+    grenadeReleased =
         false;
 
 }
@@ -2088,16 +2732,14 @@ function fadeToAction(
     nextAction.reset();
 
 
-    nextAction
-        .setEffectiveTimeScale(
-            1
-        );
+    nextAction.setEffectiveTimeScale(
+        1
+    );
 
 
-    nextAction
-        .setEffectiveWeight(
-            1
-        );
+    nextAction.setEffectiveWeight(
+        1
+    );
 
 
     nextAction.play();
@@ -2118,12 +2760,6 @@ function fadeToAction(
             duration
         );
 
-    } else {
-
-        nextAction.fadeIn(
-            duration
-        );
-
     }
 
 
@@ -2138,7 +2774,7 @@ function fadeToAction(
 
 
 // ============================================================
-// THROW
+// INICIAR THROW
 // ============================================================
 
 function playThrow() {
@@ -2164,8 +2800,25 @@ function playThrow() {
     }
 
 
+    if (
+        !canThrowGrenade()
+    ) {
+
+        return;
+
+    }
+
+
     isThrowing =
         true;
+
+
+    throwElapsed =
+        0;
+
+
+    grenadeReleased =
+        false;
 
 
     const previousAction =
@@ -2193,16 +2846,14 @@ function playThrow() {
     throwAction.reset();
 
 
-    throwAction
-        .setEffectiveTimeScale(
-            1
-        );
+    throwAction.setEffectiveTimeScale(
+        1
+    );
 
 
-    throwAction
-        .setEffectiveWeight(
-            1
-        );
+    throwAction.setEffectiveWeight(
+        1
+    );
 
 
     throwAction.play();
@@ -2233,27 +2884,20 @@ function playThrow() {
     activeActionName =
         'throw';
 
-
-    console.log(
-        '💥 THROW'
-    );
-
 }
 
 
 // ============================================================
-// MOVIMIENTO ACTIVO
+// COMPROBAR MOVIMIENTO
 // ============================================================
 
 function isMoving() {
 
     return (
-
         keys.w ||
         keys.a ||
         keys.s ||
         keys.d
-
     );
 
 }
@@ -2274,16 +2918,11 @@ function getMovementAnimation() {
     }
 
 
-    if (
-        keys.shift
-    ) {
-
-        return 'run';
-
-    }
-
-
-    return 'walking';
+    return keys.shift
+        ?
+        'run'
+        :
+        'walking';
 
 }
 
@@ -2306,7 +2945,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // ANIMACIONES
+    // MIXER
     // ========================================================
 
     if (
@@ -2331,19 +2970,47 @@ function updateCharacter(
 
         alignAnimatedCharacterToGround();
 
-
         return;
 
     }
 
 
     // ========================================================
-    // THROW
+    // LANZANDO GRANADA
     // ========================================================
 
     if (
         isThrowing
     ) {
+
+        throwElapsed +=
+            delta;
+
+
+        // ====================================================
+        // SOLTAR GRANADA
+        // ====================================================
+
+        if (
+            !grenadeReleased &&
+            throwElapsed >=
+            GRENADE_RELEASE_TIME
+        ) {
+
+            launchGrenade(
+                characterRoot
+            );
+
+
+            grenadeReleased =
+                true;
+
+        }
+
+
+        // ====================================================
+        // DETENER MOVIMIENTO DURANTE THROW
+        // ====================================================
 
         horizontalPhysicsMovement.x =
             0;
@@ -2424,7 +3091,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // W
+    // WASD
     // ========================================================
 
     if (
@@ -2438,10 +3105,6 @@ function updateCharacter(
     }
 
 
-    // ========================================================
-    // S
-    // ========================================================
-
     if (
         keys.s
     ) {
@@ -2452,10 +3115,6 @@ function updateCharacter(
 
     }
 
-
-    // ========================================================
-    // D
-    // ========================================================
 
     if (
         keys.d
@@ -2468,10 +3127,6 @@ function updateCharacter(
     }
 
 
-    // ========================================================
-    // A
-    // ========================================================
-
     if (
         keys.a
     ) {
@@ -2482,10 +3137,6 @@ function updateCharacter(
 
     }
 
-
-    // ========================================================
-    // MOVIMIENTO
-    // ========================================================
 
     const hasMovement =
         moveDirection.lengthSq() >
@@ -2500,6 +3151,10 @@ function updateCharacter(
 
     }
 
+
+    // ========================================================
+    // VELOCIDAD
+    // ========================================================
 
     const speed =
         keys.shift
@@ -2530,7 +3185,7 @@ function updateCharacter(
 
 
     // ========================================================
-    // RAPIER DECIDE EL MOVIMIENTO
+    // RAPIER
     // ========================================================
 
     const physicsPosition =
@@ -2539,10 +3194,6 @@ function updateCharacter(
             delta
         );
 
-
-    // ========================================================
-    // SINCRONIZAR THREE.JS
-    // ========================================================
 
     syncCharacterFromPhysics(
         physicsPosition
@@ -2593,16 +3244,8 @@ function updateCharacter(
     }
 
 
-    // ========================================================
-    // CORRECCIÓN VISUAL
-    // ========================================================
-
     alignAnimatedCharacterToGround();
 
-
-    // ========================================================
-    // CÁMARA
-    // ========================================================
 
     updateThirdPersonCamera();
 
@@ -2610,15 +3253,15 @@ function updateCharacter(
 
 
 // ============================================================
-// SINCRONIZAR THREE CON RAPIER
+// SINCRONIZAR PERSONAJE CON RAPIER
 // ============================================================
 
 function syncCharacterFromPhysics(
-    physicsPosition
+    position
 ) {
 
     if (
-        !physicsPosition
+        !position
     ) {
 
         return;
@@ -2627,20 +3270,16 @@ function syncCharacterFromPhysics(
 
 
     characterRoot.position.set(
-
-        physicsPosition.x,
-
-        physicsPosition.y,
-
-        physicsPosition.z
-
+        position.x,
+        position.y,
+        position.z
     );
 
 }
 
 
 // ============================================================
-// ROTACIÓN SUAVE
+// ROTAR PERSONAJE
 // ============================================================
 
 function rotateCharacterTowards(
@@ -2659,15 +3298,12 @@ function rotateCharacterTowards(
 
     difference =
         Math.atan2(
-
             Math.sin(
                 difference
             ),
-
             Math.cos(
                 difference
             )
-
         );
 
 
@@ -2689,11 +3325,9 @@ function rotateCharacterTowards(
     } else {
 
         currentAngle +=
-
             Math.sign(
                 difference
             ) *
-
             maxRotation;
 
     }
@@ -2706,20 +3340,16 @@ function rotateCharacterTowards(
 
 
 // ============================================================
-// CÁMARA INICIAL
+// REINICIAR CÁMARA
 // ============================================================
 
 function resetThirdPersonCamera() {
 
     desiredTarget.set(
-
         characterRoot.position.x,
-
         characterRoot.position.y +
-        0.95,
-
+        0.9,
         characterRoot.position.z
-
     );
 
 
@@ -2729,16 +3359,12 @@ function resetThirdPersonCamera() {
 
 
     camera.position.set(
-
         characterRoot.position.x +
-        2.4,
-
+        4.2,
         characterRoot.position.y +
-        2.0,
-
+        3.0,
         characterRoot.position.z +
-        3.4
-
+        6.2
     );
 
 
@@ -2753,7 +3379,7 @@ function resetThirdPersonCamera() {
 
 
 // ============================================================
-// CÁMARA DE SEGUIMIENTO
+// CÁMARA SIGUIENDO AL PERSONAJE
 // ============================================================
 
 function updateThirdPersonCamera() {
@@ -2768,14 +3394,10 @@ function updateThirdPersonCamera() {
 
 
     desiredTarget.set(
-
         characterRoot.position.x,
-
         characterRoot.position.y +
-        0.95,
-
+        0.9,
         characterRoot.position.z
-
     );
 
 
@@ -2801,16 +3423,13 @@ function updateThirdPersonCamera() {
 
 
 // ============================================================
-// KEYDOWN
+// TECLADO
 // ============================================================
 
 window.addEventListener(
-
     'keydown',
 
-    (
-        event
-    ) => {
+    (event) => {
 
         const key =
             event.key
@@ -2818,146 +3437,138 @@ window.addEventListener(
 
 
         // ====================================================
-        // THROW
+        // F = LANZAR GRANADA
         // ====================================================
 
         if (
-            key ===
-            'f' &&
+            key === 'f' &&
             !event.repeat
         ) {
 
             playThrow();
-
 
             return;
 
         }
 
 
-        switch (
-        key
+        if (
+            key === 'w'
         ) {
 
-            case 'w':
+            keys.w =
+                true;
 
-                keys.w =
-                    true;
-
-                break;
+        }
 
 
-            case 'a':
+        if (
+            key === 'a'
+        ) {
 
-                keys.a =
-                    true;
+            keys.a =
+                true;
 
-                break;
-
-
-            case 's':
-
-                keys.s =
-                    true;
-
-                break;
+        }
 
 
-            case 'd':
+        if (
+            key === 's'
+        ) {
 
-                keys.d =
-                    true;
+            keys.s =
+                true;
 
-                break;
+        }
 
 
-            case 'shift':
+        if (
+            key === 'd'
+        ) {
 
-                keys.shift =
-                    true;
+            keys.d =
+                true;
 
-                break;
+        }
+
+
+        if (
+            key === 'shift'
+        ) {
+
+            keys.shift =
+                true;
 
         }
 
     }
-
 );
 
 
-// ============================================================
-// KEYUP
-// ============================================================
-
 window.addEventListener(
-
     'keyup',
 
-    (
-        event
-    ) => {
+    (event) => {
 
         const key =
             event.key
                 .toLowerCase();
 
 
-        switch (
-        key
+        if (
+            key === 'w'
         ) {
 
-            case 'w':
+            keys.w =
+                false;
 
-                keys.w =
-                    false;
-
-                break;
+        }
 
 
-            case 'a':
+        if (
+            key === 'a'
+        ) {
 
-                keys.a =
-                    false;
+            keys.a =
+                false;
 
-                break;
-
-
-            case 's':
-
-                keys.s =
-                    false;
-
-                break;
+        }
 
 
-            case 'd':
+        if (
+            key === 's'
+        ) {
 
-                keys.d =
-                    false;
+            keys.s =
+                false;
 
-                break;
+        }
 
 
-            case 'shift':
+        if (
+            key === 'd'
+        ) {
 
-                keys.shift =
-                    false;
+            keys.d =
+                false;
 
-                break;
+        }
+
+
+        if (
+            key === 'shift'
+        ) {
+
+            keys.shift =
+                false;
 
         }
 
     }
-
 );
 
 
-// ============================================================
-// PÉRDIDA DE FOCO
-// ============================================================
-
 window.addEventListener(
-
     'blur',
 
     () => {
@@ -2978,7 +3589,6 @@ window.addEventListener(
             false;
 
     }
-
 );
 
 
@@ -3003,11 +3613,8 @@ function updateUI() {
 
 
     updateObjectives(
-
         objectives.destroyed,
-
         objectives.total
-
     );
 
 }
@@ -3019,18 +3626,18 @@ function updateUI() {
 
 function updateVersionLabel() {
 
-    const label =
+    const version =
         document.querySelector(
             '.version'
         );
 
 
     if (
-        label
+        version
     ) {
 
-        label.textContent =
-            'VERSION 0.4 · FÍSICA Y COLISIONES';
+        version.textContent =
+            'VERSION 0.6 · GRANADAS Y FÍSICAS';
 
     }
 
@@ -3038,7 +3645,7 @@ function updateVersionLabel() {
 
 
 // ============================================================
-// LOADING
+// ESTADO DE CARGA
 // ============================================================
 
 function setLoadingState(
@@ -3060,39 +3667,28 @@ function setLoadingState(
     }
 
 
-    if (
+    button.disabled =
+        loading;
+
+
+    button.textContent =
         loading
-    ) {
-
-        button.disabled =
-            true;
-
-
-        button.textContent =
-            'CARGANDO...';
-
-    } else {
-
-        button.disabled =
-            false;
-
-
-        button.textContent =
+            ?
+            'CARGANDO...'
+            :
             'INICIAR MISIÓN';
-
-    }
 
 }
 
 
 // ============================================================
-// INICIALIZAR
+// INICIALIZAR JUEGO
 // ============================================================
 
 async function init() {
 
     console.log(
-        '🎮 OPERATION IMPACT v0.4'
+        '🎮 OPERATION IMPACT v0.6'
     );
 
 
@@ -3110,43 +3706,109 @@ async function init() {
     try {
 
         // ====================================================
-        // RAPIER
+        // FÍSICA
         // ====================================================
 
         await initPhysics();
 
 
         // ====================================================
-        // ESCENARIO + COLLIDERS
+        // MAPA
         // ====================================================
 
         await loadEnvironment();
 
 
         // ====================================================
-        // PERSONAJE + CÁPSULA
+        // PERSONAJE
         // ====================================================
 
         await loadCharacter();
 
 
         // ====================================================
-        // BOTÓN
+        // GRANADAS
+        // ====================================================
+
+        initGrenadeSystem(
+            scene
+        );
+
+
+        // ====================================================
+        // PLATAFORMAS
+        // ====================================================
+
+        const columnPlatforms =
+            collectColumnPlatforms();
+
+
+        // ====================================================
+        // OBJETOS DINÁMICOS
+        // ====================================================
+
+        if (
+            ENABLE_DYNAMIC_OBJECTS
+        ) {
+
+            initDynamicObjects(
+
+                scene,
+
+                getGroundHeight,
+
+                {
+                    minX:
+                        environmentBounds.min.x,
+
+                    maxX:
+                        environmentBounds.max.x,
+
+                    minZ:
+                        environmentBounds.min.z,
+
+                    maxZ:
+                        environmentBounds.max.z,
+
+                    spawn: {
+                        x:
+                            currentSpawn.x,
+
+                        z:
+                            currentSpawn.z
+                    },
+
+                    columnPlatforms
+                }
+
+            );
+
+        }
+
+
+        // ====================================================
+        // BOTÓN INICIAR
         // ====================================================
 
         setupStartButton(
-
             () => {
 
                 startGame();
 
 
-                // =================================================
-                // POSICIÓN VISUAL
-                // =================================================
+                // =============================================
+                // GRANADAS
+                // =============================================
+
+                resetGrenades();
+
+
+                // =============================================
+                // PERSONAJE AL SPAWN FIJO
+                // =============================================
 
                 characterRoot.position.copy(
-                    PLAYER_SPAWN
+                    currentSpawn
                 );
 
 
@@ -3154,39 +3816,24 @@ async function init() {
                     0;
 
 
-                // =================================================
-                // OBTENER ALTURA DE LA CALLE
-                // =================================================
-
-                placeCharacterOnGround();
-
-
-                // =================================================
-                // REPOSICIONAR CÁPSULA
-                // =================================================
-
                 if (
                     characterPhysicsCreated
                 ) {
 
                     setCharacterPhysicsPosition(
-                        characterRoot.position
+                        currentSpawn
                     );
 
                 }
 
 
-                // =================================================
-                // ROTACIÓN
-                // =================================================
-
                 characterRoot.rotation.y =
                     0;
 
 
-                // =================================================
+                // =============================================
                 // ANIMACIONES
-                // =================================================
+                // =============================================
 
                 resetAllAnimationActions();
 
@@ -3208,16 +3855,25 @@ async function init() {
                 }
 
 
-                // =================================================
-                // PIES
-                // =================================================
-
                 alignAnimatedCharacterToGround();
 
 
-                // =================================================
+                // =============================================
+                // REINICIAR OBJETOS
+                // =============================================
+
+                if (
+                    ENABLE_DYNAMIC_OBJECTS
+                ) {
+
+                    resetDynamicObjects();
+
+                }
+
+
+                // =============================================
                 // CÁMARA
-                // =================================================
+                // =============================================
 
                 resetThirdPersonCamera();
 
@@ -3228,11 +3884,20 @@ async function init() {
 
 
                 console.log(
-                    '⚙️ Character Controller activo'
+                    '📍 Spawn:',
+                    {
+                        x:
+                            currentSpawn.x,
+
+                        y:
+                            currentSpawn.y,
+
+                        z:
+                            currentSpawn.z
+                    }
                 );
 
             }
-
         );
 
 
@@ -3242,7 +3907,7 @@ async function init() {
 
 
         console.log(
-            '✅ OPERATION IMPACT v0.4 LISTO'
+            '✅ OPERATION IMPACT LISTO'
         );
 
     } catch (
@@ -3280,7 +3945,7 @@ async function init() {
 
 
 // ============================================================
-// GAME LOOP
+// LOOP PRINCIPAL
 // ============================================================
 
 function animate() {
@@ -3307,10 +3972,32 @@ function animate() {
 
 
     // ========================================================
-    // RAPIER
+    // FÍSICA RAPIER
     // ========================================================
 
     updatePhysics(
+        delta
+    );
+
+
+    // ========================================================
+    // OBJETOS
+    // ========================================================
+
+    if (
+        ENABLE_DYNAMIC_OBJECTS
+    ) {
+
+        updateDynamicObjects();
+
+    }
+
+
+    // ========================================================
+    // GRANADAS
+    // ========================================================
+
+    updateGrenades(
         delta
     );
 
@@ -3332,7 +4019,7 @@ function animate() {
 
 
     // ========================================================
-    // HUD
+    // INTERFAZ
     // ========================================================
 
     updateUI();
@@ -3355,7 +4042,6 @@ function animate() {
 // ============================================================
 
 window.addEventListener(
-
     'resize',
 
     () => {
@@ -3375,21 +4061,18 @@ window.addEventListener(
 
 
         renderer.setPixelRatio(
-
             Math.min(
                 window.devicePixelRatio,
                 2
             )
-
         );
 
     }
-
 );
 
 
 // ============================================================
-// INICIAR
+// INICIO
 // ============================================================
 
 init();

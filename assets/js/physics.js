@@ -7,7 +7,6 @@ import * as THREE from 'three';
 // ============================================================
 
 let physicsWorld = null;
-
 let physicsReady = false;
 
 
@@ -16,18 +15,15 @@ let physicsReady = false;
 // ============================================================
 
 let characterBody = null;
-
 let characterCollider = null;
-
 let characterController = null;
 
 
 // ============================================================
-// COLLIDERS DEL ESCENARIO
+// ESCENARIO
 // ============================================================
 
 const environmentBodies = [];
-
 const environmentColliders = [];
 
 
@@ -41,22 +37,6 @@ const GRAVITY = -9.81;
 // ============================================================
 // CÁPSULA DEL PERSONAJE
 // ============================================================
-//
-// Personaje visual:
-// aproximadamente 1.35 unidades.
-//
-// Rapier define la cápsula mediante:
-//
-// halfHeight = parte cilíndrica / 2
-// radius     = extremos redondeados
-//
-// Altura total:
-//
-// halfHeight * 2 + radius * 2
-//
-// 0.405 * 2 + 0.27 * 2 = 1.35
-//
-// ============================================================
 
 const CHARACTER_RADIUS = 0.27;
 
@@ -68,14 +48,14 @@ const CHARACTER_FOOT_OFFSET =
 
 
 // ============================================================
-// MOVIMIENTO VERTICAL
+// GRAVEDAD DEL PERSONAJE
 // ============================================================
 
 let verticalVelocity = 0;
 
 
 // ============================================================
-// TEMPORALES THREE.JS
+// TEMPORALES
 // ============================================================
 
 const tempVertex =
@@ -88,26 +68,15 @@ const tempVertex =
 
 export async function initPhysics() {
 
-    if (
-        physicsReady
-    ) {
-
+    if (physicsReady) {
         return;
-
     }
-
 
     console.log(
         '⚙️ Inicializando Rapier...'
     );
 
-
     await RAPIER.init();
-
-
-    // ========================================================
-    // CREAR MUNDO
-    // ========================================================
 
     physicsWorld =
         new RAPIER.World({
@@ -116,10 +85,7 @@ export async function initPhysics() {
             z: 0
         });
 
-
-    physicsReady =
-        true;
-
+    physicsReady = true;
 
     console.log(
         '✅ Rapier inicializado'
@@ -151,7 +117,7 @@ export function isPhysicsReady() {
 
 
 // ============================================================
-// CREAR COLLIDER ESTÁTICO DESDE UNA MALLA THREE.JS
+// CREAR COLLIDER ESTÁTICO
 // ============================================================
 
 export function createStaticMeshCollider(
@@ -163,42 +129,28 @@ export function createStaticMeshCollider(
         !mesh ||
         !mesh.geometry
     ) {
-
         return null;
-
     }
-
-
-    // ========================================================
-    // MATRIZ GLOBAL
-    // ========================================================
 
     mesh.updateWorldMatrix(
         true,
         false
     );
 
-
     const geometry =
         mesh.geometry;
-
 
     const positionAttribute =
         geometry.attributes.position;
 
-
-    if (
-        !positionAttribute
-    ) {
+    if (!positionAttribute) {
 
         console.warn(
-            '⚠️ Malla sin atributo position:',
+            '⚠️ Malla sin posiciones:',
             mesh.name
         );
 
-
         return null;
-
     }
 
 
@@ -208,8 +160,7 @@ export function createStaticMeshCollider(
 
     const vertices =
         new Float32Array(
-            positionAttribute.count *
-            3
+            positionAttribute.count * 3
         );
 
 
@@ -224,25 +175,18 @@ export function createStaticMeshCollider(
             i
         );
 
-
-        // Convertimos coordenadas locales
-        // a coordenadas globales.
         tempVertex.applyMatrix4(
             mesh.matrixWorld
         );
 
-
         const index =
             i * 3;
-
 
         vertices[index] =
             tempVertex.x;
 
-
         vertices[index + 1] =
             tempVertex.y;
-
 
         vertices[index + 2] =
             tempVertex.z;
@@ -257,28 +201,24 @@ export function createStaticMeshCollider(
     let indices;
 
 
-    if (
-        geometry.index
-    ) {
+    if (geometry.index) {
 
-        const originalIndices =
+        const original =
             geometry.index.array;
-
 
         indices =
             new Uint32Array(
-                originalIndices.length
+                original.length
             );
-
 
         for (
             let i = 0;
-            i < originalIndices.length;
+            i < original.length;
             i++
         ) {
 
             indices[i] =
-                originalIndices[i];
+                original[i];
 
         }
 
@@ -288,7 +228,6 @@ export function createStaticMeshCollider(
             new Uint32Array(
                 positionAttribute.count
             );
-
 
         for (
             let i = 0;
@@ -305,7 +244,7 @@ export function createStaticMeshCollider(
 
 
     // ========================================================
-    // RIGID BODY FIJO
+    // BODY ESTÁTICO
     // ========================================================
 
     const bodyDesc =
@@ -319,7 +258,7 @@ export function createStaticMeshCollider(
 
 
     // ========================================================
-    // TRIMESH COLLIDER
+    // TRIMESH
     // ========================================================
 
     const colliderDesc =
@@ -330,9 +269,8 @@ export function createStaticMeshCollider(
 
 
     colliderDesc.setFriction(
-        0.8
+        0.9
     );
-
 
     colliderDesc.setRestitution(
         0
@@ -350,14 +288,14 @@ export function createStaticMeshCollider(
         body
     );
 
-
     environmentColliders.push(
         collider
     );
 
 
     console.log(
-        `🧱 Collider: ${mesh.name || 'sin nombre'}`
+        '🧱 Collider estático:',
+        mesh.name
     );
 
 
@@ -377,39 +315,30 @@ export function createEnvironmentColliders(
     meshes
 ) {
 
-    if (
-        !physicsWorld
-    ) {
+    if (!physicsWorld) {
 
         console.error(
-            '❌ No existe physicsWorld.'
+            '❌ Rapier no está inicializado.'
         );
 
-
         return 0;
-
     }
 
 
     if (
-        !Array.isArray(
-            meshes
-        ) ||
+        !Array.isArray(meshes) ||
         meshes.length === 0
     ) {
 
         console.warn(
-            '⚠️ No se encontraron mallas Collision.'
+            '⚠️ No existen Collision meshes.'
         );
 
-
         return 0;
-
     }
 
 
-    let created =
-        0;
+    let count = 0;
 
 
     meshes.forEach(
@@ -420,13 +349,8 @@ export function createEnvironmentColliders(
                     mesh
                 );
 
-
-            if (
-                result
-            ) {
-
-                created++;
-
+            if (result) {
+                count++;
             }
 
         }
@@ -434,68 +358,54 @@ export function createEnvironmentColliders(
 
 
     console.log(
-        `✅ Colliders del escenario: ${created}`
+        `✅ ${count} colliders del escenario creados`
     );
 
 
-    return created;
+    return count;
 
 }
 
 
 // ============================================================
-// CREAR PERSONAJE FÍSICO
+// CREAR PERSONAJE
 // ============================================================
 
 export function createCharacterPhysics(
     groundPosition
 ) {
 
-    if (
-        !physicsWorld
-    ) {
+    if (!physicsWorld) {
 
         console.error(
-            '❌ Rapier todavía no está inicializado.'
+            '❌ Rapier no está inicializado.'
         );
 
-
         return;
-
     }
 
 
     // ========================================================
-    // ELIMINAR PERSONAJE ANTERIOR
+    // ELIMINAR BODY ANTERIOR
     // ========================================================
 
-    if (
-        characterBody
-    ) {
+    if (characterBody) {
 
         physicsWorld.removeRigidBody(
             characterBody
         );
 
-
-        characterBody =
-            null;
-
-
-        characterCollider =
-            null;
+        characterBody = null;
+        characterCollider = null;
 
     }
 
 
-    if (
-        characterController
-    ) {
+    if (characterController) {
 
         physicsWorld.removeCharacterController(
             characterController
         );
-
 
         characterController =
             null;
@@ -504,25 +414,21 @@ export function createCharacterPhysics(
 
 
     // ========================================================
-    // POSICIÓN CENTRAL DE LA CÁPSULA
-    // ========================================================
-
-    const centerY =
-        groundPosition.y +
-        CHARACTER_FOOT_OFFSET;
-
-
-    // ========================================================
-    // RIGID BODY CINEMÁTICO
+    // BODY CINEMÁTICO
     // ========================================================
 
     const bodyDesc =
         RAPIER.RigidBodyDesc
             .kinematicPositionBased()
             .setTranslation(
+
                 groundPosition.x,
-                centerY,
+
+                groundPosition.y +
+                CHARACTER_FOOT_OFFSET,
+
                 groundPosition.z
+
             );
 
 
@@ -533,7 +439,7 @@ export function createCharacterPhysics(
 
 
     // ========================================================
-    // COLLIDER CÁPSULA
+    // CÁPSULA
     // ========================================================
 
     const colliderDesc =
@@ -546,7 +452,6 @@ export function createCharacterPhysics(
     colliderDesc.setFriction(
         0
     );
-
 
     colliderDesc.setRestitution(
         0
@@ -570,10 +475,6 @@ export function createCharacterPhysics(
         );
 
 
-    // ========================================================
-    // SUBIR PEQUEÑOS ESCALONES
-    // ========================================================
-
     characterController.enableAutostep(
         0.22,
         0.12,
@@ -581,18 +482,10 @@ export function createCharacterPhysics(
     );
 
 
-    // ========================================================
-    // PEGARSE AL SUELO
-    // ========================================================
-
     characterController.enableSnapToGround(
         0.25
     );
 
-
-    // ========================================================
-    // PENDIENTES
-    // ========================================================
 
     characterController.setMaxSlopeClimbAngle(
         THREE.MathUtils.degToRad(
@@ -608,13 +501,7 @@ export function createCharacterPhysics(
     );
 
 
-    // ========================================================
-    // OBJETOS DINÁMICOS
-    // ========================================================
-    //
-    // Nos servirá más adelante en v0.5.
-    //
-
+    // Permite empujar objetos dinámicos.
     characterController
         .setApplyImpulsesToDynamicBodies(
             true
@@ -629,18 +516,6 @@ export function createCharacterPhysics(
         '🧍 Personaje físico creado'
     );
 
-
-    console.log(
-        '📏 Capsule radius:',
-        CHARACTER_RADIUS
-    );
-
-
-    console.log(
-        '📏 Capsule halfHeight:',
-        CHARACTER_HALF_HEIGHT
-    );
-
 }
 
 
@@ -652,12 +527,8 @@ export function setCharacterPhysicsPosition(
     groundPosition
 ) {
 
-    if (
-        !characterBody
-    ) {
-
+    if (!characterBody) {
         return;
-
     }
 
 
@@ -697,18 +568,6 @@ export function setCharacterPhysicsPosition(
 // ============================================================
 // MOVER PERSONAJE
 // ============================================================
-//
-// horizontalMovement YA debe venir multiplicado
-// por velocidad y delta.
-//
-// Ejemplo:
-//
-// {
-//     x: direction.x * speed * delta,
-//     z: direction.z * speed * delta
-// }
-//
-// ============================================================
 
 export function moveCharacter(
     horizontalMovement,
@@ -743,7 +602,7 @@ export function moveCharacter(
 
 
     // ========================================================
-    // MOVIMIENTO DESEADO
+    // MOVIMIENTO
     // ========================================================
 
     const desiredMovement = {
@@ -761,10 +620,6 @@ export function moveCharacter(
     };
 
 
-    // ========================================================
-    // CHARACTER CONTROLLER
-    // ========================================================
-
     characterController
         .computeColliderMovement(
             characterCollider,
@@ -772,26 +627,14 @@ export function moveCharacter(
         );
 
 
-    // ========================================================
-    // MOVIMIENTO PERMITIDO
-    // ========================================================
-
     const correctedMovement =
         characterController
             .computedMovement();
 
 
-    // ========================================================
-    // POSICIÓN ACTUAL
-    // ========================================================
-
     const current =
         characterBody.translation();
 
-
-    // ========================================================
-    // NUEVA POSICIÓN
-    // ========================================================
 
     const next = {
 
@@ -810,19 +653,11 @@ export function moveCharacter(
     };
 
 
-    // ========================================================
-    // ACTUALIZAR BODY
-    // ========================================================
-
     characterBody
         .setNextKinematicTranslation(
             next
         );
 
-
-    // ========================================================
-    // DETECTAR SUELO
-    // ========================================================
 
     const grounded =
         characterController
@@ -839,10 +674,6 @@ export function moveCharacter(
 
     }
 
-
-    // ========================================================
-    // POSICIÓN VISUAL = PIES
-    // ========================================================
 
     return {
 
@@ -864,55 +695,15 @@ export function moveCharacter(
 
 
 // ============================================================
-// OBTENER POSICIÓN DEL PERSONAJE
-// ============================================================
-
-export function getCharacterGroundPosition() {
-
-    if (
-        !characterBody
-    ) {
-
-        return null;
-
-    }
-
-
-    const position =
-        characterBody.translation();
-
-
-    return {
-
-        x:
-            position.x,
-
-        y:
-            position.y -
-            CHARACTER_FOOT_OFFSET,
-
-        z:
-            position.z
-
-    };
-
-}
-
-
-// ============================================================
-// ACTUALIZAR MUNDO
+// ACTUALIZAR MUNDO FÍSICO
 // ============================================================
 
 export function updatePhysics(
     delta
 ) {
 
-    if (
-        !physicsWorld
-    ) {
-
+    if (!physicsWorld) {
         return;
-
     }
 
 
