@@ -57,6 +57,10 @@ import {
 } from './shooting.js';
 
 import {
+    attachWeaponToCharacter
+} from './weapon.js';
+
+import {
     setupStartButton,
     updateGameStatus,
     updateScore,
@@ -2352,6 +2356,15 @@ async function loadCharacter() {
 
     characterModel.rotation.y =
         MODEL_FORWARD_OFFSET;
+
+
+    // ========================================================
+    // ARMA 3D REAL
+    // ========================================================
+
+    attachWeaponToCharacter(
+        characterModel
+    );
 
 
     mixer =
