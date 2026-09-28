@@ -1469,3 +1469,390 @@ body {
     }
 
 }
+
+/* ============================================================
+   OPERATION IMPACT
+   VERSION 8.0.0
+   PANTALLAS DE VICTORIA / DERROTA
+   ============================================================ */
+
+
+/* ============================================================
+   OCULTAR ELEMENTOS DE COMBATE CUANDO HAY OVERLAY
+   ============================================================ */
+
+body.game-screen-active #crosshair,
+body.game-screen-active #hitmarker,
+body.game-screen-active #target-info,
+body.game-screen-active #weapon-hud {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+
+/* ============================================================
+   RESULTADOS
+   ============================================================ */
+
+.result-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            3,
+            1fr
+        );
+
+    gap: 12px;
+
+    width: 100%;
+    max-width: 505px;
+
+    margin:
+        0 auto 32px;
+}
+
+
+/* ============================================================
+   TARJETA DE RESULTADO
+   ============================================================ */
+
+.result-item {
+    position: relative;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 92px;
+
+    padding: 15px;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.075),
+            rgba(255, 255, 255, 0.025)
+        );
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.12);
+
+    border-radius: 7px;
+
+    box-shadow:
+        inset 0 1px 0
+        rgba(255, 255, 255, 0.05);
+}
+
+
+/* ============================================================
+   ETIQUETA DE RESULTADO
+   ============================================================ */
+
+.result-label {
+    margin-bottom: 8px;
+
+    color:
+        rgba(255, 255, 255, 0.45);
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 2px;
+}
+
+
+/* ============================================================
+   VALOR DE RESULTADO
+   ============================================================ */
+
+.result-value {
+    color: #ffffff;
+
+    font-size: 24px;
+
+    font-weight: 900;
+
+    line-height: 1;
+
+    letter-spacing: 1px;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+/* ============================================================
+   VICTORIA
+   ============================================================ */
+
+.game-screen.screen-victory {
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(20, 65, 47, 0.94) 0%,
+            rgba(7, 25, 19, 0.98) 55%,
+            rgba(2, 8, 6, 0.995) 100%
+        );
+}
+
+
+.game-screen.screen-victory
+.screen-tag {
+    color: #7dffb4;
+
+    border-color:
+        rgba(
+            67,
+            255,
+            154,
+            0.45
+        );
+
+    box-shadow:
+        0 0 20px
+        rgba(
+            67,
+            255,
+            154,
+            0.08
+        );
+}
+
+
+.game-screen.screen-victory
+.screen-content h1 span {
+    -webkit-text-stroke:
+        2px
+        rgba(
+            67,
+            255,
+            154,
+            0.82
+        );
+}
+
+
+.game-screen.screen-victory
+.result-item {
+    border-color:
+        rgba(
+            67,
+            255,
+            154,
+            0.20
+        );
+}
+
+
+.game-screen.screen-victory
+.result-value {
+    color: #8dffbd;
+
+    text-shadow:
+        0 0 14px
+        rgba(
+            67,
+            255,
+            154,
+            0.20
+        );
+}
+
+
+.game-screen.screen-victory
+.btn-start {
+    border-color:
+        rgba(
+            112,
+            255,
+            173,
+            0.95
+        );
+
+    background:
+        #7dffb4;
+
+    color:
+        #07110c;
+}
+
+
+/* ============================================================
+   DERROTA
+   ============================================================ */
+
+.game-screen.screen-defeat {
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(72, 29, 29, 0.94) 0%,
+            rgba(29, 10, 12, 0.98) 55%,
+            rgba(10, 3, 4, 0.995) 100%
+        );
+}
+
+
+.game-screen.screen-defeat
+.screen-tag {
+    color: #ff8888;
+
+    border-color:
+        rgba(
+            255,
+            82,
+            82,
+            0.45
+        );
+
+    box-shadow:
+        0 0 20px
+        rgba(
+            255,
+            82,
+            82,
+            0.08
+        );
+}
+
+
+.game-screen.screen-defeat
+.screen-content h1 span {
+    -webkit-text-stroke:
+        2px
+        rgba(
+            255,
+            82,
+            82,
+            0.85
+        );
+}
+
+
+.game-screen.screen-defeat
+.result-item {
+    border-color:
+        rgba(
+            255,
+            82,
+            82,
+            0.20
+        );
+}
+
+
+.game-screen.screen-defeat
+.result-value {
+    color: #ff9696;
+
+    text-shadow:
+        0 0 14px
+        rgba(
+            255,
+            82,
+            82,
+            0.20
+        );
+}
+
+
+.game-screen.screen-defeat
+.btn-start {
+    border-color:
+        rgba(
+            255,
+            110,
+            110,
+            0.95
+        );
+
+    background:
+        #ff7676;
+
+    color:
+        #160606;
+}
+
+
+/* ============================================================
+   TRANSICIÓN DE PANTALLA
+   ============================================================ */
+
+.game-screen:not(.hidden)
+.screen-content {
+    animation:
+        operationScreenEnter
+        0.45s
+        ease-out;
+}
+
+
+@keyframes operationScreenEnter {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(18px)
+            scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE DE RESULTADOS
+   ============================================================ */
+
+@media (
+    max-width: 600px
+) {
+
+    .result-summary {
+        grid-template-columns:
+            1fr;
+
+        max-width: 320px;
+
+        gap: 8px;
+
+        margin-bottom: 22px;
+    }
+
+
+    .result-item {
+        min-height: 64px;
+
+        padding: 10px;
+    }
+
+
+    .result-label {
+        margin-bottom: 5px;
+
+        font-size: 8px;
+    }
+
+
+    .result-value {
+        font-size: 20px;
+    }
+
+}

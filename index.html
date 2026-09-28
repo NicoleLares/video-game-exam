@@ -2,19 +2,37 @@
 <html lang="es">
 
 <head>
+
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <meta name="description" content="Videojuego Web 3D desarrollado con Three.js y Rapier 3D">
+    <meta
+        name="description"
+        content="Videojuego Web 3D desarrollado con Three.js y Rapier 3D"
+    >
 
-    <title>Operation Impact | Videojuego 3D</title>
+    <title>
+        Operation Impact | Videojuego 3D
+    </title>
+
 
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
 
     <!-- Estilos -->
-    <link rel="stylesheet" href="./assets/css/styles.css">
+    <link
+        rel="stylesheet"
+        href="./assets/css/styles.css"
+    >
+
 
     <!-- Three.js + Rapier -->
     <script type="importmap">
@@ -26,140 +44,345 @@
         }
     }
     </script>
+
 </head>
+
 
 <body>
 
-    <!-- ==========================================
+    <!-- =====================================================
          ESCENA THREE.JS
-    =========================================== -->
+    ====================================================== -->
+
     <main id="game-container"></main>
 
 
-    <!-- ==========================================
+    <!-- =====================================================
          HUD
-    =========================================== -->
-    <section id="hud" class="hud">
+    ====================================================== -->
+
+    <section
+        id="hud"
+        class="hud"
+    >
 
         <div class="hud-title">
+
             <span class="status-dot"></span>
+
             OPERATION IMPACT
+
         </div>
+
 
         <div class="hud-divider"></div>
 
+
         <div class="hud-item">
-            <span>ESTADO</span>
+
+            <span>
+                ESTADO
+            </span>
+
             <strong id="game-status">
                 INICIO
             </strong>
+
         </div>
 
+
         <div class="hud-item">
-            <span>OBJETIVOS</span>
+
+            <span>
+                OBJETIVOS
+            </span>
+
             <strong id="objective-counter">
                 0 / 8
             </strong>
+
         </div>
 
+
         <div class="hud-item">
-            <span>PUNTOS</span>
+
+            <span>
+                PUNTOS
+            </span>
+
             <strong id="score">
                 0000
             </strong>
+
         </div>
 
+
         <div class="hud-item">
-            <span>TIEMPO</span>
+
+            <span>
+                TIEMPO
+            </span>
+
             <strong id="timer">
                 02:00
             </strong>
+
         </div>
 
     </section>
 
 
-    <!-- ==========================================
+    <!-- =====================================================
          PANEL DE CONTROLES
-    =========================================== -->
+    ====================================================== -->
+
     <section class="controls-panel">
 
         <div class="controls-title">
             CONTROLES
         </div>
 
-        <div class="control-row">
-            <span class="key">W</span>
-            <span class="key">A</span>
-            <span class="key">S</span>
-            <span class="key">D</span>
-            <span>Mover</span>
-        </div>
 
         <div class="control-row">
+
+            <span class="key">
+                W
+            </span>
+
+            <span class="key">
+                A
+            </span>
+
+            <span class="key">
+                S
+            </span>
+
+            <span class="key">
+                D
+            </span>
+
+            <span>
+                Mover
+            </span>
+
+        </div>
+
+
+        <div class="control-row">
+
             <span class="key key-wide">
                 SHIFT
             </span>
-            <span>Correr</span>
+
+            <span>
+                Correr
+            </span>
+
         </div>
 
+
         <div class="control-row">
+
             <span class="key">
                 F
             </span>
-            <span>Acción</span>
+
+            <span>
+                Granada
+            </span>
+
         </div>
 
+
         <div class="control-row">
+
+            <span class="key">
+                R
+            </span>
+
+            <span>
+                Recargar
+            </span>
+
+        </div>
+
+
+        <div class="control-row">
+
             <span class="mouse-icon">
                 🖱
             </span>
-            <span>Cámara</span>
+
+            <span>
+                Cámara / Apuntar
+            </span>
+
         </div>
 
     </section>
 
 
-    <!-- ==========================================
-         PANTALLA INICIAL
-    =========================================== -->
-    <section id="start-screen" class="game-screen">
+    <!-- =====================================================
+         PANTALLA INICIAL / RESULTADOS
+    ====================================================== -->
+
+    <section
+        id="start-screen"
+        class="game-screen"
+    >
 
         <div class="screen-content">
 
-            <span class="screen-tag">
+            <!-- ==============================================
+                 ETIQUETA
+            =============================================== -->
+
+            <span
+                id="screen-tag"
+                class="screen-tag"
+            >
                 MISIÓN TÁCTICA
             </span>
 
-            <h1>
+
+            <!-- ==============================================
+                 TÍTULO
+            =============================================== -->
+
+            <h1 id="screen-title">
+
                 OPERATION
-                <span>IMPACT</span>
+
+                <span>
+                    IMPACT
+                </span>
+
             </h1>
 
-            <p class="game-description">
-                Infiltra la instalación y destruye los núcleos
-                de energía antes de que termine el tiempo.
+
+            <!-- ==============================================
+                 DESCRIPCIÓN
+            =============================================== -->
+
+            <p
+                id="game-description"
+                class="game-description"
+            >
+
+                Infiltra la instalación y destruye los
+                núcleos de energía antes de que termine
+                el tiempo.
+
             </p>
 
-            <div class="mission-box">
+
+            <!-- ==============================================
+                 OBJETIVO DE LA MISIÓN
+            =============================================== -->
+
+            <div
+                id="mission-box"
+                class="mission-box"
+            >
 
                 <span>
                     OBJETIVO PRINCIPAL
                 </span>
 
+
                 <p>
+
                     Destruye los 8 núcleos de energía
                     distribuidos por el escenario.
+
                 </p>
 
             </div>
 
-            <button id="start-button" class="btn-start" type="button">
+
+            <!-- ==============================================
+                 RESULTADOS
+            =============================================== -->
+
+            <div
+                id="result-summary"
+                class="result-summary"
+                hidden
+            >
+
+                <div class="result-item">
+
+                    <span class="result-label">
+                        OBJETIVOS
+                    </span>
+
+                    <strong
+                        id="result-objectives"
+                        class="result-value"
+                    >
+                        0 / 8
+                    </strong>
+
+                </div>
+
+
+                <div class="result-item">
+
+                    <span class="result-label">
+                        PUNTOS
+                    </span>
+
+                    <strong
+                        id="result-score"
+                        class="result-value"
+                    >
+                        0000
+                    </strong>
+
+                </div>
+
+
+                <div class="result-item">
+
+                    <span class="result-label">
+                        TIEMPO
+                    </span>
+
+                    <strong
+                        id="result-time"
+                        class="result-value"
+                    >
+                        00:00
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- ==============================================
+                 BOTÓN
+            =============================================== -->
+
+            <button
+                id="start-button"
+                class="btn-start"
+                type="button"
+            >
+
                 INICIAR MISIÓN
+
             </button>
 
+
+            <!-- ==============================================
+                 VERSIÓN
+            =============================================== -->
+
             <p class="version">
-                VERSION 0.5 · OBJETOS DINÁMICOS
+
+                VERSION 8.0.0 · OPERATION IMPACT
+
             </p>
 
         </div>
@@ -167,17 +390,29 @@
     </section>
 
 
-    <!-- ==========================================
-         PUNTO CENTRAL
-    =========================================== -->
-    <div id="crosshair" class="crosshair">
+    <!-- =====================================================
+         CROSSHAIR
+    ====================================================== -->
+
+    <div
+        id="crosshair"
+        class="crosshair"
+    >
+
         <span></span>
         <span></span>
+
     </div>
 
 
-    <!-- JavaScript principal -->
-    <script type="module" src="./assets/js/main.js"></script>
+    <!-- =====================================================
+         JAVASCRIPT PRINCIPAL
+    ====================================================== -->
+
+    <script
+        type="module"
+        src="./assets/js/main.js"
+    ></script>
 
 </body>
 
