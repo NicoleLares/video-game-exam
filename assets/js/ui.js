@@ -1,21 +1,43 @@
 import {
-    GAME_STATES
+    GAME_STATES,
+    setGameState
 } from './game.js';
 
 import {
     setGrenadePower
 } from './grenades.js';
 
+import {
+    getDynamicObjects
+} from './objects.js';
+
 
 // ============================================================
 // OPERATION IMPACT
 // UI.JS
-// VERSION 10.0.0
+// VERSION 11.0.0
 // ============================================================
 
 
 // ============================================================
-// ELEMENTOS HTML
+// CONSTANTES
+// ============================================================
+
+const GAME_DURATION =
+    120;
+
+const RECORDS_KEY =
+    'operation-impact-records-v1';
+
+const OPERATOR_KEY =
+    'operation-impact-operator';
+
+const MAX_RECORDS =
+    5;
+
+
+// ============================================================
+// ELEMENTOS PRINCIPALES
 // ============================================================
 
 const startScreen =
@@ -26,6 +48,21 @@ const startScreen =
 const startButton =
     document.getElementById(
         'start-button'
+    );
+
+const menuButton =
+    document.getElementById(
+        'menu-button'
+    );
+
+const restartMissionButton =
+    document.getElementById(
+        'restart-mission-button'
+    );
+
+const newGameButton =
+    document.getElementById(
+        'new-game-button'
     );
 
 const gameStatus =
@@ -43,9 +80,24 @@ const objectiveCounter =
         'objective-counter'
     );
 
+const secondaryCounter =
+    document.getElementById(
+        'secondary-counter'
+    );
+
+const secondaryStatus =
+    document.getElementById(
+        'secondary-status'
+    );
+
 const timerElement =
     document.getElementById(
         'timer'
+    );
+
+const timerPanel =
+    document.getElementById(
+        'timer-panel'
     );
 
 const crosshair =
@@ -78,6 +130,31 @@ const missionBox =
         'mission-box'
     );
 
+const operatorPanel =
+    document.getElementById(
+        'operator-panel'
+    );
+
+const operatorInput =
+    document.getElementById(
+        'operator-name'
+    );
+
+const recordsPanel =
+    document.getElementById(
+        'records-panel'
+    );
+
+const recordsList =
+    document.getElementById(
+        'records-list'
+    );
+
+const menuPowerPanel =
+    document.getElementById(
+        'menu-power-panel'
+    );
+
 const resultSummary =
     document.getElementById(
         'result-summary'
@@ -105,22 +182,32 @@ const versionElement =
 
 
 // ============================================================
-// CONFIGURACIÓN DE GRANADA
+// POTENCIA DE GRANADA
 // ============================================================
 
-const grenadePowerInput =
+const grenadePowerMenu =
     document.getElementById(
-        'grenade-power'
+        'grenade-power-menu'
     );
 
-const grenadePowerValue =
+const grenadePowerMenuValue =
     document.getElementById(
-        'grenade-power-value'
+        'grenade-power-menu-value'
+    );
+
+const grenadePowerGame =
+    document.getElementById(
+        'grenade-power-game'
+    );
+
+const grenadePowerGameValue =
+    document.getElementById(
+        'grenade-power-game-value'
     );
 
 
 // ============================================================
-// ESTADO INTERNO DE UI
+// ESTADO INTERNO
 // ============================================================
 
 let currentState =
@@ -139,7 +226,10 @@ let currentTotal =
     8;
 
 let currentSeconds =
-    120;
+    GAME_DURATION;
+
+let secondaryTotal =
+    0;
 
 let startButtonConfigured =
     false;
@@ -147,16 +237,25 @@ let startButtonConfigured =
 let grenadePowerConfigured =
     false;
 
+let actionButtonsConfigured =
+    false;
+
+let recordsConfigured =
+    false;
+
+let missionStartCallback =
+    null;
+
 
 // ============================================================
-// FORMATEAR TIEMPO
+// FORMATO DE TIEMPO
 // ============================================================
 
 function formatTime(
     seconds
 ) {
 
-    const safeSeconds =
+    const safe =
         Math.max(
             0,
             seconds
@@ -165,34 +264,268 @@ function formatTime(
 
     const minutes =
         Math.floor(
-            safeSeconds /
+            safe /
             60
         );
 
 
-    const remainingSeconds =
+    const remaining =
         Math.floor(
-            safeSeconds %
+            safe %
             60
         );
 
 
     return (
         `${String(minutes).padStart(2, '0')}:` +
-        `${String(remainingSeconds).padStart(2, '0')}`
+        `${String(remaining).padStart(2, '0')}`
     );
 
 }
 
 
 // ============================================================
-// ACTUALIZAR POTENCIA DE GRANADA
+// FORMATO DE RÉCORD
 // ============================================================
 
-function applyGrenadePowerFromUI() {
+function formatRecordTime(
+    seconds
+) {
+
+    const safe =
+        Math.max(
+            0,
+            seconds
+        );
+
+
+    const minutes =
+        Math.floor(
+            safe /
+            60
+        );
+
+
+    const wholeSeconds =
+        Math.floor(
+            safe %
+            60
+        );
+
+
+    const tenths =
+        Math.floor(
+
+            (
+                safe -
+                Math.floor(
+                    safe
+                )
+            ) *
+            10
+
+        );
+
+
+    return (
+        `${String(minutes).padStart(2, '0')}:` +
+        `${String(wholeSeconds).padStart(2, '0')}.` +
+        `${tenths}`
+    );
+
+}
+
+
+// ============================================================
+// NORMALIZAR NOMBRE
+// ============================================================
+
+function normalizeOperatorName(
+    value
+) {
+
+    const name =
+        String(
+            value ??
+            ''
+        )
+            .trim()
+            .replace(
+                /\s+/g,
+                ' '
+            )
+            .slice(
+                0,
+                18
+            );
+
+
+    return (
+        name ||
+        'OPERADOR'
+    );
+
+}
+
+
+// ============================================================
+// CARGAR RÉCORDS
+// ============================================================
+
+function loadRecords() {
+
+    try {
+
+        const raw =
+            localStorage.getItem(
+                RECORDS_KEY
+            );
+
+
+        if (
+            !raw
+        ) {
+
+            return [];
+
+        }
+
+
+        const parsed =
+            JSON.parse(
+                raw
+            );
+
+
+        if (
+            !Array.isArray(
+                parsed
+            )
+        ) {
+
+            return [];
+
+        }
+
+
+        return parsed
+
+            .filter(
+                (record) =>
+
+                    record &&
+
+                    typeof record.name ===
+                        'string' &&
+
+                    Number.isFinite(
+                        Number(
+                            record.time
+                        )
+                    )
+            )
+
+            .map(
+                (record) => ({
+
+                    name:
+                        normalizeOperatorName(
+                            record.name
+                        ),
+
+                    time:
+                        Number(
+                            record.time
+                        )
+
+                })
+            )
+
+            .sort(
+                (a, b) =>
+                    a.time -
+                    b.time
+            )
+
+            .slice(
+                0,
+                MAX_RECORDS
+            );
+
+
+    } catch (
+        error
+    ) {
+
+        console.warn(
+            '⚠️ No fue posible leer los récords:',
+            error
+        );
+
+
+        return [];
+
+    }
+
+}
+
+
+// ============================================================
+// GUARDAR RÉCORDS
+// ============================================================
+
+function saveRecords(
+    records
+) {
+
+    try {
+
+        localStorage.setItem(
+
+            RECORDS_KEY,
+
+            JSON.stringify(
+                records
+            )
+
+        );
+
+
+    } catch (
+        error
+    ) {
+
+        console.warn(
+            '⚠️ No fue posible guardar los récords:',
+            error
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// OBTENER OPERADOR
+// ============================================================
+
+function getOperatorName() {
+
+    return normalizeOperatorName(
+        operatorInput?.value
+    );
+
+}
+
+
+// ============================================================
+// RECORDAR OPERADOR
+// ============================================================
+
+function rememberOperatorName() {
 
     if (
-        !grenadePowerInput
+        !operatorInput
     ) {
 
         return;
@@ -200,24 +533,30 @@ function applyGrenadePowerFromUI() {
     }
 
 
-    const appliedPower =
-        setGrenadePower(
-            grenadePowerInput.value
+    const name =
+        getOperatorName();
+
+
+    operatorInput.value =
+        name;
+
+
+    try {
+
+        localStorage.setItem(
+            OPERATOR_KEY,
+            name
         );
 
 
-    grenadePowerInput.value =
-        String(
-            appliedPower
-        );
-
-
-    if (
-        grenadePowerValue
+    } catch (
+        error
     ) {
 
-        grenadePowerValue.textContent =
-            `${Math.round(appliedPower)}%`;
+        console.warn(
+            '⚠️ No fue posible guardar el operador:',
+            error
+        );
 
     }
 
@@ -225,14 +564,378 @@ function applyGrenadePowerFromUI() {
 
 
 // ============================================================
-// CONFIGURAR SLIDER UNA SOLA VEZ
+// MOSTRAR RÉCORDS
 // ============================================================
 
-function setupGrenadePowerControl() {
+function renderRecords() {
 
     if (
-        grenadePowerConfigured ||
-        !grenadePowerInput
+        !recordsList
+    ) {
+
+        return;
+
+    }
+
+
+    const records =
+        loadRecords();
+
+
+    recordsList.innerHTML =
+        '';
+
+
+    if (
+        records.length ===
+        0
+    ) {
+
+        const empty =
+            document.createElement(
+                'div'
+            );
+
+
+        empty.className =
+            'record-empty';
+
+
+        empty.textContent =
+            'AÚN NO HAY RÉCORDS';
+
+
+        recordsList.appendChild(
+            empty
+        );
+
+
+        return;
+
+    }
+
+
+    records.forEach(
+
+        (
+            record,
+            index
+        ) => {
+
+            const row =
+                document.createElement(
+                    'div'
+                );
+
+
+            row.className =
+                'record-row';
+
+
+            const position =
+                document.createElement(
+                    'span'
+                );
+
+
+            position.className =
+                'record-position';
+
+
+            position.textContent =
+                `${index + 1}.`;
+
+
+            const name =
+                document.createElement(
+                    'span'
+                );
+
+
+            name.className =
+                'record-name';
+
+
+            name.textContent =
+                record.name;
+
+
+            const time =
+                document.createElement(
+                    'strong'
+                );
+
+
+            time.className =
+                'record-time';
+
+
+            time.textContent =
+                formatRecordTime(
+                    record.time
+                );
+
+
+            row.append(
+                position,
+                name,
+                time
+            );
+
+
+            recordsList.appendChild(
+                row
+            );
+
+        }
+
+    );
+
+}
+
+
+// ============================================================
+// GUARDAR RÉCORD DE VICTORIA
+// ============================================================
+
+function saveVictoryRecord() {
+
+    const elapsed =
+        Math.max(
+
+            0,
+
+            GAME_DURATION -
+            currentSeconds
+
+        );
+
+
+    const name =
+        getOperatorName();
+
+
+    const records =
+        loadRecords();
+
+
+    const existingIndex =
+        records.findIndex(
+
+            (record) =>
+
+                record.name
+                    .toLowerCase() ===
+
+                name
+                    .toLowerCase()
+
+        );
+
+
+    if (
+        existingIndex >=
+        0
+    ) {
+
+        if (
+            elapsed <
+            records[
+                existingIndex
+            ].time
+        ) {
+
+            records[
+                existingIndex
+            ].time =
+                elapsed;
+
+        }
+
+    } else {
+
+        records.push({
+
+            name,
+
+            time:
+                elapsed
+
+        });
+
+    }
+
+
+    records.sort(
+        (a, b) =>
+            a.time -
+            b.time
+    );
+
+
+    saveRecords(
+
+        records.slice(
+            0,
+            MAX_RECORDS
+        )
+
+    );
+
+
+    renderRecords();
+
+}
+
+
+// ============================================================
+// CONFIGURAR RÉCORDS
+// ============================================================
+
+function setupRecords() {
+
+    if (
+        recordsConfigured
+    ) {
+
+        return;
+
+    }
+
+
+    recordsConfigured =
+        true;
+
+
+    if (
+        operatorInput
+    ) {
+
+        try {
+
+            const savedName =
+                localStorage.getItem(
+                    OPERATOR_KEY
+                );
+
+
+            if (
+                savedName
+            ) {
+
+                operatorInput.value =
+                    normalizeOperatorName(
+                        savedName
+                    );
+
+            }
+
+
+        } catch (
+            error
+        ) {
+
+            console.warn(
+                '⚠️ No fue posible recuperar el operador:',
+                error
+            );
+
+        }
+
+
+        operatorInput.addEventListener(
+
+            'change',
+
+            rememberOperatorName
+
+        );
+
+    }
+
+
+    renderRecords();
+
+}
+
+
+// ============================================================
+// SINCRONIZAR POTENCIA
+// ============================================================
+
+function syncGrenadePower(
+    value
+) {
+
+    const appliedPower =
+        setGrenadePower(
+            value
+        );
+
+
+    const rounded =
+        Math.round(
+            appliedPower
+        );
+
+
+    if (
+        grenadePowerMenu
+    ) {
+
+        grenadePowerMenu.value =
+            String(
+                appliedPower
+            );
+
+    }
+
+
+    if (
+        grenadePowerGame
+    ) {
+
+        grenadePowerGame.value =
+            String(
+                appliedPower
+            );
+
+    }
+
+
+    if (
+        grenadePowerMenuValue
+    ) {
+
+        grenadePowerMenuValue.textContent =
+            `${rounded}%`;
+
+    }
+
+
+    if (
+        grenadePowerGameValue
+    ) {
+
+        grenadePowerGameValue.textContent =
+            `${rounded}%`;
+
+    }
+
+
+    return appliedPower;
+
+}
+
+
+// ============================================================
+// CONFIGURAR SLIDERS
+// ============================================================
+
+function setupGrenadePowerControls() {
+
+    if (
+        grenadePowerConfigured
     ) {
 
         return;
@@ -244,23 +947,166 @@ function setupGrenadePowerControl() {
         true;
 
 
-    grenadePowerInput.addEventListener(
-        'input',
-        () => {
+    grenadePowerMenu
+        ?.addEventListener(
 
-            applyGrenadePowerFromUI();
+            'input',
 
-        }
+            () => {
+
+                syncGrenadePower(
+                    grenadePowerMenu.value
+                );
+
+            }
+
+        );
+
+
+    grenadePowerGame
+        ?.addEventListener(
+
+            'input',
+
+            () => {
+
+                syncGrenadePower(
+                    grenadePowerGame.value
+                );
+
+            }
+
+        );
+
+
+    syncGrenadePower(
+
+        grenadePowerMenu?.value ??
+        grenadePowerGame?.value ??
+        100
+
     );
-
-
-    applyGrenadePowerFromUI();
 
 }
 
 
 // ============================================================
-// CONTROL DE OVERLAY
+// OBTENER FIGURAS DE MISIÓN SECUNDARIA
+// ============================================================
+
+function getSecondaryMissionObjects() {
+
+    return getDynamicObjects()
+
+        .filter(
+
+            (item) =>
+
+                item &&
+
+                item.type !==
+                    'tower'
+
+        );
+
+}
+
+
+// ============================================================
+// ACTUALIZAR MISIÓN SECUNDARIA
+// ============================================================
+
+function updateSecondaryMission() {
+
+    const activeObjects =
+        getSecondaryMissionObjects();
+
+
+    if (
+        secondaryTotal ===
+            0 &&
+        activeObjects.length >
+            0
+    ) {
+
+        secondaryTotal =
+            activeObjects.length;
+
+    }
+
+
+    const destroyed =
+        Math.max(
+
+            0,
+
+            secondaryTotal -
+            activeObjects.length
+
+        );
+
+
+    if (
+        secondaryCounter
+    ) {
+
+        secondaryCounter.textContent =
+
+            secondaryTotal >
+            0
+
+                ?
+
+                `${destroyed} / ${secondaryTotal}`
+
+                :
+
+                '0 / 0';
+
+    }
+
+
+    if (
+        secondaryStatus
+    ) {
+
+        const completed =
+
+            secondaryTotal >
+                0 &&
+
+            destroyed >=
+                secondaryTotal;
+
+
+        secondaryStatus.textContent =
+
+            completed
+
+                ?
+
+                'COMPLETADA'
+
+                :
+
+                'OPCIONAL';
+
+
+        secondaryStatus.classList.toggle(
+
+            'secondary-complete',
+
+            completed
+
+        );
+
+    }
+
+}
+
+
+// ============================================================
+// OVERLAY
 // ============================================================
 
 function setOverlayActive(
@@ -268,8 +1114,11 @@ function setOverlayActive(
 ) {
 
     document.body.classList.toggle(
+
         'game-screen-active',
+
         active
+
     );
 
 }
@@ -309,23 +1158,17 @@ function hideCombatCrosshair() {
 
 
     crosshair.classList.remove(
-        'visible'
-    );
 
-    crosshair.classList.remove(
-        'crosshair-visible'
-    );
+        'visible',
 
-    crosshair.classList.remove(
-        'crosshair-aiming'
-    );
+        'crosshair-visible',
 
-    crosshair.classList.remove(
-        'crosshair-target'
-    );
+        'crosshair-aiming',
 
-    crosshair.classList.remove(
+        'crosshair-target',
+
         'crosshair-fire'
+
     );
 
 }
@@ -347,18 +1190,18 @@ function showCombatCrosshair() {
 
 
     crosshair.classList.add(
-        'visible'
-    );
 
-    crosshair.classList.add(
+        'visible',
+
         'crosshair-visible'
+
     );
 
 }
 
 
 // ============================================================
-// ACTUALIZAR DATOS FINALES
+// ACTUALIZAR RESULTADOS
 // ============================================================
 
 function updateResultStats() {
@@ -380,10 +1223,11 @@ function updateResultStats() {
         resultScore.textContent =
             String(
                 currentScore
-            ).padStart(
-                4,
-                '0'
-            );
+            )
+                .padStart(
+                    4,
+                    '0'
+                );
 
     }
 
@@ -396,6 +1240,46 @@ function updateResultStats() {
             formatTime(
                 currentSeconds
             );
+
+    }
+
+}
+
+
+// ============================================================
+// VISIBILIDAD DE ELEMENTOS DEL MENÚ
+// ============================================================
+
+function showMenuSetupPanels(
+    visible
+) {
+
+    if (
+        missionBox
+    ) {
+
+        missionBox.hidden =
+            !visible;
+
+    }
+
+
+    if (
+        operatorPanel
+    ) {
+
+        operatorPanel.hidden =
+            !visible;
+
+    }
+
+
+    if (
+        menuPowerPanel
+    ) {
+
+        menuPowerPanel.hidden =
+            !visible;
 
     }
 
@@ -418,15 +1302,13 @@ function showInitialScreen() {
 
 
     startScreen.classList.remove(
-        'hidden'
-    );
 
-    startScreen.classList.remove(
-        'screen-victory'
-    );
+        'hidden',
 
-    startScreen.classList.remove(
+        'screen-victory',
+
         'screen-defeat'
+
     );
 
 
@@ -468,11 +1350,16 @@ function showInitialScreen() {
     }
 
 
+    showMenuSetupPanels(
+        true
+    );
+
+
     if (
-        missionBox
+        recordsPanel
     ) {
 
-        missionBox.hidden =
+        recordsPanel.hidden =
             false;
 
     }
@@ -495,8 +1382,19 @@ function showInitialScreen() {
         startButton.disabled =
             false;
 
+
         startButton.textContent =
             'INICIAR MISIÓN';
+
+    }
+
+
+    if (
+        menuButton
+    ) {
+
+        menuButton.hidden =
+            true;
 
     }
 
@@ -506,15 +1404,18 @@ function showInitialScreen() {
     ) {
 
         versionElement.textContent =
-            'VERSION 10.0.0 · POTENCIA CONFIGURABLE';
+            'VERSION 11.0.0 · HUD AVANZADO Y RÉCORDS';
 
     }
+
+
+    renderRecords();
 
 }
 
 
 // ============================================================
-// PANTALLA DE VICTORIA
+// VICTORIA
 // ============================================================
 
 function showVictoryScreen() {
@@ -530,7 +1431,9 @@ function showVictoryScreen() {
 
     releaseMouse();
 
+
     hideCombatCrosshair();
+
 
     setOverlayActive(
         true
@@ -538,12 +1441,13 @@ function showVictoryScreen() {
 
 
     startScreen.classList.remove(
-        'hidden'
+
+        'hidden',
+
+        'screen-defeat'
+
     );
 
-    startScreen.classList.remove(
-        'screen-defeat'
-    );
 
     startScreen.classList.add(
         'screen-victory'
@@ -575,17 +1479,22 @@ function showVictoryScreen() {
     ) {
 
         gameDescription.textContent =
-            'Todos los núcleos de energía fueron destruidos. La operación ha sido completada con éxito.';
+            `${getOperatorName()}, destruiste todos los núcleos de energía. Tu tiempo quedó registrado.`;
 
     }
 
 
+    showMenuSetupPanels(
+        false
+    );
+
+
     if (
-        missionBox
+        recordsPanel
     ) {
 
-        missionBox.hidden =
-            true;
+        recordsPanel.hidden =
+            false;
 
     }
 
@@ -607,19 +1516,37 @@ function showVictoryScreen() {
         startButton.disabled =
             false;
 
+
         startButton.textContent =
             'JUGAR DE NUEVO';
 
     }
 
 
+    if (
+        menuButton
+    ) {
+
+        menuButton.hidden =
+            false;
+
+
+        menuButton.textContent =
+            'NUEVA PARTIDA / MENÚ';
+
+    }
+
+
     updateResultStats();
+
+
+    renderRecords();
 
 }
 
 
 // ============================================================
-// PANTALLA DE DERROTA
+// DERROTA
 // ============================================================
 
 function showDefeatScreen() {
@@ -635,7 +1562,9 @@ function showDefeatScreen() {
 
     releaseMouse();
 
+
     hideCombatCrosshair();
+
 
     setOverlayActive(
         true
@@ -643,12 +1572,13 @@ function showDefeatScreen() {
 
 
     startScreen.classList.remove(
-        'hidden'
+
+        'hidden',
+
+        'screen-victory'
+
     );
 
-    startScreen.classList.remove(
-        'screen-victory'
-    );
 
     startScreen.classList.add(
         'screen-defeat'
@@ -685,12 +1615,17 @@ function showDefeatScreen() {
     }
 
 
+    showMenuSetupPanels(
+        false
+    );
+
+
     if (
-        missionBox
+        recordsPanel
     ) {
 
-        missionBox.hidden =
-            true;
+        recordsPanel.hidden =
+            false;
 
     }
 
@@ -712,24 +1647,89 @@ function showDefeatScreen() {
         startButton.disabled =
             false;
 
+
         startButton.textContent =
             'REINTENTAR MISIÓN';
 
     }
 
 
+    if (
+        menuButton
+    ) {
+
+        menuButton.hidden =
+            false;
+
+
+        menuButton.textContent =
+            'NUEVA PARTIDA / MENÚ';
+
+    }
+
+
     updateResultStats();
+
+
+    renderRecords();
 
 }
 
 
 // ============================================================
-// BOTÓN INICIAR / REINICIAR
+// INICIAR O REINICIAR MISIÓN
+// ============================================================
+
+function runMissionStart() {
+
+    rememberOperatorName();
+
+
+    startScreen
+        ?.classList
+        .add(
+            'hidden'
+        );
+
+
+    startScreen
+        ?.classList
+        .remove(
+
+            'screen-victory',
+
+            'screen-defeat'
+
+        );
+
+
+    setOverlayActive(
+        false
+    );
+
+
+    showCombatCrosshair();
+
+
+    missionStartCallback?.();
+
+
+    startButton?.blur();
+
+}
+
+
+// ============================================================
+// BOTÓN PRINCIPAL
 // ============================================================
 
 export function setupStartButton(
     callback
 ) {
+
+    missionStartCallback =
+        callback;
+
 
     if (
         !startButton ||
@@ -746,51 +1746,97 @@ export function setupStartButton(
 
 
     startButton.addEventListener(
+
         'click',
-        () => {
 
-            startScreen?.classList.add(
-                'hidden'
-            );
+        runMissionStart
 
-
-            startScreen?.classList.remove(
-                'screen-victory'
-            );
-
-
-            startScreen?.classList.remove(
-                'screen-defeat'
-            );
-
-
-            setOverlayActive(
-                false
-            );
-
-
-            showCombatCrosshair();
-
-
-            if (
-                callback
-            ) {
-
-                callback();
-
-            }
-
-
-            startButton.blur();
-
-        }
     );
 
 }
 
 
 // ============================================================
-// ESTADO
+// BOTONES DE PARTIDA
+// ============================================================
+
+function setupActionButtons() {
+
+    if (
+        actionButtonsConfigured
+    ) {
+
+        return;
+
+    }
+
+
+    actionButtonsConfigured =
+        true;
+
+
+    restartMissionButton
+        ?.addEventListener(
+
+            'click',
+
+            () => {
+
+                runMissionStart();
+
+            }
+
+        );
+
+
+    newGameButton
+        ?.addEventListener(
+
+            'click',
+
+            () => {
+
+                setGameState(
+                    GAME_STATES.START
+                );
+
+
+                releaseMouse();
+
+
+                resetUI();
+
+            }
+
+        );
+
+
+    menuButton
+        ?.addEventListener(
+
+            'click',
+
+            () => {
+
+                setGameState(
+                    GAME_STATES.START
+                );
+
+
+                releaseMouse();
+
+
+                resetUI();
+
+            }
+
+        );
+
+}
+
+
+// ============================================================
+// ACTUALIZAR ESTADO
 // ============================================================
 
 export function updateGameStatus(
@@ -809,6 +1855,9 @@ export function updateGameStatus(
             state;
 
     }
+
+
+    updateSecondaryMission();
 
 
     if (
@@ -830,7 +1879,11 @@ export function updateGameStatus(
         GAME_STATES.VICTORY
     ) {
 
+        saveVictoryRecord();
+
+
         showVictoryScreen();
+
 
         return;
 
@@ -844,15 +1897,13 @@ export function updateGameStatus(
 
         showDefeatScreen();
 
-        return;
-
     }
 
 }
 
 
 // ============================================================
-// PUNTUACIÓN
+// ACTUALIZAR PUNTOS
 // ============================================================
 
 export function updateScore(
@@ -870,10 +1921,11 @@ export function updateScore(
         scoreElement.textContent =
             String(
                 score
-            ).padStart(
-                4,
-                '0'
-            );
+            )
+                .padStart(
+                    4,
+                    '0'
+                );
 
     }
 
@@ -881,6 +1933,7 @@ export function updateScore(
     if (
         currentState ===
             GAME_STATES.VICTORY ||
+
         currentState ===
             GAME_STATES.DEFEAT
     ) {
@@ -893,7 +1946,7 @@ export function updateScore(
 
 
 // ============================================================
-// OBJETIVOS
+// ACTUALIZAR OBJETIVOS
 // ============================================================
 
 export function updateObjectives(
@@ -903,6 +1956,7 @@ export function updateObjectives(
 
     currentDestroyed =
         destroyed;
+
 
     currentTotal =
         total;
@@ -921,6 +1975,7 @@ export function updateObjectives(
     if (
         currentState ===
             GAME_STATES.VICTORY ||
+
         currentState ===
             GAME_STATES.DEFEAT
     ) {
@@ -933,7 +1988,7 @@ export function updateObjectives(
 
 
 // ============================================================
-// CRONÓMETRO
+// ACTUALIZAR TIEMPO
 // ============================================================
 
 export function updateTimer(
@@ -960,8 +2015,38 @@ export function updateTimer(
 
 
     if (
+        timerPanel
+    ) {
+
+        timerPanel.classList.toggle(
+
+            'timer-warning',
+
+            currentSeconds <=
+                30 &&
+
+            currentSeconds >
+                10
+
+        );
+
+
+        timerPanel.classList.toggle(
+
+            'timer-critical',
+
+            currentSeconds <=
+                10
+
+        );
+
+    }
+
+
+    if (
         currentState ===
             GAME_STATES.VICTORY ||
+
         currentState ===
             GAME_STATES.DEFEAT
     ) {
@@ -974,7 +2059,7 @@ export function updateTimer(
 
 
 // ============================================================
-// REINICIAR INTERFAZ
+// RESET DE UI
 // ============================================================
 
 export function resetUI() {
@@ -982,20 +2067,25 @@ export function resetUI() {
     currentState =
         GAME_STATES.START;
 
+
     previousState =
         GAME_STATES.START;
+
 
     currentScore =
         0;
 
+
     currentDestroyed =
         0;
+
 
     currentTotal =
         8;
 
+
     currentSeconds =
-        120;
+        GAME_DURATION;
 
 
     if (
@@ -1020,11 +2110,52 @@ export function resetUI() {
 
 
     updateTimer(
-        120
+        GAME_DURATION
     );
 
 
-    setupGrenadePowerControl();
+    setupGrenadePowerControls();
+
+
+    setupActionButtons();
+
+
+    setupRecords();
+
+
+    if (
+        secondaryCounter
+    ) {
+
+        secondaryCounter.textContent =
+
+            secondaryTotal >
+            0
+
+                ?
+
+                `0 / ${secondaryTotal}`
+
+                :
+
+                '0 / 0';
+
+    }
+
+
+    if (
+        secondaryStatus
+    ) {
+
+        secondaryStatus.textContent =
+            'OPCIONAL';
+
+
+        secondaryStatus.classList.remove(
+            'secondary-complete'
+        );
+
+    }
 
 
     showInitialScreen();

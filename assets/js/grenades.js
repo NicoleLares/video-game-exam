@@ -7,7 +7,8 @@ import {
 } from './physics.js';
 
 import {
-    getDynamicObjects
+    getDynamicObjects,
+    damageDynamicObject
 } from './objects.js';
 
 import {
@@ -18,12 +19,15 @@ import {
 // ============================================================
 // OPERATION IMPACT
 // GRENADES.JS
-// VERSION 10.0.0
+// VERSION 11.0.0
 //
 // GRANADA CONTROLADA
 // DIRECCIÓN SEGÚN CÁMARA
 // VELOCIDAD CON setLinvel()
 // EXPLOSIÓN
+// DAÑO A FIGURAS
+// DAÑO A OBJETIVOS
+// POTENCIA CONFIGURABLE
 // ONDA EXPANSIVA
 // PARTÍCULAS
 // HUMO
@@ -74,6 +78,28 @@ const BASE_EXPLOSION_FORCE =
 
 const BASE_EXPLOSION_UP_FORCE =
     5.5;
+
+
+// ============================================================
+// DAÑO DE EXPLOSIÓN
+// ============================================================
+//
+// El daño depende de:
+//
+// 1. Distancia a la explosión.
+// 2. Potencia elegida en el slider.
+//
+// 50%  = daño reducido.
+// 100% = daño normal.
+// 200% = daño aumentado.
+//
+// ============================================================
+
+const BASE_GRENADE_DAMAGE =
+    100;
+
+const MIN_GRENADE_DAMAGE =
+    25;
 
 
 // ============================================================
@@ -263,7 +289,7 @@ export function setGrenadePower(
 
 
 // ============================================================
-// CONSULTAR POTENCIA DE GRANADA
+// CONSULTAR POTENCIA
 // ============================================================
 
 export function getGrenadePower() {
@@ -286,6 +312,10 @@ export function getGrenadePower() {
 
         upForce:
             BASE_EXPLOSION_UP_FORCE *
+            multiplier,
+
+        damage:
+            BASE_GRENADE_DAMAGE *
             multiplier
 
     };
@@ -315,7 +345,7 @@ export function initGrenadeSystem(
 
 
     console.log(
-        '💣 Sistema de granadas v10.0.0 listo'
+        '💣 Sistema de granadas v11.0.0 listo'
     );
 
 }
@@ -361,6 +391,10 @@ function createGrenadeMesh() {
         'Grenade';
 
 
+    // ========================================================
+    // CUERPO
+    // ========================================================
+
     const body =
         new THREE.Mesh(
 
@@ -394,6 +428,10 @@ function createGrenadeMesh() {
         body
     );
 
+
+    // ========================================================
+    // FRANJA
+    // ========================================================
 
     const stripe =
         new THREE.Mesh(
@@ -429,6 +467,10 @@ function createGrenadeMesh() {
         stripe
     );
 
+
+    // ========================================================
+    // TAPA
+    // ========================================================
 
     const capMaterial =
         new THREE.MeshStandardMaterial({
@@ -474,6 +516,10 @@ function createGrenadeMesh() {
         cap
     );
 
+
+    // ========================================================
+    // ANILLA
+    // ========================================================
 
     const ringMaterial =
         new THREE.MeshStandardMaterial({
@@ -526,6 +572,10 @@ function createGrenadeMesh() {
         ring
     );
 
+
+    // ========================================================
+    // INDICADOR ROJO
+    // ========================================================
 
     const indicatorMaterial =
         new THREE.MeshStandardMaterial({
@@ -580,6 +630,10 @@ function createGrenadeMesh() {
     );
 
 
+    // ========================================================
+    // LUZ INDICADOR
+    // ========================================================
+
     const indicatorLight =
         new THREE.PointLight(
 
@@ -604,6 +658,10 @@ function createGrenadeMesh() {
     );
 
 
+    // ========================================================
+    // REFERENCIAS
+    // ========================================================
+
     group.userData.indicator =
         indicator;
 
@@ -625,6 +683,10 @@ function getThrowDirection(
     characterRoot
 ) {
 
+    // ========================================================
+    // CÁMARA
+    // ========================================================
+
     if (
         cameraRef
     ) {
@@ -642,6 +704,10 @@ function getThrowDirection(
     }
 
 
+    // ========================================================
+    // LIMITAR DIRECCIÓN VERTICAL
+    // ========================================================
+
     throwDirection.y =
         THREE.MathUtils.clamp(
 
@@ -653,6 +719,10 @@ function getThrowDirection(
 
         );
 
+
+    // ========================================================
+    // SEGURIDAD
+    // ========================================================
 
     if (
         throwDirection.lengthSq() <
@@ -683,6 +753,10 @@ function getThrowDirection(
 export function launchGrenade(
     characterRoot
 ) {
+
+    // ========================================================
+    // VALIDACIONES
+    // ========================================================
 
     if (
         !canThrowGrenade()
@@ -715,10 +789,18 @@ export function launchGrenade(
     }
 
 
+    // ========================================================
+    // DIRECCIÓN
+    // ========================================================
+
     getThrowDirection(
         characterRoot
     );
 
+
+    // ========================================================
+    // POSICIÓN INICIAL
+    // ========================================================
 
     const startPosition =
         characterRoot.position
@@ -738,6 +820,10 @@ export function launchGrenade(
     );
 
 
+    // ========================================================
+    // CREAR MESH
+    // ========================================================
+
     const mesh =
         createGrenadeMesh();
 
@@ -751,6 +837,10 @@ export function launchGrenade(
         mesh
     );
 
+
+    // ========================================================
+    // CUERPO RAPIER
+    // ========================================================
 
     const bodyDesc =
         RAPIER
@@ -786,6 +876,10 @@ export function launchGrenade(
         );
 
 
+    // ========================================================
+    // COLLIDER
+    // ========================================================
+
     const colliderDesc =
         RAPIER
             .ColliderDesc
@@ -815,6 +909,10 @@ export function launchGrenade(
     );
 
 
+    // ========================================================
+    // VELOCIDAD INICIAL
+    // ========================================================
+
     body.setLinvel(
 
         {
@@ -838,6 +936,10 @@ export function launchGrenade(
 
     );
 
+
+    // ========================================================
+    // ROTACIÓN
+    // ========================================================
 
     body.setAngvel(
 
@@ -868,6 +970,10 @@ export function launchGrenade(
     );
 
 
+    // ========================================================
+    // REGISTRAR
+    // ========================================================
+
     grenades.push({
 
         mesh,
@@ -882,6 +988,10 @@ export function launchGrenade(
 
     });
 
+
+    // ========================================================
+    // COOLDOWN
+    // ========================================================
 
     throwCooldown =
         GRENADE_COOLDOWN;
@@ -1022,6 +1132,15 @@ function explodeGrenade(
     );
 
 
+    console.log(
+        `💣 Potencia: ${grenadePowerPercent}%`
+    );
+
+
+    // ========================================================
+    // DAÑO A LOS NÚCLEOS
+    // ========================================================
+
     damageObjectives(
 
         explosionPosition,
@@ -1031,15 +1150,27 @@ function explodeGrenade(
     );
 
 
+    // ========================================================
+    // DAÑO Y FUERZA SOBRE FIGURAS
+    // ========================================================
+
     applyExplosionForce(
         explosionPosition
     );
 
 
+    // ========================================================
+    // EFECTOS
+    // ========================================================
+
     createExplosionEffects(
         explosionPosition
     );
 
+
+    // ========================================================
+    // ELIMINAR MODELO
+    // ========================================================
 
     sceneRef?.remove(
         grenade.mesh
@@ -1050,6 +1181,10 @@ function explodeGrenade(
         grenade.mesh
     );
 
+
+    // ========================================================
+    // ELIMINAR CUERPO
+    // ========================================================
 
     if (
         world &&
@@ -1066,7 +1201,7 @@ function explodeGrenade(
 
 
 // ============================================================
-// ONDA EXPANSIVA FÍSICA
+// DAÑO + ONDA EXPANSIVA FÍSICA
 // ============================================================
 
 function applyExplosionForce(
@@ -1075,6 +1210,15 @@ function applyExplosionForce(
 
     const objects =
         getDynamicObjects();
+
+
+    // ========================================================
+    // MULTIPLICADOR DEL SLIDER
+    // ========================================================
+
+    const powerMultiplier =
+        grenadePowerPercent /
+        100;
 
 
     for (
@@ -1097,6 +1241,10 @@ function applyExplosionForce(
             object.body.translation();
 
 
+        // ====================================================
+        // DIRECCIÓN
+        // ====================================================
+
         explosionDirection.set(
 
             position.x -
@@ -1115,6 +1263,10 @@ function applyExplosionForce(
             explosionDirection.length();
 
 
+        // ====================================================
+        // FUERA DEL RADIO
+        // ====================================================
+
         if (
             distance >
             EXPLOSION_RADIUS
@@ -1124,6 +1276,10 @@ function applyExplosionForce(
 
         }
 
+
+        // ====================================================
+        // EVITAR VECTOR CERO
+        // ====================================================
 
         if (
             distance <
@@ -1156,6 +1312,10 @@ function applyExplosionForce(
         explosionDirection.normalize();
 
 
+        // ====================================================
+        // CAÍDA SEGÚN DISTANCIA
+        // ====================================================
+
         const falloff =
             THREE.MathUtils.clamp(
 
@@ -1170,10 +1330,72 @@ function applyExplosionForce(
             );
 
 
-        const powerMultiplier =
-            grenadePowerPercent /
-            100;
+        // ====================================================
+        // DAÑO
+        // ====================================================
+        //
+        // Cerca = más daño.
+        // Lejos = menos daño.
+        //
+        // El slider también modifica el daño.
+        //
+        // ====================================================
 
+        const grenadeDamage =
+            Math.max(
+
+                MIN_GRENADE_DAMAGE *
+                powerMultiplier,
+
+                BASE_GRENADE_DAMAGE *
+                powerMultiplier *
+                falloff
+
+            );
+
+
+        const damageResult =
+            damageDynamicObject(
+
+                object,
+
+                grenadeDamage
+
+            );
+
+
+        console.log(
+
+            `💣 ${object.type} recibió ${grenadeDamage.toFixed(1)} de daño`
+
+        );
+
+
+        // ====================================================
+        // DESTRUIDO
+        // ====================================================
+
+        if (
+            damageResult.destroyed
+        ) {
+
+            console.log(
+                `💥 ${object.type} destruido por granada`
+            );
+
+
+            // damageDynamicObject()
+            // ya oculta el mesh y saca el cuerpo físico
+            // del escenario.
+
+            continue;
+
+        }
+
+
+        // ====================================================
+        // FUERZA HORIZONTAL
+        // ====================================================
 
         const force =
             BASE_EXPLOSION_FORCE *
@@ -1184,6 +1406,10 @@ function applyExplosionForce(
                 0.80
             );
 
+
+        // ====================================================
+        // IMPULSO
+        // ====================================================
 
         object.body.applyImpulse(
 
@@ -1215,6 +1441,10 @@ function applyExplosionForce(
 
         );
 
+
+        // ====================================================
+        // ROTACIÓN
+        // ====================================================
 
         object.body.applyTorqueImpulse(
 
@@ -1647,6 +1877,10 @@ function createExplosionParticles(
             );
 
 
+        // ====================================================
+        // VELOCIDAD
+        // ====================================================
+
         const velocity =
             new THREE.Vector3(
 
@@ -1748,7 +1982,7 @@ function createExplosionParticles(
 
 
 // ============================================================
-// COLOR PARTÍCULAS
+// COLOR DE PARTÍCULAS
 // ============================================================
 
 function getExplosionColor() {
@@ -1958,7 +2192,7 @@ function createSmoke(
 
 
 // ============================================================
-// LUZ DE EXPLOSIÓN
+// LUZ
 // ============================================================
 
 function createExplosionLight(
@@ -2025,7 +2259,7 @@ function createExplosionLight(
 
 
 // ============================================================
-// ACTUALIZAR INDICADOR DE GRANADA
+// INDICADOR DE GRANADA
 // ============================================================
 
 function updateGrenadeIndicator(
@@ -2067,6 +2301,10 @@ function updateGrenadeIndicator(
         );
 
 
+    // ========================================================
+    // PARPADEO
+    // ========================================================
+
     const frequency =
         THREE.MathUtils.lerp(
 
@@ -2091,6 +2329,10 @@ function updateGrenadeIndicator(
         2;
 
 
+    // ========================================================
+    // EMISIÓN
+    // ========================================================
+
     indicator.material.emissiveIntensity =
         THREE.MathUtils.lerp(
             0.8,
@@ -2098,6 +2340,10 @@ function updateGrenadeIndicator(
             pulse
         );
 
+
+    // ========================================================
+    // ESCALA
+    // ========================================================
 
     const scale =
         THREE.MathUtils.lerp(
@@ -2111,6 +2357,10 @@ function updateGrenadeIndicator(
         scale
     );
 
+
+    // ========================================================
+    // LUZ
+    // ========================================================
 
     if (
         light
@@ -2165,6 +2415,10 @@ function updateEffects(
             );
 
 
+        // ====================================================
+        // FLASH
+        // ====================================================
+
         if (
             effect.type ===
             'flash'
@@ -2187,6 +2441,10 @@ function updateEffects(
 
         }
 
+
+        // ====================================================
+        // BOLA DE FUEGO
+        // ====================================================
 
         if (
             effect.type ===
@@ -2221,6 +2479,10 @@ function updateEffects(
         }
 
 
+        // ====================================================
+        // ONDA EXPANSIVA
+        // ====================================================
+
         if (
             effect.type ===
             'shockwave'
@@ -2254,6 +2516,10 @@ function updateEffects(
         }
 
 
+        // ====================================================
+        // PARTÍCULAS
+        // ====================================================
+
         if (
             effect.type ===
             'particles'
@@ -2276,6 +2542,10 @@ function updateEffects(
                     );
 
 
+                // =============================================
+                // GRAVEDAD
+                // =============================================
+
                 particle
                     .userData
                     .velocity
@@ -2283,6 +2553,10 @@ function updateEffects(
                     5.8 *
                     delta;
 
+
+                // =============================================
+                // GIRO
+                // =============================================
 
                 particle.rotation.x +=
 
@@ -2311,10 +2585,18 @@ function updateEffects(
                     delta;
 
 
+                // =============================================
+                // OPACIDAD
+                // =============================================
+
                 particle.material.opacity =
                     1 -
                     progress;
 
+
+                // =============================================
+                // TAMAÑO
+                // =============================================
 
                 particle.scale.setScalar(
 
@@ -2334,6 +2616,10 @@ function updateEffects(
 
         }
 
+
+        // ====================================================
+        // HUMO
+        // ====================================================
 
         if (
             effect.type ===
@@ -2382,6 +2668,10 @@ function updateEffects(
         }
 
 
+        // ====================================================
+        // LUZ
+        // ====================================================
+
         if (
             effect.type ===
             'light'
@@ -2396,6 +2686,10 @@ function updateEffects(
 
         }
 
+
+        // ====================================================
+        // ELIMINAR EFECTO
+        // ====================================================
 
         if (
             progress >=
@@ -2432,6 +2726,10 @@ export function updateGrenades(
     delta
 ) {
 
+    // ========================================================
+    // COOLDOWN
+    // ========================================================
+
     if (
         throwCooldown >
         0
@@ -2450,6 +2748,10 @@ export function updateGrenades(
     }
 
 
+    // ========================================================
+    // GRANADAS
+    // ========================================================
+
     for (
         let i =
             grenades.length -
@@ -2461,6 +2763,10 @@ export function updateGrenades(
         const grenade =
             grenades[i];
 
+
+        // ====================================================
+        // YA EXPLOTÓ
+        // ====================================================
 
         if (
             grenade.exploded
@@ -2476,6 +2782,10 @@ export function updateGrenades(
 
         }
 
+
+        // ====================================================
+        // SINCRONIZAR RAPIER -> THREE.JS
+        // ====================================================
 
         const position =
             grenade.body.translation();
@@ -2509,14 +2819,26 @@ export function updateGrenades(
         );
 
 
+        // ====================================================
+        // FUSIBLE
+        // ====================================================
+
         grenade.fuse -=
             delta;
 
+
+        // ====================================================
+        // INDICADOR
+        // ====================================================
 
         updateGrenadeIndicator(
             grenade
         );
 
+
+        // ====================================================
+        // EXPLOTAR
+        // ====================================================
 
         if (
             grenade.fuse <=
@@ -2538,6 +2860,10 @@ export function updateGrenades(
     }
 
 
+    // ========================================================
+    // EFECTOS
+    // ========================================================
+
     updateEffects(
         delta
     );
@@ -2554,6 +2880,10 @@ export function resetGrenades() {
     const world =
         getPhysicsWorld();
 
+
+    // ========================================================
+    // GRANADAS
+    // ========================================================
 
     for (
         const grenade of
@@ -2588,6 +2918,10 @@ export function resetGrenades() {
         0;
 
 
+    // ========================================================
+    // EFECTOS
+    // ========================================================
+
     for (
         const effect of
         effects
@@ -2608,6 +2942,10 @@ export function resetGrenades() {
     effects.length =
         0;
 
+
+    // ========================================================
+    // COOLDOWN
+    // ========================================================
 
     throwCooldown =
         0;
@@ -2641,6 +2979,10 @@ function disposeObject(
 
         (child) => {
 
+            // =================================================
+            // GEOMETRÍA
+            // =================================================
+
             if (
                 child.geometry
             ) {
@@ -2649,6 +2991,10 @@ function disposeObject(
 
             }
 
+
+            // =================================================
+            // MATERIAL
+            // =================================================
 
             if (
                 child.material
