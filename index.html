@@ -145,21 +145,10 @@
 
         <div class="control-row">
 
-            <span class="key">
-                W
-            </span>
-
-            <span class="key">
-                A
-            </span>
-
-            <span class="key">
-                S
-            </span>
-
-            <span class="key">
-                D
-            </span>
+            <span class="key">W</span>
+            <span class="key">A</span>
+            <span class="key">S</span>
+            <span class="key">D</span>
 
             <span>
                 Mover
@@ -233,10 +222,6 @@
 
         <div class="screen-content">
 
-            <!-- ==============================================
-                 ETIQUETA
-            =============================================== -->
-
             <span
                 id="screen-tag"
                 class="screen-tag"
@@ -244,10 +229,6 @@
                 MISIÓN TÁCTICA
             </span>
 
-
-            <!-- ==============================================
-                 TÍTULO
-            =============================================== -->
 
             <h1 id="screen-title">
 
@@ -260,10 +241,6 @@
             </h1>
 
 
-            <!-- ==============================================
-                 DESCRIPCIÓN
-            =============================================== -->
-
             <p
                 id="game-description"
                 class="game-description"
@@ -275,10 +252,6 @@
 
             </p>
 
-
-            <!-- ==============================================
-                 OBJETIVO DE LA MISIÓN
-            =============================================== -->
 
             <div
                 id="mission-box"
@@ -361,8 +334,62 @@
 
 
             <!-- ==============================================
-                 BOTÓN
+                 PARÁMETRO CONFIGURABLE
             =============================================== -->
+
+            <div class="grenade-power-panel">
+
+                <div class="grenade-power-header">
+
+                    <span>
+                        POTENCIA DE GRANADA
+                    </span>
+
+                    <strong id="grenade-power-value">
+                        100%
+                    </strong>
+
+                </div>
+
+
+                <input
+                    id="grenade-power"
+                    class="grenade-power-range"
+                    type="range"
+                    min="50"
+                    max="200"
+                    step="10"
+                    value="100"
+                    aria-label="Potencia de la explosión de la granada"
+                >
+
+
+                <div class="grenade-power-scale">
+
+                    <span>
+                        50%
+                    </span>
+
+                    <span>
+                        100%
+                    </span>
+
+                    <span>
+                        200%
+                    </span>
+
+                </div>
+
+
+                <p class="grenade-power-help">
+
+                    Modifica la fuerza física con la que la
+                    explosión desplaza los objetos.
+
+                </p>
+
+            </div>
+
 
             <button
                 id="start-button"
@@ -375,13 +402,9 @@
             </button>
 
 
-            <!-- ==============================================
-                 VERSIÓN
-            =============================================== -->
-
             <p class="version">
 
-                VERSION 8.0.0 · OPERATION IMPACT
+                VERSION 10.0.0 · POTENCIA CONFIGURABLE
 
             </p>
 

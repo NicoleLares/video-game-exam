@@ -1,6 +1,6 @@
 /* =========================================================
    OPERATION IMPACT
-   VERSION 1.0.1
+   VERSION 10.0.0
    ========================================================= */
 
 
@@ -28,7 +28,6 @@ body {
         sans-serif;
 
     background: #05090c;
-
     color: #ffffff;
 
     user-select: none;
@@ -208,7 +207,8 @@ body {
 }
 
 
-.hud-item span:last-child {
+.hud-item span:last-child,
+.hud-item strong {
     color: #ffffff;
 
     font-size: 13px;
@@ -358,7 +358,7 @@ body {
 
 
 /* =========================================================
-   PANTALLA INICIO
+   PANTALLA
    ========================================================= */
 
 .game-screen {
@@ -481,13 +481,17 @@ body {
 }
 
 
+/* =========================================================
+   OBJETIVO PRINCIPAL
+   ========================================================= */
+
 .mission-box {
     position: relative;
 
     max-width: 505px;
 
     margin:
-        0 auto 35px;
+        0 auto 25px;
 
     padding: 19px 22px;
 
@@ -582,12 +586,8 @@ body {
         rgba(0, 0, 0, 0.30);
 
     transition:
-        transform
-        0.15s
-        ease,
-        box-shadow
-        0.15s
-        ease;
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 
@@ -624,7 +624,7 @@ body {
 
 
 /* =========================================================
-   MIRA TPS
+   CROSSHAIR
    ========================================================= */
 
 #crosshair,
@@ -667,30 +667,14 @@ body {
         rgba(255, 255, 255, 0.35);
 
     transition:
-        width
-        0.12s
-        ease,
-        height
-        0.12s
-        ease,
-        opacity
-        0.12s
-        ease,
-        border-color
-        0.08s
-        ease,
-        box-shadow
-        0.08s
-        ease,
-        transform
-        0.08s
-        ease;
+        width 0.12s ease,
+        height 0.12s ease,
+        opacity 0.12s ease,
+        border-color 0.08s ease,
+        box-shadow 0.08s ease,
+        transform 0.08s ease;
 }
 
-
-/* =========================================================
-   LÍNEAS
-   ========================================================= */
 
 #crosshair::before,
 #crosshair::after,
@@ -706,12 +690,8 @@ body {
     opacity: 0;
 
     transition:
-        opacity
-        0.12s
-        ease,
-        background
-        0.08s
-        ease;
+        opacity 0.12s ease,
+        background 0.08s ease;
 }
 
 
@@ -781,10 +761,6 @@ body {
 }
 
 
-/* =========================================================
-   APUNTANDO
-   ========================================================= */
-
 #crosshair.crosshair-aiming,
 .crosshair.crosshair-aiming {
     width: 24px;
@@ -810,10 +786,6 @@ body {
     opacity: 1;
 }
 
-
-/* =========================================================
-   BLANCO DETECTADO
-   ========================================================= */
 
 #crosshair.crosshair-target,
 .crosshair.crosshair-target {
@@ -894,8 +866,889 @@ body {
 
 
 /* =========================================================
-   RESPONSIVE
+   DISPARO
    ========================================================= */
+
+#crosshair.crosshair-fire,
+.crosshair.crosshair-fire {
+    width: 34px;
+    height: 34px;
+
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.95),
+        0 0 10px rgba(255, 255, 255, 0.75);
+}
+
+
+#crosshair.crosshair-fire::before,
+.crosshair.crosshair-fire::before {
+    width: 52px;
+}
+
+
+#crosshair.crosshair-fire::after,
+.crosshair.crosshair-fire::after {
+    height: 52px;
+}
+
+
+#crosshair.crosshair-target.crosshair-fire,
+.crosshair.crosshair-target.crosshair-fire {
+    border-color: #00ff88;
+
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.95),
+        0 0 10px #00ff88,
+        0 0 20px rgba(0, 255, 136, 0.55);
+}
+
+
+/* =========================================================
+   HITMARKER
+   ========================================================= */
+
+#hitmarker {
+    position: fixed;
+
+    top: 50%;
+    left: 50%;
+
+    transform:
+        translate(-50%, -50%)
+        scale(1.45);
+
+    z-index: 10001;
+
+    pointer-events: none;
+
+    color: #ffffff;
+
+    font-size: 25px;
+
+    font-weight: 900;
+
+    line-height: 1;
+
+    opacity: 0;
+
+    text-shadow:
+        0 0 2px #000000,
+        0 0 5px rgba(255, 255, 255, 0.85);
+
+    transition:
+        opacity 0.04s linear,
+        transform 0.08s ease,
+        color 0.08s ease;
+}
+
+
+#hitmarker.hitmarker-visible {
+    opacity: 1;
+
+    transform:
+        translate(-50%, -50%)
+        scale(1);
+}
+
+
+#hitmarker.hitmarker-destroyed {
+    color: #ff5252;
+
+    font-size: 30px;
+
+    text-shadow:
+        0 0 2px #000000,
+        0 0 7px rgba(255, 82, 82, 0.95),
+        0 0 14px rgba(255, 82, 82, 0.55);
+}
+
+
+/* =========================================================
+   INFORMACIÓN DEL OBJETIVO
+   ========================================================= */
+
+#target-info {
+    position: fixed;
+
+    top:
+        calc(
+            50% - 82px
+        );
+
+    left: 50%;
+
+    transform:
+        translateX(-50%)
+        translateY(5px);
+
+    z-index: 9998;
+
+    width: 210px;
+
+    padding:
+        10px 12px;
+
+    pointer-events: none;
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(5, 11, 16, 0.88),
+            rgba(13, 22, 28, 0.82)
+        );
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.14);
+
+    border-radius: 6px;
+
+    box-shadow:
+        0 8px 22px
+        rgba(0, 0, 0, 0.32);
+
+    backdrop-filter:
+        blur(8px);
+
+    transition:
+        opacity 0.10s ease,
+        transform 0.10s ease,
+        visibility 0.10s;
+}
+
+
+#target-info.target-info-visible {
+    opacity: 1;
+
+    visibility: visible;
+
+    transform:
+        translateX(-50%)
+        translateY(0);
+}
+
+
+.target-name {
+    margin-bottom: 7px;
+
+    color: #e7edf1;
+
+    text-align: center;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 1.6px;
+}
+
+
+.target-health-bar {
+    width: 100%;
+
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 20px;
+
+    background:
+        rgba(255, 255, 255, 0.12);
+
+    box-shadow:
+        inset 0 0 3px
+        rgba(0, 0, 0, 0.8);
+}
+
+
+.target-health-fill {
+    width: 100%;
+
+    height: 100%;
+
+    border-radius: inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            #00c853,
+            #69f0ae
+        );
+
+    box-shadow:
+        0 0 7px
+        rgba(0, 255, 136, 0.55);
+
+    transition:
+        width 0.13s ease;
+}
+
+
+.target-health-text {
+    margin-top: 5px;
+
+    color:
+        rgba(255, 255, 255, 0.68);
+
+    text-align: center;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+/* =========================================================
+   HUD ARMA
+   ========================================================= */
+
+#weapon-hud {
+    position: fixed;
+
+    left: 24px;
+    bottom: 24px;
+
+    z-index: 40;
+
+    min-width: 190px;
+
+    padding: 15px 18px;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(7, 14, 20, 0.94),
+            rgba(15, 24, 31, 0.90)
+        );
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.14);
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 12px 30px
+        rgba(0, 0, 0, 0.38);
+
+    backdrop-filter:
+        blur(10px);
+}
+
+
+.weapon-name {
+    margin-bottom: 5px;
+
+    color:
+        rgba(255, 255, 255, 0.55);
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 2px;
+}
+
+
+.weapon-ammo {
+    display: flex;
+
+    align-items: baseline;
+
+    gap: 6px;
+
+    color: #ffffff;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+#weapon-magazine {
+    font-size: 35px;
+
+    font-weight: 900;
+
+    line-height: 1;
+}
+
+
+.weapon-divider {
+    color:
+        rgba(255, 255, 255, 0.28);
+
+    font-size: 18px;
+}
+
+
+#weapon-reserve {
+    color:
+        rgba(255, 255, 255, 0.62);
+
+    font-size: 18px;
+
+    font-weight: 700;
+}
+
+
+#weapon-reload {
+    margin-top: 8px;
+
+    color:
+        rgba(255, 255, 255, 0.48);
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 1.6px;
+}
+
+
+#weapon-hud.weapon-empty
+#weapon-magazine {
+    color: #ff5252;
+
+    text-shadow:
+        0 0 8px
+        rgba(255, 82, 82, 0.5);
+}
+
+
+#weapon-hud.weapon-empty
+#weapon-reload {
+    color: #ff7676;
+
+    animation:
+        ammoWarning
+        0.85s
+        infinite;
+}
+
+
+#weapon-hud.weapon-reloading
+#weapon-reload {
+    color: #ffd54f;
+}
+
+
+#weapon-hud.weapon-reloading
+#weapon-magazine {
+    opacity: 0.45;
+}
+
+
+@keyframes ammoWarning {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
+
+}
+
+
+/* ============================================================
+   OVERLAY
+   ============================================================ */
+
+body.game-screen-active #crosshair,
+body.game-screen-active #hitmarker,
+body.game-screen-active #target-info,
+body.game-screen-active #weapon-hud {
+    opacity: 0 !important;
+
+    visibility: hidden !important;
+
+    pointer-events: none !important;
+}
+
+
+/* ============================================================
+   RESULTADOS
+   ============================================================ */
+
+.result-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            3,
+            1fr
+        );
+
+    gap: 12px;
+
+    width: 100%;
+
+    max-width: 505px;
+
+    margin:
+        0 auto 25px;
+}
+
+
+.result-item {
+    position: relative;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 92px;
+
+    padding: 15px;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.075),
+            rgba(255, 255, 255, 0.025)
+        );
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.12);
+
+    border-radius: 7px;
+
+    box-shadow:
+        inset 0 1px 0
+        rgba(255, 255, 255, 0.05);
+}
+
+
+.result-label {
+    margin-bottom: 8px;
+
+    color:
+        rgba(255, 255, 255, 0.45);
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 2px;
+}
+
+
+.result-value {
+    color: #ffffff;
+
+    font-size: 24px;
+
+    font-weight: 900;
+
+    line-height: 1;
+
+    letter-spacing: 1px;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+/* ============================================================
+   VICTORIA
+   ============================================================ */
+
+.game-screen.screen-victory {
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(20, 65, 47, 0.94) 0%,
+            rgba(7, 25, 19, 0.98) 55%,
+            rgba(2, 8, 6, 0.995) 100%
+        );
+}
+
+
+.game-screen.screen-victory
+.screen-tag {
+    color: #7dffb4;
+
+    border-color:
+        rgba(
+            67,
+            255,
+            154,
+            0.45
+        );
+}
+
+
+.game-screen.screen-victory
+.screen-content h1 span {
+    -webkit-text-stroke:
+        2px
+        rgba(
+            67,
+            255,
+            154,
+            0.82
+        );
+}
+
+
+.game-screen.screen-victory
+.result-item {
+    border-color:
+        rgba(
+            67,
+            255,
+            154,
+            0.20
+        );
+}
+
+
+.game-screen.screen-victory
+.result-value {
+    color: #8dffbd;
+
+    text-shadow:
+        0 0 14px
+        rgba(
+            67,
+            255,
+            154,
+            0.20
+        );
+}
+
+
+.game-screen.screen-victory
+.btn-start {
+    border-color:
+        rgba(
+            112,
+            255,
+            173,
+            0.95
+        );
+
+    background:
+        #7dffb4;
+
+    color:
+        #07110c;
+}
+
+
+/* ============================================================
+   DERROTA
+   ============================================================ */
+
+.game-screen.screen-defeat {
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(72, 29, 29, 0.94) 0%,
+            rgba(29, 10, 12, 0.98) 55%,
+            rgba(10, 3, 4, 0.995) 100%
+        );
+}
+
+
+.game-screen.screen-defeat
+.screen-tag {
+    color: #ff8888;
+
+    border-color:
+        rgba(
+            255,
+            82,
+            82,
+            0.45
+        );
+}
+
+
+.game-screen.screen-defeat
+.screen-content h1 span {
+    -webkit-text-stroke:
+        2px
+        rgba(
+            255,
+            82,
+            82,
+            0.85
+        );
+}
+
+
+.game-screen.screen-defeat
+.result-item {
+    border-color:
+        rgba(
+            255,
+            82,
+            82,
+            0.20
+        );
+}
+
+
+.game-screen.screen-defeat
+.result-value {
+    color: #ff9696;
+
+    text-shadow:
+        0 0 14px
+        rgba(
+            255,
+            82,
+            82,
+            0.20
+        );
+}
+
+
+.game-screen.screen-defeat
+.btn-start {
+    border-color:
+        rgba(
+            255,
+            110,
+            110,
+            0.95
+        );
+
+    background:
+        #ff7676;
+
+    color:
+        #160606;
+}
+
+
+/* ============================================================
+   TRANSICIÓN
+   ============================================================ */
+
+.game-screen:not(.hidden)
+.screen-content {
+    animation:
+        operationScreenEnter
+        0.45s
+        ease-out;
+}
+
+
+@keyframes operationScreenEnter {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(18px)
+            scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+
+}
+
+
+/* ============================================================
+   POTENCIA DE GRANADA
+   ============================================================ */
+
+.grenade-power-panel {
+    width: 100%;
+
+    max-width: 505px;
+
+    margin:
+        0 auto 25px;
+
+    padding:
+        16px 18px 14px;
+
+    text-align: left;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.07),
+            rgba(255, 255, 255, 0.025)
+        );
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.13);
+
+    border-radius: 7px;
+
+    box-shadow:
+        inset 0 1px 0
+        rgba(255, 255, 255, 0.05);
+}
+
+
+.grenade-power-header {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 18px;
+
+    margin-bottom: 12px;
+}
+
+
+.grenade-power-header span {
+    color: #9ca9b1;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 2px;
+}
+
+
+#grenade-power-value {
+    min-width: 58px;
+
+    color: #ffffff;
+
+    text-align: right;
+
+    font-size: 18px;
+
+    font-weight: 900;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+.grenade-power-range {
+    width: 100%;
+
+    height: 24px;
+
+    margin: 0;
+
+    cursor: pointer;
+
+    accent-color: #ffffff;
+
+    pointer-events: auto;
+}
+
+
+.grenade-power-scale {
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-top: 2px;
+
+    color:
+        rgba(255, 255, 255, 0.40);
+
+    font-size: 8px;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+}
+
+
+.grenade-power-help {
+    margin:
+        9px 0 0;
+
+    color:
+        rgba(255, 255, 255, 0.46);
+
+    font-size: 10px;
+
+    line-height: 1.45;
+}
+
+
+.game-screen.screen-victory
+.grenade-power-panel {
+    border-color:
+        rgba(
+            67,
+            255,
+            154,
+            0.18
+        );
+}
+
+
+.game-screen.screen-victory
+#grenade-power-value {
+    color: #8dffbd;
+}
+
+
+.game-screen.screen-victory
+.grenade-power-range {
+    accent-color: #7dffb4;
+}
+
+
+.game-screen.screen-defeat
+.grenade-power-panel {
+    border-color:
+        rgba(
+            255,
+            82,
+            82,
+            0.18
+        );
+}
+
+
+.game-screen.screen-defeat
+#grenade-power-value {
+    color: #ff9696;
+}
+
+
+.game-screen.screen-defeat
+.grenade-power-range {
+    accent-color: #ff7676;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 
 @media (
     max-width: 900px
@@ -986,468 +1839,6 @@ body {
         height: 21px;
     }
 
-}
-/* =========================================================
-   OPERATION IMPACT v1.0.3
-   FEEDBACK DE COMBATE
-   ========================================================= */
-
-
-/* =========================================================
-   MIRA AL DISPARAR
-   ========================================================= */
-
-#crosshair.crosshair-fire,
-.crosshair.crosshair-fire {
-    width: 34px;
-    height: 34px;
-
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.95),
-        0 0 10px rgba(255, 255, 255, 0.75);
-}
-
-
-#crosshair.crosshair-fire::before,
-.crosshair.crosshair-fire::before {
-    width: 52px;
-}
-
-
-#crosshair.crosshair-fire::after,
-.crosshair.crosshair-fire::after {
-    height: 52px;
-}
-
-
-/* =========================================================
-   MIRA SOBRE OBJETIVO + DISPARO
-   ========================================================= */
-
-#crosshair.crosshair-target.crosshair-fire,
-.crosshair.crosshair-target.crosshair-fire {
-    border-color: #00ff88;
-
-    box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.95),
-        0 0 10px #00ff88,
-        0 0 20px rgba(0, 255, 136, 0.55);
-}
-
-
-/* =========================================================
-   HITMARKER
-   ========================================================= */
-
-#hitmarker {
-    position: fixed;
-
-    top: 50%;
-    left: 50%;
-
-    transform:
-        translate(-50%, -50%)
-        scale(1.45);
-
-    z-index: 10001;
-
-    pointer-events: none;
-
-    color: #ffffff;
-
-    font-size: 25px;
-
-    font-weight: 900;
-
-    line-height: 1;
-
-    opacity: 0;
-
-    text-shadow:
-        0 0 2px #000000,
-        0 0 5px rgba(255, 255, 255, 0.85);
-
-    transition:
-        opacity 0.04s linear,
-        transform 0.08s ease,
-        color 0.08s ease;
-}
-
-
-#hitmarker.hitmarker-visible {
-    opacity: 1;
-
-    transform:
-        translate(-50%, -50%)
-        scale(1);
-}
-
-
-/* =========================================================
-   HITMARKER DE DESTRUCCIÓN
-   ========================================================= */
-
-#hitmarker.hitmarker-destroyed {
-    color: #ff5252;
-
-    font-size: 30px;
-
-    text-shadow:
-        0 0 2px #000000,
-        0 0 7px rgba(255, 82, 82, 0.95),
-        0 0 14px rgba(255, 82, 82, 0.55);
-}
-
-
-/* =========================================================
-   INFORMACIÓN DEL OBJETIVO
-   ========================================================= */
-
-#target-info {
-    position: fixed;
-
-    top:
-        calc(
-            50% - 82px
-        );
-
-    left: 50%;
-
-    transform:
-        translateX(-50%)
-        translateY(5px);
-
-    z-index: 9998;
-
-    width: 210px;
-
-    padding:
-        10px 12px;
-
-    pointer-events: none;
-
-    opacity: 0;
-
-    visibility: hidden;
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(5, 11, 16, 0.88),
-            rgba(13, 22, 28, 0.82)
-        );
-
-    border:
-        1px solid
-        rgba(255, 255, 255, 0.14);
-
-    border-radius: 6px;
-
-    box-shadow:
-        0 8px 22px
-        rgba(0, 0, 0, 0.32);
-
-    backdrop-filter:
-        blur(8px);
-
-    transition:
-        opacity 0.10s ease,
-        transform 0.10s ease,
-        visibility 0.10s;
-}
-
-
-/* =========================================================
-   MOSTRAR OBJETIVO
-   ========================================================= */
-
-#target-info.target-info-visible {
-    opacity: 1;
-
-    visibility: visible;
-
-    transform:
-        translateX(-50%)
-        translateY(0);
-}
-
-
-/* =========================================================
-   NOMBRE DEL OBJETIVO
-   ========================================================= */
-
-.target-name {
-    margin-bottom: 7px;
-
-    color: #e7edf1;
-
-    text-align: center;
-
-    font-size: 9px;
-
-    font-weight: 800;
-
-    letter-spacing: 1.6px;
-}
-
-
-/* =========================================================
-   BARRA DE VIDA
-   ========================================================= */
-
-.target-health-bar {
-    width: 100%;
-
-    height: 5px;
-
-    overflow: hidden;
-
-    border-radius: 20px;
-
-    background:
-        rgba(255, 255, 255, 0.12);
-
-    box-shadow:
-        inset 0 0 3px
-        rgba(0, 0, 0, 0.8);
-}
-
-
-/* =========================================================
-   VIDA RESTANTE
-   ========================================================= */
-
-.target-health-fill {
-    width: 100%;
-
-    height: 100%;
-
-    border-radius: inherit;
-
-    background:
-        linear-gradient(
-            90deg,
-            #00c853,
-            #69f0ae
-        );
-
-    box-shadow:
-        0 0 7px
-        rgba(0, 255, 136, 0.55);
-
-    transition:
-        width 0.13s ease;
-}
-
-
-/* =========================================================
-   TEXTO DE VIDA
-   ========================================================= */
-
-.target-health-text {
-    margin-top: 5px;
-
-    color:
-        rgba(255, 255, 255, 0.68);
-
-    text-align: center;
-
-    font-size: 9px;
-
-    font-weight: 700;
-
-    letter-spacing: 1px;
-
-    font-variant-numeric:
-        tabular-nums;
-}
-
-/* =========================================================
-   OPERATION IMPACT v1.0.4
-   HUD DE ARMA
-   ========================================================= */
-
-#weapon-hud {
-    position: fixed;
-
-    left: 24px;
-    bottom: 24px;
-
-    z-index: 40;
-
-    min-width: 190px;
-
-    padding: 15px 18px;
-
-    pointer-events: none;
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(7, 14, 20, 0.94),
-            rgba(15, 24, 31, 0.90)
-        );
-
-    border:
-        1px solid
-        rgba(255, 255, 255, 0.14);
-
-    border-radius: 8px;
-
-    box-shadow:
-        0 12px 30px
-        rgba(0, 0, 0, 0.38);
-
-    backdrop-filter:
-        blur(10px);
-}
-
-
-/* =========================================================
-   NOMBRE DEL ARMA
-   ========================================================= */
-
-.weapon-name {
-    margin-bottom: 5px;
-
-    color:
-        rgba(255, 255, 255, 0.55);
-
-    font-size: 10px;
-
-    font-weight: 800;
-
-    letter-spacing: 2px;
-}
-
-
-/* =========================================================
-   MUNICIÓN
-   ========================================================= */
-
-.weapon-ammo {
-    display: flex;
-
-    align-items: baseline;
-
-    gap: 6px;
-
-    color: #ffffff;
-
-    font-variant-numeric:
-        tabular-nums;
-}
-
-
-#weapon-magazine {
-    font-size: 35px;
-
-    font-weight: 900;
-
-    line-height: 1;
-}
-
-
-.weapon-divider {
-    color:
-        rgba(255, 255, 255, 0.28);
-
-    font-size: 18px;
-}
-
-
-#weapon-reserve {
-    color:
-        rgba(255, 255, 255, 0.62);
-
-    font-size: 18px;
-
-    font-weight: 700;
-}
-
-
-/* =========================================================
-   RECARGA
-   ========================================================= */
-
-#weapon-reload {
-    margin-top: 8px;
-
-    color:
-        rgba(255, 255, 255, 0.48);
-
-    font-size: 9px;
-
-    font-weight: 800;
-
-    letter-spacing: 1.6px;
-}
-
-
-/* =========================================================
-   CARGADOR VACÍO
-   ========================================================= */
-
-#weapon-hud.weapon-empty
-#weapon-magazine {
-    color: #ff5252;
-
-    text-shadow:
-        0 0 8px
-        rgba(255, 82, 82, 0.5);
-}
-
-
-#weapon-hud.weapon-empty
-#weapon-reload {
-    color: #ff7676;
-
-    animation:
-        ammoWarning
-        0.85s
-        infinite;
-}
-
-
-/* =========================================================
-   RECARGANDO
-   ========================================================= */
-
-#weapon-hud.weapon-reloading
-#weapon-reload {
-    color: #ffd54f;
-}
-
-
-#weapon-hud.weapon-reloading
-#weapon-magazine {
-    opacity: 0.45;
-}
-
-
-/* =========================================================
-   ANIMACIÓN
-   ========================================================= */
-
-@keyframes ammoWarning {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.35;
-    }
-
-}
-
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 600px) {
 
     #weapon-hud {
         left: 10px;
@@ -1468,362 +1859,6 @@ body {
         font-size: 15px;
     }
 
-}
-
-/* ============================================================
-   OPERATION IMPACT
-   VERSION 8.0.0
-   PANTALLAS DE VICTORIA / DERROTA
-   ============================================================ */
-
-
-/* ============================================================
-   OCULTAR ELEMENTOS DE COMBATE CUANDO HAY OVERLAY
-   ============================================================ */
-
-body.game-screen-active #crosshair,
-body.game-screen-active #hitmarker,
-body.game-screen-active #target-info,
-body.game-screen-active #weapon-hud {
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-}
-
-
-/* ============================================================
-   RESULTADOS
-   ============================================================ */
-
-.result-summary {
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            3,
-            1fr
-        );
-
-    gap: 12px;
-
-    width: 100%;
-    max-width: 505px;
-
-    margin:
-        0 auto 32px;
-}
-
-
-/* ============================================================
-   TARJETA DE RESULTADO
-   ============================================================ */
-
-.result-item {
-    position: relative;
-
-    display: flex;
-
-    flex-direction: column;
-
-    align-items: center;
-    justify-content: center;
-
-    min-height: 92px;
-
-    padding: 15px;
-
-    overflow: hidden;
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(255, 255, 255, 0.075),
-            rgba(255, 255, 255, 0.025)
-        );
-
-    border:
-        1px solid
-        rgba(255, 255, 255, 0.12);
-
-    border-radius: 7px;
-
-    box-shadow:
-        inset 0 1px 0
-        rgba(255, 255, 255, 0.05);
-}
-
-
-/* ============================================================
-   ETIQUETA DE RESULTADO
-   ============================================================ */
-
-.result-label {
-    margin-bottom: 8px;
-
-    color:
-        rgba(255, 255, 255, 0.45);
-
-    font-size: 9px;
-
-    font-weight: 800;
-
-    letter-spacing: 2px;
-}
-
-
-/* ============================================================
-   VALOR DE RESULTADO
-   ============================================================ */
-
-.result-value {
-    color: #ffffff;
-
-    font-size: 24px;
-
-    font-weight: 900;
-
-    line-height: 1;
-
-    letter-spacing: 1px;
-
-    font-variant-numeric:
-        tabular-nums;
-}
-
-
-/* ============================================================
-   VICTORIA
-   ============================================================ */
-
-.game-screen.screen-victory {
-    background:
-        radial-gradient(
-            circle at center,
-            rgba(20, 65, 47, 0.94) 0%,
-            rgba(7, 25, 19, 0.98) 55%,
-            rgba(2, 8, 6, 0.995) 100%
-        );
-}
-
-
-.game-screen.screen-victory
-.screen-tag {
-    color: #7dffb4;
-
-    border-color:
-        rgba(
-            67,
-            255,
-            154,
-            0.45
-        );
-
-    box-shadow:
-        0 0 20px
-        rgba(
-            67,
-            255,
-            154,
-            0.08
-        );
-}
-
-
-.game-screen.screen-victory
-.screen-content h1 span {
-    -webkit-text-stroke:
-        2px
-        rgba(
-            67,
-            255,
-            154,
-            0.82
-        );
-}
-
-
-.game-screen.screen-victory
-.result-item {
-    border-color:
-        rgba(
-            67,
-            255,
-            154,
-            0.20
-        );
-}
-
-
-.game-screen.screen-victory
-.result-value {
-    color: #8dffbd;
-
-    text-shadow:
-        0 0 14px
-        rgba(
-            67,
-            255,
-            154,
-            0.20
-        );
-}
-
-
-.game-screen.screen-victory
-.btn-start {
-    border-color:
-        rgba(
-            112,
-            255,
-            173,
-            0.95
-        );
-
-    background:
-        #7dffb4;
-
-    color:
-        #07110c;
-}
-
-
-/* ============================================================
-   DERROTA
-   ============================================================ */
-
-.game-screen.screen-defeat {
-    background:
-        radial-gradient(
-            circle at center,
-            rgba(72, 29, 29, 0.94) 0%,
-            rgba(29, 10, 12, 0.98) 55%,
-            rgba(10, 3, 4, 0.995) 100%
-        );
-}
-
-
-.game-screen.screen-defeat
-.screen-tag {
-    color: #ff8888;
-
-    border-color:
-        rgba(
-            255,
-            82,
-            82,
-            0.45
-        );
-
-    box-shadow:
-        0 0 20px
-        rgba(
-            255,
-            82,
-            82,
-            0.08
-        );
-}
-
-
-.game-screen.screen-defeat
-.screen-content h1 span {
-    -webkit-text-stroke:
-        2px
-        rgba(
-            255,
-            82,
-            82,
-            0.85
-        );
-}
-
-
-.game-screen.screen-defeat
-.result-item {
-    border-color:
-        rgba(
-            255,
-            82,
-            82,
-            0.20
-        );
-}
-
-
-.game-screen.screen-defeat
-.result-value {
-    color: #ff9696;
-
-    text-shadow:
-        0 0 14px
-        rgba(
-            255,
-            82,
-            82,
-            0.20
-        );
-}
-
-
-.game-screen.screen-defeat
-.btn-start {
-    border-color:
-        rgba(
-            255,
-            110,
-            110,
-            0.95
-        );
-
-    background:
-        #ff7676;
-
-    color:
-        #160606;
-}
-
-
-/* ============================================================
-   TRANSICIÓN DE PANTALLA
-   ============================================================ */
-
-.game-screen:not(.hidden)
-.screen-content {
-    animation:
-        operationScreenEnter
-        0.45s
-        ease-out;
-}
-
-
-@keyframes operationScreenEnter {
-
-    from {
-        opacity: 0;
-
-        transform:
-            translateY(18px)
-            scale(0.985);
-    }
-
-    to {
-        opacity: 1;
-
-        transform:
-            translateY(0)
-            scale(1);
-    }
-
-}
-
-
-/* ============================================================
-   RESPONSIVE DE RESULTADOS
-   ============================================================ */
-
-@media (
-    max-width: 600px
-) {
 
     .result-summary {
         grid-template-columns:
@@ -1833,7 +1868,7 @@ body.game-screen-active #weapon-hud {
 
         gap: 8px;
 
-        margin-bottom: 22px;
+        margin-bottom: 18px;
     }
 
 
@@ -1853,6 +1888,36 @@ body.game-screen-active #weapon-hud {
 
     .result-value {
         font-size: 20px;
+    }
+
+
+    .grenade-power-panel {
+        max-width: 320px;
+
+        margin-bottom: 18px;
+
+        padding:
+            12px 13px;
+    }
+
+
+    .grenade-power-header {
+        margin-bottom: 8px;
+    }
+
+
+    .grenade-power-header span {
+        font-size: 8px;
+    }
+
+
+    #grenade-power-value {
+        font-size: 16px;
+    }
+
+
+    .grenade-power-help {
+        font-size: 9px;
     }
 
 }

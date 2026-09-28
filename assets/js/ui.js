@@ -2,11 +2,15 @@ import {
     GAME_STATES
 } from './game.js';
 
+import {
+    setGrenadePower
+} from './grenades.js';
+
 
 // ============================================================
 // OPERATION IMPACT
 // UI.JS
-// VERSION 8.0.0
+// VERSION 10.0.0
 // ============================================================
 
 
@@ -101,6 +105,21 @@ const versionElement =
 
 
 // ============================================================
+// CONFIGURACIÓN DE GRANADA
+// ============================================================
+
+const grenadePowerInput =
+    document.getElementById(
+        'grenade-power'
+    );
+
+const grenadePowerValue =
+    document.getElementById(
+        'grenade-power-value'
+    );
+
+
+// ============================================================
 // ESTADO INTERNO DE UI
 // ============================================================
 
@@ -123,6 +142,9 @@ let currentSeconds =
     120;
 
 let startButtonConfigured =
+    false;
+
+let grenadePowerConfigured =
     false;
 
 
@@ -159,6 +181,80 @@ function formatTime(
         `${String(minutes).padStart(2, '0')}:` +
         `${String(remainingSeconds).padStart(2, '0')}`
     );
+
+}
+
+
+// ============================================================
+// ACTUALIZAR POTENCIA DE GRANADA
+// ============================================================
+
+function applyGrenadePowerFromUI() {
+
+    if (
+        !grenadePowerInput
+    ) {
+
+        return;
+
+    }
+
+
+    const appliedPower =
+        setGrenadePower(
+            grenadePowerInput.value
+        );
+
+
+    grenadePowerInput.value =
+        String(
+            appliedPower
+        );
+
+
+    if (
+        grenadePowerValue
+    ) {
+
+        grenadePowerValue.textContent =
+            `${Math.round(appliedPower)}%`;
+
+    }
+
+}
+
+
+// ============================================================
+// CONFIGURAR SLIDER UNA SOLA VEZ
+// ============================================================
+
+function setupGrenadePowerControl() {
+
+    if (
+        grenadePowerConfigured ||
+        !grenadePowerInput
+    ) {
+
+        return;
+
+    }
+
+
+    grenadePowerConfigured =
+        true;
+
+
+    grenadePowerInput.addEventListener(
+        'input',
+        () => {
+
+            applyGrenadePowerFromUI();
+
+        }
+    );
+
+
+    applyGrenadePowerFromUI();
 
 }
 
@@ -410,7 +506,7 @@ function showInitialScreen() {
     ) {
 
         versionElement.textContent =
-            'VERSION 8.0.0 · OPERATION IMPACT';
+            'VERSION 10.0.0 · POTENCIA CONFIGURABLE';
 
     }
 
@@ -434,9 +530,7 @@ function showVictoryScreen() {
 
     releaseMouse();
 
-
     hideCombatCrosshair();
-
 
     setOverlayActive(
         true
@@ -541,9 +635,7 @@ function showDefeatScreen() {
 
     releaseMouse();
 
-
     hideCombatCrosshair();
-
 
     setOverlayActive(
         true
@@ -657,10 +749,6 @@ export function setupStartButton(
         'click',
         () => {
 
-            // =================================================
-            // OCULTAR PANTALLA
-            // =================================================
-
             startScreen?.classList.add(
                 'hidden'
             );
@@ -676,25 +764,13 @@ export function setupStartButton(
             );
 
 
-            // =================================================
-            // QUITAR OVERLAY
-            // =================================================
-
             setOverlayActive(
                 false
             );
 
 
-            // =================================================
-            // MOSTRAR MIRA
-            // =================================================
-
             showCombatCrosshair();
 
-
-            // =================================================
-            // EJECUTAR CALLBACK DE MAIN.JS
-            // =================================================
 
             if (
                 callback
@@ -735,14 +811,9 @@ export function updateGameStatus(
     }
 
 
-    // ========================================================
-    // SOLO EJECUTAR CAMBIO DE PANTALLA
-    // CUANDO CAMBIA EL ESTADO
-    // ========================================================
-
     if (
         state ===
-            previousState
+        previousState
     ) {
 
         return;
@@ -753,10 +824,6 @@ export function updateGameStatus(
     previousState =
         state;
 
-
-    // ========================================================
-    // VICTORIA
-    // ========================================================
 
     if (
         state ===
@@ -769,10 +836,6 @@ export function updateGameStatus(
 
     }
 
-
-    // ========================================================
-    // DERROTA
-    // ========================================================
 
     if (
         state ===
@@ -959,6 +1022,9 @@ export function resetUI() {
     updateTimer(
         120
     );
+
+
+    setupGrenadePowerControl();
 
 
     showInitialScreen();
